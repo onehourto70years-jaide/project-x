@@ -171,10 +171,10 @@ export default function RoutineDashboard() {
   return (
     <AppLayout>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="font-chivo font-bold text-2xl sm:text-3xl flex items-center gap-3">
-            <Clock className="w-8 h-8 text-neon-purple" />
+            <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-neon-purple" />
             Routine Tracker
           </h1>
           <p className="text-neutral-400 text-sm mt-1">
@@ -182,15 +182,13 @@ export default function RoutineDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-right mr-4">
-            <p className="text-3xl font-mono font-bold text-neon-cyan">{formatTime(currentTime)}</p>
-          </div>
+          <p className="text-2xl sm:text-3xl font-mono font-bold text-neon-cyan">{formatTime(currentTime)}</p>
           <Button 
             onClick={() => navigate('/routines/builder')}
-            className="btn-primary"
+            className="btn-primary text-sm"
             data-testid="create-routine-btn"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1" />
             New Routine
           </Button>
         </div>

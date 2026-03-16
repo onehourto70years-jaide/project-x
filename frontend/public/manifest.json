@@ -1,0 +1,46 @@
+{
+  "short_name": "ElementEats",
+  "name": "ElementEats - Health & Routine Tracker",
+  "description": "Track nutrition, workouts, routines, and analyze food at the molecular level",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#050505",
+  "background_color": "#050505",
+  "scope": "/",
+  "categories": ["health", "fitness", "food"],
+  "shortcuts": [
+    {
+      "name": "Food Log",
+      "short_name": "Food",
+      "url": "/food-log",
+      "icons": [{"src": "icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Routines",
+      "short_name": "Routines",
+      "url": "/routines",
+      "icons": [{"src": "icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Health Dashboard",
+      "short_name": "Health",
+      "url": "/health",
+      "icons": [{"src": "icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}

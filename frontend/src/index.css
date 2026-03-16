@@ -219,6 +219,92 @@
   background: #444;
 }
 
+/* ========== PWA & Mobile Native Styles ========== */
+
+/* Safe area insets for notched devices (iPhone X+, Android) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Standalone mode adjustments (when installed as PWA) */
+@media (display-mode: standalone) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Hide the Emergent badge in standalone mode for cleaner native look */
+  #emergent-badge {
+    display: none !important;
+  }
+}
+
+/* Touch optimization */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets on mobile */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on interactive elements */
+  button, a, [role="button"], nav {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Remove hover effects on touch devices to prevent sticky states */
+  .glass-card-hover:hover {
+    border-color: inherit;
+    background-color: inherit;
+  }
+
+  /* Hide scrollbars on mobile */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Pull-to-refresh prevention for PWA */
+html {
+  overscroll-behavior-y: contain;
+}
+
+/* Prevent bounce scrolling on iOS */
+body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Push the Emergent badge above the mobile bottom nav */
+@media (max-width: 1023px) {
+  #emergent-badge {
+    bottom: 72px !important;
+  }
+}
+
 /* Data wrapper fix */
 @layer base {
   [data-debug-wrapper="true"] {
