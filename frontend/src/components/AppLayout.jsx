@@ -8,13 +8,12 @@ import {
 
 const NAV_ITEMS = [
   { path: '/health', label: 'Dashboard', icon: Home, color: 'neon-cyan' },
-  { path: '/food-log', label: 'Food Log', icon: Utensils, color: 'neon-gold' },
+  { path: '/food-log', label: 'Food & Analysis', icon: Utensils, color: 'neon-gold' },
   { path: '/workouts', label: 'Workouts', icon: Dumbbell, color: 'neon-purple' },
   { path: '/progress', label: 'Progress', icon: TrendingUp, color: 'neon-green' },
   { path: '/goals', label: 'Goals', icon: Target, color: 'neon-red' },
   { path: '/meal-planner', label: 'Meal Plan', icon: Calendar, color: 'neon-cyan' },
-  { path: '/dashboard', label: 'Analyzer', icon: Atom, color: 'neon-cyan' },
-  { path: '/recipes', label: 'Recipes', icon: BookOpen, color: 'neon-purple' },
+  { path: '/recipes', label: 'Saved Recipes', icon: BookOpen, color: 'neon-purple' },
 ];
 
 export const AppLayout = ({ children, title }) => {

@@ -323,16 +323,9 @@ async def search_usda_foods(query: str, page_size: int = 10) -> List[Dict]:
     """Search USDA FoodData Central for foods"""
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(
-                "https://api.nal.usda.gov/fdc/v1/foods/search",
-                params={
-                    "api_key": USDA_API_KEY,
-                    "query": query,
-                    "pageSize": page_size,
-                    "dataType": ["Foundation", "SR Legacy", "Survey (FNDDS)"]
-                },
-                timeout=15.0
-            )
+            # Build URL manually to avoid encoding issues with dataType
+            url = f"https://api.nal.usda.gov/fdc/v1/foods/search?api_key={USDA_API_KEY}&query={query}&pageSize={page_size}"
+            response = await client.get(url, timeout=15.0)
             if response.status_code == 200:
                 data = response.json()
                 return data.get("foods", [])
