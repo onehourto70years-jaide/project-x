@@ -12,6 +12,9 @@ import WorkoutLog from "@/pages/WorkoutLog";
 import Progress from "@/pages/Progress";
 import Goals from "@/pages/Goals";
 import MealPlanner from "@/pages/MealPlanner";
+import RoutineDashboard from "@/pages/RoutineDashboard";
+import RoutineBuilder from "@/pages/RoutineBuilder";
+import RoutineAnalytics from "@/pages/RoutineAnalytics";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -152,6 +155,26 @@ const AppRouter = () => {
       <Route path="/meal-planner" element={
         <ProtectedRoute>
           <MealPlanner />
+        </ProtectedRoute>
+      } />
+      <Route path="/routines" element={
+        <ProtectedRoute>
+          <RoutineDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/routines/builder" element={
+        <ProtectedRoute>
+          <RoutineBuilder />
+        </ProtectedRoute>
+      } />
+      <Route path="/routines/builder/:routineId" element={
+        <ProtectedRoute>
+          <RoutineBuilder />
+        </ProtectedRoute>
+      } />
+      <Route path="/routines/analytics" element={
+        <ProtectedRoute>
+          <RoutineAnalytics />
         </ProtectedRoute>
       } />
       <Route path="/recipes" element={

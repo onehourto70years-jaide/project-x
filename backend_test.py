@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timedelta
 
 class HealthTrackingAPITester:
-    def __init__(self, base_url="https://element-eats.preview.emergentagent.com"):
+    def __init__(self, base_url="https://wellness-workflow-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = "test_health_session_123"
         self.headers = {

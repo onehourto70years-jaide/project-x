@@ -1664,11 +1664,717 @@ async def get_workout_types():
     """Get available workout types"""
     return {"workout_types": WORKOUT_TYPES}
 
+# ============== ROUTINE SCHEDULING MODELS ==============
+
+class ActivityCreate(BaseModel):
+    title: str
+    start_time: str  # HH:MM format
+    end_time: str  # HH:MM format
+    category: str = "personal"  # work, health, personal, sleep, focus, break
+    priority: str = "medium"  # low, medium, high, critical
+    description: Optional[str] = None
+    color: Optional[str] = None
+
+class RoutineCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    schedule_type: str = "daily"  # daily, weekly, custom
+    days_of_week: List[int] = [0, 1, 2, 3, 4, 5, 6]  # 0=Monday, 6=Sunday
+    activities: List[ActivityCreate] = []
+    is_template: bool = False
+    template_category: Optional[str] = None  # productivity, fitness, student, custom
+
+class RoutineUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    schedule_type: Optional[str] = None
+    days_of_week: Optional[List[int]] = None
+    is_active: Optional[bool] = None
+    activities: Optional[List[ActivityCreate]] = None
+
+class ActivityLog(BaseModel):
+    activity_id: str
+    status: str  # completed, skipped, late, in_progress
+    actual_start: Optional[str] = None
+    actual_end: Optional[str] = None
+    notes: Optional[str] = None
+
+class ReminderSettings(BaseModel):
+    enabled: bool = True
+    before_minutes: int = 5
+    at_start: bool = True
+    if_late: bool = True
+    escalation: bool = False
+
+# Activity categories with colors
+ACTIVITY_CATEGORIES = {
+    "work": {"name": "Work", "color": "#7000FF", "icon": "briefcase"},
+    "health": {"name": "Health", "color": "#00FF94", "icon": "heart"},
+    "personal": {"name": "Personal", "color": "#00F0FF", "icon": "user"},
+    "sleep": {"name": "Sleep", "color": "#6366F1", "icon": "moon"},
+    "focus": {"name": "Focus", "color": "#FF0033", "icon": "target"},
+    "break": {"name": "Break", "color": "#FFD600", "icon": "coffee"},
+    "exercise": {"name": "Exercise", "color": "#00FF94", "icon": "dumbbell"},
+    "meal": {"name": "Meal", "color": "#FF6600", "icon": "utensils"},
+    "learning": {"name": "Learning", "color": "#00F0FF", "icon": "book"},
+    "social": {"name": "Social", "color": "#CC00FF", "icon": "users"},
+}
+
+# Pre-built routine templates
+ROUTINE_TEMPLATES = [
+    {
+        "id": "productivity",
+        "name": "Productivity Master",
+        "description": "Optimized for deep work and focus",
+        "category": "productivity",
+        "activities": [
+            {"title": "Morning Routine", "start_time": "06:00", "end_time": "07:00", "category": "personal", "priority": "high"},
+            {"title": "Deep Work Block 1", "start_time": "07:00", "end_time": "10:00", "category": "focus", "priority": "critical"},
+            {"title": "Break", "start_time": "10:00", "end_time": "10:15", "category": "break", "priority": "medium"},
+            {"title": "Email & Communication", "start_time": "10:15", "end_time": "11:00", "category": "work", "priority": "medium"},
+            {"title": "Deep Work Block 2", "start_time": "11:00", "end_time": "13:00", "category": "focus", "priority": "critical"},
+            {"title": "Lunch Break", "start_time": "13:00", "end_time": "14:00", "category": "meal", "priority": "high"},
+            {"title": "Meetings & Collaboration", "start_time": "14:00", "end_time": "16:00", "category": "work", "priority": "medium"},
+            {"title": "Deep Work Block 3", "start_time": "16:00", "end_time": "18:00", "category": "focus", "priority": "high"},
+            {"title": "Exercise", "start_time": "18:00", "end_time": "19:00", "category": "exercise", "priority": "high"},
+            {"title": "Dinner & Family", "start_time": "19:00", "end_time": "21:00", "category": "personal", "priority": "high"},
+            {"title": "Wind Down", "start_time": "21:00", "end_time": "22:00", "category": "personal", "priority": "medium"},
+        ]
+    },
+    {
+        "id": "fitness",
+        "name": "Fitness Focus",
+        "description": "Balanced routine with exercise priority",
+        "category": "fitness",
+        "activities": [
+            {"title": "Wake Up & Hydrate", "start_time": "05:30", "end_time": "06:00", "category": "health", "priority": "high"},
+            {"title": "Morning Workout", "start_time": "06:00", "end_time": "07:30", "category": "exercise", "priority": "critical"},
+            {"title": "Breakfast & Prep", "start_time": "07:30", "end_time": "08:30", "category": "meal", "priority": "high"},
+            {"title": "Work Block", "start_time": "09:00", "end_time": "12:00", "category": "work", "priority": "high"},
+            {"title": "Healthy Lunch", "start_time": "12:00", "end_time": "13:00", "category": "meal", "priority": "high"},
+            {"title": "Work Block", "start_time": "13:00", "end_time": "17:00", "category": "work", "priority": "high"},
+            {"title": "Evening Workout", "start_time": "17:30", "end_time": "18:30", "category": "exercise", "priority": "high"},
+            {"title": "Dinner", "start_time": "19:00", "end_time": "20:00", "category": "meal", "priority": "high"},
+            {"title": "Recovery & Stretching", "start_time": "20:00", "end_time": "20:30", "category": "health", "priority": "medium"},
+            {"title": "Sleep", "start_time": "22:00", "end_time": "05:30", "category": "sleep", "priority": "critical"},
+        ]
+    },
+    {
+        "id": "student",
+        "name": "Student Schedule",
+        "description": "Balanced study and life routine",
+        "category": "student",
+        "activities": [
+            {"title": "Morning Routine", "start_time": "07:00", "end_time": "08:00", "category": "personal", "priority": "high"},
+            {"title": "Study Block 1", "start_time": "08:00", "end_time": "10:00", "category": "learning", "priority": "critical"},
+            {"title": "Break", "start_time": "10:00", "end_time": "10:30", "category": "break", "priority": "medium"},
+            {"title": "Classes/Lectures", "start_time": "10:30", "end_time": "13:00", "category": "learning", "priority": "critical"},
+            {"title": "Lunch", "start_time": "13:00", "end_time": "14:00", "category": "meal", "priority": "high"},
+            {"title": "Study Block 2", "start_time": "14:00", "end_time": "16:00", "category": "learning", "priority": "high"},
+            {"title": "Exercise/Sports", "start_time": "16:00", "end_time": "17:00", "category": "exercise", "priority": "medium"},
+            {"title": "Dinner", "start_time": "18:00", "end_time": "19:00", "category": "meal", "priority": "high"},
+            {"title": "Study Block 3", "start_time": "19:00", "end_time": "21:00", "category": "learning", "priority": "high"},
+            {"title": "Free Time", "start_time": "21:00", "end_time": "22:30", "category": "personal", "priority": "medium"},
+            {"title": "Sleep", "start_time": "23:00", "end_time": "07:00", "category": "sleep", "priority": "critical"},
+        ]
+    }
+]
+
+# ============== ROUTINE HELPER FUNCTIONS ==============
+
+def time_to_minutes(time_str: str) -> int:
+    """Convert HH:MM to minutes since midnight"""
+    parts = time_str.split(":")
+    return int(parts[0]) * 60 + int(parts[1])
+
+def minutes_to_time(minutes: int) -> str:
+    """Convert minutes since midnight to HH:MM"""
+    hours = minutes // 60
+    mins = minutes % 60
+    return f"{hours:02d}:{mins:02d}"
+
+def get_current_time_minutes() -> int:
+    """Get current time as minutes since midnight"""
+    now = datetime.now()
+    return now.hour * 60 + now.minute
+
+def is_routine_active_today(routine: Dict) -> bool:
+    """Check if routine should be active today"""
+    today = datetime.now().weekday()  # 0=Monday
+    return today in routine.get("days_of_week", [0, 1, 2, 3, 4, 5, 6])
+
+async def get_active_routine(user_id: str) -> Optional[Dict]:
+    """Get the user's active routine for today"""
+    routines = await db.routines.find(
+        {"user_id": user_id, "is_active": True},
+        {"_id": 0}
+    ).to_list(10)
+    
+    for routine in routines:
+        if is_routine_active_today(routine):
+            return routine
+    return None
+
+async def get_current_activity(routine: Dict) -> Optional[Dict]:
+    """Get the current activity based on time"""
+    if not routine:
+        return None
+    
+    current_minutes = get_current_time_minutes()
+    
+    for activity in routine.get("activities", []):
+        start = time_to_minutes(activity["start_time"])
+        end = time_to_minutes(activity["end_time"])
+        
+        # Handle overnight activities
+        if end < start:
+            if current_minutes >= start or current_minutes < end:
+                return activity
+        elif start <= current_minutes < end:
+            return activity
+    
+    return None
+
+async def get_next_activity(routine: Dict) -> Optional[Dict]:
+    """Get the next upcoming activity"""
+    if not routine:
+        return None
+    
+    current_minutes = get_current_time_minutes()
+    activities = sorted(routine.get("activities", []), key=lambda a: time_to_minutes(a["start_time"]))
+    
+    for activity in activities:
+        start = time_to_minutes(activity["start_time"])
+        if start > current_minutes:
+            return activity
+    
+    # If no activity found, return first activity (next day)
+    return activities[0] if activities else None
+
+async def calculate_routine_stats(user_id: str, days: int = 7) -> Dict:
+    """Calculate routine adherence statistics"""
+    today = datetime.now(timezone.utc).date()
+    start_date = (today - timedelta(days=days)).isoformat()
+    
+    logs = await db.activity_logs.find(
+        {"user_id": user_id, "date": {"$gte": start_date}},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    total_activities = len(logs)
+    completed = len([l for l in logs if l.get("status") == "completed"])
+    skipped = len([l for l in logs if l.get("status") == "skipped"])
+    late = len([l for l in logs if l.get("status") == "late"])
+    
+    # Calculate streak
+    streak = 0
+    check_date = today
+    while True:
+        date_str = check_date.isoformat()
+        day_logs = [l for l in logs if l.get("date") == date_str]
+        if not day_logs:
+            break
+        day_completed = len([l for l in day_logs if l.get("status") in ["completed", "late"]])
+        day_total = len(day_logs)
+        if day_total > 0 and day_completed / day_total >= 0.8:  # 80% threshold
+            streak += 1
+            check_date -= timedelta(days=1)
+        else:
+            break
+    
+    return {
+        "total_activities": total_activities,
+        "completed": completed,
+        "skipped": skipped,
+        "late": late,
+        "adherence_rate": round((completed / total_activities) * 100, 1) if total_activities > 0 else 0,
+        "on_time_rate": round(((completed) / (completed + late)) * 100, 1) if (completed + late) > 0 else 0,
+        "current_streak": streak,
+        "period_days": days
+    }
+
+# ============== ROUTINE ENDPOINTS ==============
+
+@api_router.get("/routines")
+async def get_routines(user: User = Depends(get_current_user)):
+    """Get all routines for the user"""
+    routines = await db.routines.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).to_list(50)
+    return {"routines": routines}
+
+@api_router.post("/routines")
+async def create_routine(routine: RoutineCreate, user: User = Depends(get_current_user)):
+    """Create a new routine"""
+    routine_id = f"routine_{uuid.uuid4().hex[:12]}"
+    
+    # Process activities
+    activities = []
+    for i, activity in enumerate(routine.activities):
+        activities.append({
+            "activity_id": f"act_{uuid.uuid4().hex[:8]}",
+            "title": activity.title,
+            "start_time": activity.start_time,
+            "end_time": activity.end_time,
+            "category": activity.category,
+            "priority": activity.priority,
+            "description": activity.description,
+            "color": activity.color or ACTIVITY_CATEGORIES.get(activity.category, {}).get("color", "#00F0FF"),
+            "order": i
+        })
+    
+    doc = {
+        "routine_id": routine_id,
+        "user_id": user.user_id,
+        "name": routine.name,
+        "description": routine.description,
+        "schedule_type": routine.schedule_type,
+        "days_of_week": routine.days_of_week,
+        "activities": activities,
+        "is_active": True,
+        "is_template": routine.is_template,
+        "template_category": routine.template_category,
+        "reminder_settings": ReminderSettings().model_dump(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.routines.insert_one(doc)
+    if "_id" in doc:
+        del doc["_id"]
+    
+    return doc
+
+# ---- Static-path routes MUST come before {routine_id} parameterized routes ----
+
+@api_router.get("/routines/templates")
+async def get_routine_templates():
+    """Get pre-built routine templates"""
+    return {"templates": ROUTINE_TEMPLATES}
+
+@api_router.post("/routines/templates/{template_id}/apply")
+async def apply_template(template_id: str, user: User = Depends(get_current_user)):
+    """Create a routine from a template"""
+    template = next((t for t in ROUTINE_TEMPLATES if t["id"] == template_id), None)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    routine = RoutineCreate(
+        name=template["name"],
+        description=template["description"],
+        activities=[ActivityCreate(**a) for a in template["activities"]],
+        is_template=False,
+        template_category=template["category"]
+    )
+    
+    return await create_routine(routine, user)
+
+@api_router.get("/routines/analytics")
+async def get_routine_analytics(days: int = 7, user: User = Depends(get_current_user)):
+    """Get routine performance analytics"""
+    stats = await calculate_routine_stats(user.user_id, days)
+    
+    today = datetime.now(timezone.utc).date()
+    daily_data = []
+    
+    for i in range(days):
+        date = today - timedelta(days=i)
+        date_str = date.isoformat()
+        
+        logs = await db.activity_logs.find(
+            {"user_id": user.user_id, "date": date_str},
+            {"_id": 0}
+        ).to_list(100)
+        
+        completed = len([l for l in logs if l.get("status") == "completed"])
+        total = len(logs)
+        
+        daily_data.append({
+            "date": date_str,
+            "completed": completed,
+            "total": total,
+            "adherence": round((completed / total) * 100, 1) if total > 0 else 0
+        })
+    
+    all_logs = await db.activity_logs.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    return {
+        "summary": stats,
+        "daily_breakdown": list(reversed(daily_data)),
+        "categories": ACTIVITY_CATEGORIES
+    }
+
+@api_router.get("/routines/streak")
+async def get_streak_info(user: User = Depends(get_current_user)):
+    """Get detailed streak information"""
+    stats = await calculate_routine_stats(user.user_id, 30)
+    
+    today = datetime.now(timezone.utc).date()
+    longest_streak = 0
+    current_streak_count = 0
+    checking = True
+    
+    for i in range(365):
+        date = today - timedelta(days=i)
+        date_str = date.isoformat()
+        
+        logs = await db.activity_logs.find(
+            {"user_id": user.user_id, "date": date_str},
+            {"_id": 0}
+        ).to_list(100)
+        
+        if not logs:
+            if checking:
+                checking = False
+            continue
+            
+        completed = len([l for l in logs if l.get("status") in ["completed", "late"]])
+        total = len(logs)
+        
+        if total > 0 and completed / total >= 0.8:
+            current_streak_count += 1
+            longest_streak = max(longest_streak, current_streak_count)
+        else:
+            current_streak_count = 0
+    
+    return {
+        "current_streak": stats["current_streak"],
+        "longest_streak": longest_streak,
+        "adherence_rate": stats["adherence_rate"],
+        "total_completed": stats["completed"],
+        "total_activities": stats["total_activities"]
+    }
+
+# ---- Parameterized routes below ----
+
+@api_router.get("/routines/{routine_id}")
+async def get_routine(routine_id: str, user: User = Depends(get_current_user)):
+    """Get a specific routine"""
+    routine = await db.routines.find_one(
+        {"routine_id": routine_id, "user_id": user.user_id},
+        {"_id": 0}
+    )
+    if not routine:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    return routine
+
+@api_router.put("/routines/{routine_id}")
+async def update_routine(routine_id: str, updates: RoutineUpdate, user: User = Depends(get_current_user)):
+    """Update a routine"""
+    update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    
+    # Process activities if provided
+    if "activities" in update_data and update_data["activities"] is not None:
+        processed = []
+        for i, act in enumerate(update_data["activities"]):
+            if isinstance(act, dict):
+                processed.append({
+                    "activity_id": act.get("activity_id") or f"act_{uuid.uuid4().hex[:8]}",
+                    "title": act["title"],
+                    "start_time": act["start_time"],
+                    "end_time": act["end_time"],
+                    "category": act.get("category", "personal"),
+                    "priority": act.get("priority", "medium"),
+                    "description": act.get("description"),
+                    "color": act.get("color") or ACTIVITY_CATEGORIES.get(act.get("category", "personal"), {}).get("color", "#00F0FF"),
+                    "order": i
+                })
+        update_data["activities"] = processed
+    
+    result = await db.routines.update_one(
+        {"routine_id": routine_id, "user_id": user.user_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    return await db.routines.find_one(
+        {"routine_id": routine_id},
+        {"_id": 0}
+    )
+
+@api_router.delete("/routines/{routine_id}")
+async def delete_routine(routine_id: str, user: User = Depends(get_current_user)):
+    """Delete a routine"""
+    result = await db.routines.delete_one(
+        {"routine_id": routine_id, "user_id": user.user_id}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    return {"message": "Routine deleted"}
+
+@api_router.post("/routines/{routine_id}/activities")
+async def add_activity(routine_id: str, activity: ActivityCreate, user: User = Depends(get_current_user)):
+    """Add an activity to a routine"""
+    routine = await db.routines.find_one(
+        {"routine_id": routine_id, "user_id": user.user_id}
+    )
+    if not routine:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    activity_doc = {
+        "activity_id": f"act_{uuid.uuid4().hex[:8]}",
+        "title": activity.title,
+        "start_time": activity.start_time,
+        "end_time": activity.end_time,
+        "category": activity.category,
+        "priority": activity.priority,
+        "description": activity.description,
+        "color": activity.color or ACTIVITY_CATEGORIES.get(activity.category, {}).get("color", "#00F0FF"),
+        "order": len(routine.get("activities", []))
+    }
+    
+    await db.routines.update_one(
+        {"routine_id": routine_id},
+        {"$push": {"activities": activity_doc}}
+    )
+    
+    return activity_doc
+
+@api_router.delete("/routines/{routine_id}/activities/{activity_id}")
+async def delete_activity(routine_id: str, activity_id: str, user: User = Depends(get_current_user)):
+    """Delete an activity from a routine"""
+    result = await db.routines.update_one(
+        {"routine_id": routine_id, "user_id": user.user_id},
+        {"$pull": {"activities": {"activity_id": activity_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    return {"message": "Activity deleted"}
+
+# ============== REAL-TIME TRACKING ENDPOINTS ==============
+
+@api_router.get("/routines/today/status")
+async def get_today_status(user: User = Depends(get_current_user)):
+    """Get current routine status for today"""
+    routine = await get_active_routine(user.user_id)
+    
+    if not routine:
+        return {
+            "has_routine": False,
+            "message": "No active routine for today"
+        }
+    
+    current = await get_current_activity(routine)
+    next_activity = await get_next_activity(routine)
+    current_minutes = get_current_time_minutes()
+    
+    # Calculate time remaining for current activity
+    time_remaining = None
+    progress = 0
+    if current:
+        end_minutes = time_to_minutes(current["end_time"])
+        start_minutes = time_to_minutes(current["start_time"])
+        
+        # Handle overnight
+        if end_minutes < start_minutes:
+            end_minutes += 24 * 60
+        if current_minutes < start_minutes:
+            current_minutes += 24 * 60
+            
+        time_remaining = max(0, end_minutes - current_minutes)
+        duration = end_minutes - start_minutes
+        elapsed = current_minutes - start_minutes
+        progress = min(100, (elapsed / duration) * 100) if duration > 0 else 0
+    
+    # Get today's logs
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_logs = await db.activity_logs.find(
+        {"user_id": user.user_id, "date": today_str},
+        {"_id": 0}
+    ).to_list(100)
+    
+    completed_count = len([l for l in today_logs if l.get("status") == "completed"])
+    total_activities = len(routine.get("activities", []))
+    
+    return {
+        "has_routine": True,
+        "routine_name": routine.get("name"),
+        "routine_id": routine.get("routine_id"),
+        "current_activity": current,
+        "next_activity": next_activity,
+        "time_remaining_minutes": time_remaining,
+        "current_progress": round(progress, 1),
+        "current_time": minutes_to_time(get_current_time_minutes()),
+        "today_completed": completed_count,
+        "today_total": total_activities,
+        "today_progress": round((completed_count / total_activities) * 100, 1) if total_activities > 0 else 0,
+        "activities": routine.get("activities", []),
+        "today_logs": today_logs
+    }
+
+@api_router.post("/routines/activities/{activity_id}/log")
+async def log_activity(activity_id: str, log: ActivityLog, user: User = Depends(get_current_user)):
+    """Log activity completion status"""
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    log_doc = {
+        "log_id": f"log_{uuid.uuid4().hex[:8]}",
+        "user_id": user.user_id,
+        "activity_id": activity_id,
+        "date": today_str,
+        "status": log.status,
+        "actual_start": log.actual_start,
+        "actual_end": log.actual_end,
+        "notes": log.notes,
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - update if exists for today
+    await db.activity_logs.update_one(
+        {"user_id": user.user_id, "activity_id": activity_id, "date": today_str},
+        {"$set": log_doc},
+        upsert=True
+    )
+    
+    return log_doc
+
+@api_router.post("/routines/activities/{activity_id}/start")
+async def start_activity(activity_id: str, user: User = Depends(get_current_user)):
+    """Mark an activity as started"""
+    current_time = minutes_to_time(get_current_time_minutes())
+    log = ActivityLog(
+        activity_id=activity_id,
+        status="in_progress",
+        actual_start=current_time
+    )
+    return await log_activity(activity_id, log, user)
+
+@api_router.post("/routines/activities/{activity_id}/complete")
+async def complete_activity(activity_id: str, user: User = Depends(get_current_user)):
+    """Mark an activity as completed"""
+    current_time = minutes_to_time(get_current_time_minutes())
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get existing log to preserve start time
+    existing = await db.activity_logs.find_one(
+        {"user_id": user.user_id, "activity_id": activity_id, "date": today_str}
+    )
+    
+    log = ActivityLog(
+        activity_id=activity_id,
+        status="completed",
+        actual_start=existing.get("actual_start") if existing else current_time,
+        actual_end=current_time
+    )
+    return await log_activity(activity_id, log, user)
+
+@api_router.post("/routines/activities/{activity_id}/skip")
+async def skip_activity(activity_id: str, notes: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Mark an activity as skipped"""
+    log = ActivityLog(
+        activity_id=activity_id,
+        status="skipped",
+        notes=notes
+    )
+    return await log_activity(activity_id, log, user)
+
+# ============== REMINDER SETTINGS ==============
+
+@api_router.get("/routines/{routine_id}/reminders")
+async def get_reminder_settings(routine_id: str, user: User = Depends(get_current_user)):
+    """Get reminder settings for a routine"""
+    routine = await db.routines.find_one(
+        {"routine_id": routine_id, "user_id": user.user_id},
+        {"_id": 0}
+    )
+    if not routine:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    return routine.get("reminder_settings", ReminderSettings().model_dump())
+
+@api_router.put("/routines/{routine_id}/reminders")
+async def update_reminder_settings(routine_id: str, settings: ReminderSettings, user: User = Depends(get_current_user)):
+    """Update reminder settings for a routine"""
+    result = await db.routines.update_one(
+        {"routine_id": routine_id, "user_id": user.user_id},
+        {"$set": {"reminder_settings": settings.model_dump()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Routine not found")
+    
+    return settings.model_dump()
+
+# ============== FOCUS MODE ==============
+
+@api_router.post("/routines/focus/start")
+async def start_focus_mode(activity_id: Optional[str] = None, duration_minutes: int = 25, user: User = Depends(get_current_user)):
+    """Start focus mode"""
+    focus_session = {
+        "session_id": f"focus_{uuid.uuid4().hex[:8]}",
+        "user_id": user.user_id,
+        "activity_id": activity_id,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "duration_minutes": duration_minutes,
+        "ends_at": (datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)).isoformat(),
+        "status": "active"
+    }
+    
+    await db.focus_sessions.insert_one(focus_session)
+    if "_id" in focus_session:
+        del focus_session["_id"]
+    
+    return focus_session
+
+@api_router.post("/routines/focus/end")
+async def end_focus_mode(user: User = Depends(get_current_user)):
+    """End current focus mode"""
+    result = await db.focus_sessions.update_one(
+        {"user_id": user.user_id, "status": "active"},
+        {"$set": {"status": "completed", "ended_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Focus mode ended", "updated": result.modified_count > 0}
+
+@api_router.get("/routines/focus/status")
+async def get_focus_status(user: User = Depends(get_current_user)):
+    """Get current focus mode status"""
+    session = await db.focus_sessions.find_one(
+        {"user_id": user.user_id, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not session:
+        return {"active": False}
+    
+    ends_at = datetime.fromisoformat(session["ends_at"].replace("Z", "+00:00"))
+    remaining = (ends_at - datetime.now(timezone.utc)).total_seconds() / 60
+    
+    if remaining <= 0:
+        await db.focus_sessions.update_one(
+            {"session_id": session["session_id"]},
+            {"$set": {"status": "completed"}}
+        )
+        return {"active": False}
+    
+    return {
+        "active": True,
+        "session": session,
+        "remaining_minutes": max(0, round(remaining, 1))
+    }
+
+# ============== REFERENCE ENDPOINTS ==============
+
+@api_router.get("/reference/activity-categories")
+async def get_activity_categories():
+    """Get available activity categories"""
+    return {"categories": ACTIVITY_CATEGORIES}
+
 # ============== ROOT ENDPOINT ==============
 
 @api_router.get("/")
 async def root():
-    return {"message": "ElementEats API - Food Elemental Analyzer & Health Tracker", "version": "2.0.0"}
+    return {"message": "ElementEats API - Food Elemental Analyzer & Health Tracker & Routine Scheduler", "version": "3.0.0"}
 
 # Include router and setup middleware
 app.include_router(api_router)

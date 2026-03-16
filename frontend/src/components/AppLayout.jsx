@@ -3,17 +3,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/App';
 import { 
   Atom, Home, Utensils, Dumbbell, TrendingUp, Target, 
-  Calendar, BookOpen, LogOut, Droplets, Flame
+  Calendar, BookOpen, LogOut, Clock
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { path: '/health', label: 'Dashboard', icon: Home, color: 'neon-cyan' },
   { path: '/food-log', label: 'Food & Analysis', icon: Utensils, color: 'neon-gold' },
-  { path: '/workouts', label: 'Workouts', icon: Dumbbell, color: 'neon-purple' },
-  { path: '/progress', label: 'Progress', icon: TrendingUp, color: 'neon-green' },
+  { path: '/routines', label: 'Routines', icon: Clock, color: 'neon-purple' },
+  { path: '/workouts', label: 'Workouts', icon: Dumbbell, color: 'neon-green' },
+  { path: '/progress', label: 'Progress', icon: TrendingUp, color: 'neon-cyan' },
   { path: '/goals', label: 'Goals', icon: Target, color: 'neon-red' },
-  { path: '/meal-planner', label: 'Meal Plan', icon: Calendar, color: 'neon-cyan' },
-  { path: '/recipes', label: 'Saved Recipes', icon: BookOpen, color: 'neon-purple' },
+  { path: '/meal-planner', label: 'Meal Plan', icon: Calendar, color: 'neon-gold' },
 ];
 
 export const AppLayout = ({ children, title }) => {
