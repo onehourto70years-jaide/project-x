@@ -6,6 +6,12 @@ import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/Dashboard";
 import AuthCallback from "@/pages/AuthCallback";
 import SavedRecipes from "@/pages/SavedRecipes";
+import HealthDashboard from "@/pages/HealthDashboard";
+import FoodLog from "@/pages/FoodLog";
+import WorkoutLog from "@/pages/WorkoutLog";
+import Progress from "@/pages/Progress";
+import Goals from "@/pages/Goals";
+import MealPlanner from "@/pages/MealPlanner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -116,6 +122,36 @@ const AppRouter = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/health" element={
+        <ProtectedRoute>
+          <HealthDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/food-log" element={
+        <ProtectedRoute>
+          <FoodLog />
+        </ProtectedRoute>
+      } />
+      <Route path="/workouts" element={
+        <ProtectedRoute>
+          <WorkoutLog />
+        </ProtectedRoute>
+      } />
+      <Route path="/progress" element={
+        <ProtectedRoute>
+          <Progress />
+        </ProtectedRoute>
+      } />
+      <Route path="/goals" element={
+        <ProtectedRoute>
+          <Goals />
+        </ProtectedRoute>
+      } />
+      <Route path="/meal-planner" element={
+        <ProtectedRoute>
+          <MealPlanner />
         </ProtectedRoute>
       } />
       <Route path="/recipes" element={

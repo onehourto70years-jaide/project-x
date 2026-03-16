@@ -919,11 +919,763 @@ async def get_element_info():
         }
     }
 
+# ============== HEALTH & FITNESS MODELS ==============
+
+class UserGoals(BaseModel):
+    calories: int = 2000
+    protein: int = 150  # grams
+    carbs: int = 200  # grams
+    fat: int = 65  # grams
+    water: int = 8  # glasses (8oz each)
+    steps: int = 10000
+    net_carbs_mode: bool = False
+    goal_type: str = "maintenance"  # maintenance, weight_loss, weight_gain, muscle_gain
+
+class GoalsUpdate(BaseModel):
+    calories: Optional[int] = None
+    protein: Optional[int] = None
+    carbs: Optional[int] = None
+    fat: Optional[int] = None
+    water: Optional[int] = None
+    steps: Optional[int] = None
+    net_carbs_mode: Optional[bool] = None
+    goal_type: Optional[str] = None
+
+class FoodLogEntry(BaseModel):
+    name: str
+    calories: float
+    protein: float = 0
+    carbs: float = 0
+    fat: float = 0
+    fiber: float = 0
+    amount: float = 1
+    unit: str = "serving"
+    meal_type: str = "snack"  # breakfast, lunch, dinner, snack
+    fdc_id: Optional[int] = None
+
+class WaterLogEntry(BaseModel):
+    glasses: int = 1
+    notes: Optional[str] = None
+
+class WorkoutEntry(BaseModel):
+    workout_type: str
+    name: str
+    duration_minutes: int
+    calories_burned: int = 0
+    notes: Optional[str] = None
+    exercises: Optional[List[Dict[str, Any]]] = None
+
+class WeightEntry(BaseModel):
+    weight: float
+    unit: str = "kg"
+    notes: Optional[str] = None
+
+class StepsEntry(BaseModel):
+    steps: int
+    source: str = "manual"  # manual, google_fit, apple_health, fitbit, samsung_health
+
+class MealPlanEntry(BaseModel):
+    day_of_week: int  # 0=Monday, 6=Sunday
+    meal_type: str  # breakfast, lunch, dinner, snack
+    recipe_id: Optional[str] = None
+    food_name: Optional[str] = None
+    calories: Optional[float] = None
+    notes: Optional[str] = None
+
+class ConnectedApp(BaseModel):
+    provider: str  # google_fit, apple_health, fitbit, samsung_health
+    access_token: str
+    refresh_token: Optional[str] = None
+    expires_at: Optional[datetime] = None
+
+# ============== HELPER FUNCTIONS ==============
+
+def get_date_str(date: Optional[datetime] = None) -> str:
+    """Get date string in YYYY-MM-DD format"""
+    if date is None:
+        date = datetime.now(timezone.utc)
+    return date.strftime("%Y-%m-%d")
+
+async def get_or_create_daily_log(user_id: str, date_str: str) -> Dict:
+    """Get or create a daily log entry"""
+    log = await db.daily_logs.find_one(
+        {"user_id": user_id, "date": date_str},
+        {"_id": 0}
+    )
+    if not log:
+        log = {
+            "log_id": f"log_{uuid.uuid4().hex[:12]}",
+            "user_id": user_id,
+            "date": date_str,
+            "food_entries": [],
+            "water_glasses": 0,
+            "water_entries": [],
+            "workouts": [],
+            "steps": 0,
+            "steps_entries": [],
+            "weight": None,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.daily_logs.insert_one(log)
+        if "_id" in log:
+            del log["_id"]
+    return log
+
+async def calculate_daily_totals(log: Dict) -> Dict:
+    """Calculate totals from food entries"""
+    totals = {
+        "calories": 0,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 0,
+        "fiber": 0,
+        "net_carbs": 0
+    }
+    for entry in log.get("food_entries", []):
+        totals["calories"] += entry.get("calories", 0)
+        totals["protein"] += entry.get("protein", 0)
+        totals["carbs"] += entry.get("carbs", 0)
+        totals["fat"] += entry.get("fat", 0)
+        totals["fiber"] += entry.get("fiber", 0)
+    
+    totals["net_carbs"] = max(0, totals["carbs"] - totals["fiber"])
+    return totals
+
+# ============== GOALS ENDPOINTS ==============
+
+@api_router.get("/goals")
+async def get_user_goals(user: User = Depends(get_current_user)):
+    """Get user's daily goals"""
+    goals = await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not goals:
+        # Return defaults
+        return UserGoals().model_dump()
+    return goals
+
+@api_router.put("/goals")
+async def update_user_goals(updates: GoalsUpdate, user: User = Depends(get_current_user)):
+    """Update user's daily goals"""
+    # Get existing or create defaults
+    existing = await db.user_goals.find_one({"user_id": user.user_id})
+    
+    update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
+    
+    if existing:
+        await db.user_goals.update_one(
+            {"user_id": user.user_id},
+            {"$set": update_data}
+        )
+    else:
+        defaults = UserGoals().model_dump()
+        defaults.update(update_data)
+        defaults["user_id"] = user.user_id
+        await db.user_goals.insert_one(defaults)
+    
+    return await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+
+# ============== FOOD LOG ENDPOINTS ==============
+
+@api_router.get("/food-log")
+async def get_food_log(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get food log for a specific date"""
+    date_str = date or get_date_str()
+    log = await get_or_create_daily_log(user.user_id, date_str)
+    totals = await calculate_daily_totals(log)
+    goals = await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not goals:
+        goals = UserGoals().model_dump()
+    
+    return {
+        "date": date_str,
+        "entries": log.get("food_entries", []),
+        "totals": totals,
+        "goals": goals,
+        "by_meal": {
+            "breakfast": [e for e in log.get("food_entries", []) if e.get("meal_type") == "breakfast"],
+            "lunch": [e for e in log.get("food_entries", []) if e.get("meal_type") == "lunch"],
+            "dinner": [e for e in log.get("food_entries", []) if e.get("meal_type") == "dinner"],
+            "snack": [e for e in log.get("food_entries", []) if e.get("meal_type") == "snack"]
+        }
+    }
+
+@api_router.post("/food-log")
+async def add_food_entry(entry: FoodLogEntry, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Add a food entry to the log"""
+    date_str = date or get_date_str()
+    await get_or_create_daily_log(user.user_id, date_str)
+    
+    food_entry = {
+        "entry_id": f"food_{uuid.uuid4().hex[:8]}",
+        **entry.model_dump(),
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$push": {"food_entries": food_entry}}
+    )
+    
+    return food_entry
+
+@api_router.delete("/food-log/{entry_id}")
+async def delete_food_entry(entry_id: str, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Delete a food entry"""
+    date_str = date or get_date_str()
+    
+    result = await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$pull": {"food_entries": {"entry_id": entry_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    return {"message": "Entry deleted"}
+
+# ============== WATER TRACKING ENDPOINTS ==============
+
+@api_router.get("/water-log")
+async def get_water_log(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get water intake for a specific date"""
+    date_str = date or get_date_str()
+    log = await get_or_create_daily_log(user.user_id, date_str)
+    goals = await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+    water_goal = goals.get("water", 8) if goals else 8
+    
+    return {
+        "date": date_str,
+        "glasses": log.get("water_glasses", 0),
+        "goal": water_goal,
+        "entries": log.get("water_entries", []),
+        "percentage": min(100, (log.get("water_glasses", 0) / water_goal) * 100)
+    }
+
+@api_router.post("/water-log")
+async def add_water_entry(entry: WaterLogEntry, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Add water intake"""
+    date_str = date or get_date_str()
+    await get_or_create_daily_log(user.user_id, date_str)
+    
+    water_entry = {
+        "entry_id": f"water_{uuid.uuid4().hex[:8]}",
+        "glasses": entry.glasses,
+        "notes": entry.notes,
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {
+            "$inc": {"water_glasses": entry.glasses},
+            "$push": {"water_entries": water_entry}
+        }
+    )
+    
+    log = await db.daily_logs.find_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"_id": 0}
+    )
+    
+    return {
+        "entry": water_entry,
+        "total_glasses": log.get("water_glasses", 0)
+    }
+
+@api_router.post("/water-log/quick")
+async def quick_add_water(glasses: int = 1, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Quick add water (1 glass default)"""
+    entry = WaterLogEntry(glasses=glasses)
+    return await add_water_entry(entry, date, user)
+
+# ============== WORKOUT ENDPOINTS ==============
+
+@api_router.get("/workouts")
+async def get_workouts(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get workouts for a specific date"""
+    date_str = date or get_date_str()
+    log = await get_or_create_daily_log(user.user_id, date_str)
+    
+    total_calories = sum(w.get("calories_burned", 0) for w in log.get("workouts", []))
+    total_duration = sum(w.get("duration_minutes", 0) for w in log.get("workouts", []))
+    
+    return {
+        "date": date_str,
+        "workouts": log.get("workouts", []),
+        "total_calories_burned": total_calories,
+        "total_duration_minutes": total_duration
+    }
+
+@api_router.post("/workouts")
+async def add_workout(workout: WorkoutEntry, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Add a workout entry"""
+    date_str = date or get_date_str()
+    await get_or_create_daily_log(user.user_id, date_str)
+    
+    workout_entry = {
+        "workout_id": f"workout_{uuid.uuid4().hex[:8]}",
+        **workout.model_dump(),
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$push": {"workouts": workout_entry}}
+    )
+    
+    return workout_entry
+
+@api_router.delete("/workouts/{workout_id}")
+async def delete_workout(workout_id: str, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Delete a workout"""
+    date_str = date or get_date_str()
+    
+    result = await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$pull": {"workouts": {"workout_id": workout_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    return {"message": "Workout deleted"}
+
+# ============== WEIGHT TRACKING ENDPOINTS ==============
+
+@api_router.get("/weight")
+async def get_weight_history(days: int = 30, user: User = Depends(get_current_user)):
+    """Get weight history for past N days"""
+    entries = await db.weight_logs.find(
+        {"user_id": user.user_id},
+        {"_id": 0}
+    ).sort("date", -1).limit(days).to_list(days)
+    
+    return {
+        "entries": entries,
+        "latest": entries[0] if entries else None,
+        "trend": calculate_weight_trend(entries) if len(entries) >= 2 else None
+    }
+
+def calculate_weight_trend(entries: List[Dict]) -> Dict:
+    """Calculate weight trend from entries"""
+    if len(entries) < 2:
+        return None
+    
+    latest = entries[0].get("weight", 0)
+    oldest = entries[-1].get("weight", 0)
+    change = latest - oldest
+    
+    return {
+        "change": round(change, 2),
+        "direction": "up" if change > 0 else "down" if change < 0 else "stable",
+        "percentage": round((change / oldest) * 100, 2) if oldest > 0 else 0
+    }
+
+@api_router.post("/weight")
+async def log_weight(entry: WeightEntry, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Log weight for a date"""
+    date_str = date or get_date_str()
+    
+    weight_doc = {
+        "weight_id": f"weight_{uuid.uuid4().hex[:8]}",
+        "user_id": user.user_id,
+        "date": date_str,
+        "weight": entry.weight,
+        "unit": entry.unit,
+        "notes": entry.notes,
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - update if exists for date, insert if not
+    await db.weight_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$set": weight_doc},
+        upsert=True
+    )
+    
+    # Also update daily log
+    await db.daily_logs.update_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"$set": {"weight": entry.weight}}
+    )
+    
+    return weight_doc
+
+# ============== STEPS TRACKING ENDPOINTS ==============
+
+@api_router.get("/steps")
+async def get_steps(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get steps for a specific date"""
+    date_str = date or get_date_str()
+    log = await get_or_create_daily_log(user.user_id, date_str)
+    goals = await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+    steps_goal = goals.get("steps", 10000) if goals else 10000
+    
+    return {
+        "date": date_str,
+        "steps": log.get("steps", 0),
+        "goal": steps_goal,
+        "entries": log.get("steps_entries", []),
+        "percentage": min(100, (log.get("steps", 0) / steps_goal) * 100)
+    }
+
+@api_router.post("/steps")
+async def log_steps(entry: StepsEntry, date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Log steps for a date"""
+    date_str = date or get_date_str()
+    await get_or_create_daily_log(user.user_id, date_str)
+    
+    steps_entry = {
+        "entry_id": f"steps_{uuid.uuid4().hex[:8]}",
+        "steps": entry.steps,
+        "source": entry.source,
+        "logged_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # For manual entries, add to total. For synced, replace total
+    if entry.source == "manual":
+        await db.daily_logs.update_one(
+            {"user_id": user.user_id, "date": date_str},
+            {
+                "$inc": {"steps": entry.steps},
+                "$push": {"steps_entries": steps_entry}
+            }
+        )
+    else:
+        await db.daily_logs.update_one(
+            {"user_id": user.user_id, "date": date_str},
+            {
+                "$set": {"steps": entry.steps},
+                "$push": {"steps_entries": steps_entry}
+            }
+        )
+    
+    log = await db.daily_logs.find_one(
+        {"user_id": user.user_id, "date": date_str},
+        {"_id": 0}
+    )
+    
+    return {
+        "entry": steps_entry,
+        "total_steps": log.get("steps", 0)
+    }
+
+# ============== DASHBOARD / DAILY SUMMARY ==============
+
+@api_router.get("/dashboard")
+async def get_dashboard(date: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get comprehensive dashboard data for a date"""
+    date_str = date or get_date_str()
+    log = await get_or_create_daily_log(user.user_id, date_str)
+    goals = await db.user_goals.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not goals:
+        goals = UserGoals().model_dump()
+    
+    # Calculate nutrition totals
+    nutrition = await calculate_daily_totals(log)
+    
+    # Get workout stats
+    total_calories_burned = sum(w.get("calories_burned", 0) for w in log.get("workouts", []))
+    
+    # Calculate net calories
+    net_calories = nutrition["calories"] - total_calories_burned
+    
+    # Get recent weight
+    weight_entry = await db.weight_logs.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0},
+        sort=[("date", -1)]
+    )
+    
+    return {
+        "date": date_str,
+        "goals": goals,
+        "nutrition": {
+            "consumed": nutrition,
+            "remaining": {
+                "calories": goals["calories"] - nutrition["calories"],
+                "protein": goals["protein"] - nutrition["protein"],
+                "carbs": goals["carbs"] - nutrition["carbs"],
+                "fat": goals["fat"] - nutrition["fat"]
+            },
+            "percentages": {
+                "calories": min(100, (nutrition["calories"] / goals["calories"]) * 100) if goals["calories"] > 0 else 0,
+                "protein": min(100, (nutrition["protein"] / goals["protein"]) * 100) if goals["protein"] > 0 else 0,
+                "carbs": min(100, (nutrition["carbs"] / goals["carbs"]) * 100) if goals["carbs"] > 0 else 0,
+                "fat": min(100, (nutrition["fat"] / goals["fat"]) * 100) if goals["fat"] > 0 else 0
+            }
+        },
+        "water": {
+            "glasses": log.get("water_glasses", 0),
+            "goal": goals["water"],
+            "percentage": min(100, (log.get("water_glasses", 0) / goals["water"]) * 100) if goals["water"] > 0 else 0
+        },
+        "exercise": {
+            "workouts_count": len(log.get("workouts", [])),
+            "calories_burned": total_calories_burned,
+            "total_duration": sum(w.get("duration_minutes", 0) for w in log.get("workouts", []))
+        },
+        "steps": {
+            "count": log.get("steps", 0),
+            "goal": goals["steps"],
+            "percentage": min(100, (log.get("steps", 0) / goals["steps"]) * 100) if goals["steps"] > 0 else 0
+        },
+        "net_calories": net_calories,
+        "weight": weight_entry.get("weight") if weight_entry else None,
+        "meals": {
+            "breakfast": len([e for e in log.get("food_entries", []) if e.get("meal_type") == "breakfast"]),
+            "lunch": len([e for e in log.get("food_entries", []) if e.get("meal_type") == "lunch"]),
+            "dinner": len([e for e in log.get("food_entries", []) if e.get("meal_type") == "dinner"]),
+            "snack": len([e for e in log.get("food_entries", []) if e.get("meal_type") == "snack"])
+        }
+    }
+
+# ============== PROGRESS / HISTORY ENDPOINTS ==============
+
+@api_router.get("/progress")
+async def get_progress(days: int = 7, user: User = Depends(get_current_user)):
+    """Get progress over past N days"""
+    today = datetime.now(timezone.utc)
+    dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days)]
+    
+    logs = await db.daily_logs.find(
+        {"user_id": user.user_id, "date": {"$in": dates}},
+        {"_id": 0}
+    ).to_list(days)
+    
+    logs_by_date = {log["date"]: log for log in logs}
+    
+    # Get weight history
+    weights = await db.weight_logs.find(
+        {"user_id": user.user_id, "date": {"$in": dates}},
+        {"_id": 0}
+    ).to_list(days)
+    weights_by_date = {w["date"]: w["weight"] for w in weights}
+    
+    # Build daily summaries
+    daily_data = []
+    for date_str in reversed(dates):  # oldest first for charts
+        log = logs_by_date.get(date_str, {})
+        totals = await calculate_daily_totals(log) if log else {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
+        
+        daily_data.append({
+            "date": date_str,
+            "calories": totals["calories"],
+            "protein": totals["protein"],
+            "carbs": totals["carbs"],
+            "fat": totals["fat"],
+            "water": log.get("water_glasses", 0),
+            "steps": log.get("steps", 0),
+            "workouts": len(log.get("workouts", [])),
+            "weight": weights_by_date.get(date_str)
+        })
+    
+    # Calculate averages
+    non_zero_days = [d for d in daily_data if d["calories"] > 0]
+    avg_calories = sum(d["calories"] for d in non_zero_days) / len(non_zero_days) if non_zero_days else 0
+    
+    return {
+        "period_days": days,
+        "daily_data": daily_data,
+        "averages": {
+            "calories": round(avg_calories, 0),
+            "protein": round(sum(d["protein"] for d in non_zero_days) / len(non_zero_days), 1) if non_zero_days else 0,
+            "carbs": round(sum(d["carbs"] for d in non_zero_days) / len(non_zero_days), 1) if non_zero_days else 0,
+            "fat": round(sum(d["fat"] for d in non_zero_days) / len(non_zero_days), 1) if non_zero_days else 0,
+            "water": round(sum(d["water"] for d in daily_data) / len(daily_data), 1),
+            "steps": round(sum(d["steps"] for d in daily_data) / len(daily_data), 0)
+        },
+        "weight_trend": calculate_weight_trend(weights) if len(weights) >= 2 else None
+    }
+
+# ============== MEAL PLANNER ENDPOINTS ==============
+
+@api_router.get("/meal-plan")
+async def get_meal_plan(week_start: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Get meal plan for a week"""
+    if week_start:
+        start_date = datetime.strptime(week_start, "%Y-%m-%d")
+    else:
+        today = datetime.now(timezone.utc)
+        start_date = today - timedelta(days=today.weekday())  # Monday of current week
+    
+    week_start_str = start_date.strftime("%Y-%m-%d")
+    
+    plan = await db.meal_plans.find_one(
+        {"user_id": user.user_id, "week_start": week_start_str},
+        {"_id": 0}
+    )
+    
+    if not plan:
+        # Create empty plan
+        plan = {
+            "plan_id": f"plan_{uuid.uuid4().hex[:12]}",
+            "user_id": user.user_id,
+            "week_start": week_start_str,
+            "meals": [],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.meal_plans.insert_one(plan)
+        if "_id" in plan:
+            del plan["_id"]
+    
+    return plan
+
+@api_router.post("/meal-plan")
+async def add_meal_to_plan(entry: MealPlanEntry, week_start: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Add a meal to the weekly plan"""
+    if week_start:
+        start_date = datetime.strptime(week_start, "%Y-%m-%d")
+    else:
+        today = datetime.now(timezone.utc)
+        start_date = today - timedelta(days=today.weekday())
+    
+    week_start_str = start_date.strftime("%Y-%m-%d")
+    
+    # Ensure plan exists
+    existing = await db.meal_plans.find_one({"user_id": user.user_id, "week_start": week_start_str})
+    if not existing:
+        await db.meal_plans.insert_one({
+            "plan_id": f"plan_{uuid.uuid4().hex[:12]}",
+            "user_id": user.user_id,
+            "week_start": week_start_str,
+            "meals": [],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    
+    meal_entry = {
+        "meal_id": f"meal_{uuid.uuid4().hex[:8]}",
+        **entry.model_dump(),
+        "added_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.meal_plans.update_one(
+        {"user_id": user.user_id, "week_start": week_start_str},
+        {"$push": {"meals": meal_entry}}
+    )
+    
+    return meal_entry
+
+@api_router.delete("/meal-plan/{meal_id}")
+async def delete_meal_from_plan(meal_id: str, week_start: Optional[str] = None, user: User = Depends(get_current_user)):
+    """Remove a meal from the plan"""
+    if week_start:
+        start_date = datetime.strptime(week_start, "%Y-%m-%d")
+    else:
+        today = datetime.now(timezone.utc)
+        start_date = today - timedelta(days=today.weekday())
+    
+    week_start_str = start_date.strftime("%Y-%m-%d")
+    
+    result = await db.meal_plans.update_one(
+        {"user_id": user.user_id, "week_start": week_start_str},
+        {"$pull": {"meals": {"meal_id": meal_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Meal not found")
+    
+    return {"message": "Meal removed from plan"}
+
+# ============== CONNECTED APPS / FITNESS INTEGRATIONS ==============
+
+# OAuth URLs for fitness providers (these would need real client IDs in production)
+FITNESS_PROVIDERS = {
+    "google_fit": {
+        "name": "Google Fit",
+        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_url": "https://oauth2.googleapis.com/token",
+        "scopes": ["https://www.googleapis.com/auth/fitness.activity.read", 
+                   "https://www.googleapis.com/auth/fitness.body.read",
+                   "https://www.googleapis.com/auth/fitness.heart_rate.read"]
+    },
+    "fitbit": {
+        "name": "Fitbit",
+        "auth_url": "https://www.fitbit.com/oauth2/authorize",
+        "token_url": "https://api.fitbit.com/oauth2/token",
+        "scopes": ["activity", "heartrate", "weight", "profile"]
+    },
+    "apple_health": {
+        "name": "Apple Health",
+        "note": "Requires iOS app with HealthKit integration"
+    },
+    "samsung_health": {
+        "name": "Samsung Health",
+        "note": "Requires Samsung Health SDK integration"
+    }
+}
+
+@api_router.get("/connected-apps")
+async def get_connected_apps(user: User = Depends(get_current_user)):
+    """Get list of connected fitness apps"""
+    connections = await db.connected_apps.find(
+        {"user_id": user.user_id},
+        {"_id": 0, "access_token": 0, "refresh_token": 0}  # Don't expose tokens
+    ).to_list(10)
+    
+    return {
+        "connected": connections,
+        "available": FITNESS_PROVIDERS
+    }
+
+@api_router.post("/connected-apps/{provider}/connect")
+async def connect_fitness_app(provider: str, tokens: ConnectedApp, user: User = Depends(get_current_user)):
+    """Store connection tokens for a fitness provider"""
+    if provider not in FITNESS_PROVIDERS:
+        raise HTTPException(status_code=400, detail="Unknown provider")
+    
+    connection = {
+        "connection_id": f"conn_{uuid.uuid4().hex[:12]}",
+        "user_id": user.user_id,
+        "provider": provider,
+        "provider_name": FITNESS_PROVIDERS[provider]["name"],
+        "access_token": tokens.access_token,
+        "refresh_token": tokens.refresh_token,
+        "expires_at": tokens.expires_at.isoformat() if tokens.expires_at else None,
+        "connected_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - one connection per provider per user
+    await db.connected_apps.update_one(
+        {"user_id": user.user_id, "provider": provider},
+        {"$set": connection},
+        upsert=True
+    )
+    
+    return {"message": f"Connected to {FITNESS_PROVIDERS[provider]['name']}", "provider": provider}
+
+@api_router.delete("/connected-apps/{provider}")
+async def disconnect_fitness_app(provider: str, user: User = Depends(get_current_user)):
+    """Disconnect a fitness provider"""
+    result = await db.connected_apps.delete_one(
+        {"user_id": user.user_id, "provider": provider}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    
+    return {"message": f"Disconnected from {provider}"}
+
+# ============== WORKOUT TYPES REFERENCE ==============
+
+WORKOUT_TYPES = [
+    {"type": "cardio", "name": "Cardio", "examples": ["Running", "Cycling", "Swimming", "HIIT", "Jump Rope"]},
+    {"type": "strength", "name": "Strength Training", "examples": ["Weight Lifting", "Bodyweight", "Resistance Bands"]},
+    {"type": "flexibility", "name": "Flexibility", "examples": ["Yoga", "Stretching", "Pilates"]},
+    {"type": "sports", "name": "Sports", "examples": ["Basketball", "Soccer", "Tennis", "Golf"]},
+    {"type": "walking", "name": "Walking", "examples": ["Casual Walk", "Power Walking", "Hiking"]},
+    {"type": "other", "name": "Other", "examples": ["Dancing", "Martial Arts", "CrossFit"]}
+]
+
+@api_router.get("/reference/workout-types")
+async def get_workout_types():
+    """Get available workout types"""
+    return {"workout_types": WORKOUT_TYPES}
+
 # ============== ROOT ENDPOINT ==============
 
 @api_router.get("/")
 async def root():
-    return {"message": "ElementEats API - Food Elemental Analyzer", "version": "1.0.0"}
+    return {"message": "ElementEats API - Food Elemental Analyzer & Health Tracker", "version": "2.0.0"}
 
 # Include router and setup middleware
 app.include_router(api_router)

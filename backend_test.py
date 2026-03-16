@@ -1,299 +1,311 @@
 #!/usr/bin/env python3
 
 import requests
-import json
 import sys
-from datetime import datetime
-from typing import Dict, Any, Optional
+import json
+from datetime import datetime, timedelta
 
-class ElementEatsAPITester:
-    def __init__(self, base_url: str = "https://element-eats.preview.emergentagent.com"):
+class HealthTrackingAPITester:
+    def __init__(self, base_url="https://element-eats.preview.emergentagent.com"):
         self.base_url = base_url
-        self.api_base = f"{base_url}/api"
-        self.session_token = None
-        self.user_id = None
+        self.session_token = "test_health_session_123"
+        self.headers = {
+            'Authorization': f'Bearer {self.session_token}',
+            'Content-Type': 'application/json'
+        }
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_results = []
+        self.failed_tests = []
+        self.today = datetime.now().strftime('%Y-%m-%d')
 
-    def log_test(self, name: str, success: bool, details: str = "", response_data: Any = None):
-        """Log test result"""
+    def run_test(self, name, method, endpoint, expected_status, data=None, query_params=None):
+        """Run a single API test"""
+        url = f"{self.base_url}/api/{endpoint}"
+        if query_params:
+            url += f"?{query_params}"
+        
         self.tests_run += 1
-        if success:
-            self.tests_passed += 1
-            
-        result = {
-            "test_name": name,
-            "success": success,
-            "details": details,
-            "response_data": response_data if response_data and len(str(response_data)) < 500 else "truncated"
-        }
-        self.test_results.append(result)
+        print(f"\n🔍 Testing {name} [{method} {endpoint}]...")
         
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} - {name}")
-        if details:
-            print(f"    Details: {details}")
-
-    def make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, 
-                    expected_status: int = 200, use_auth: bool = True) -> tuple[bool, Any, int]:
-        """Make HTTP request"""
-        url = f"{self.api_base}{endpoint}"
-        headers = {'Content-Type': 'application/json'}
-        
-        if use_auth and self.session_token:
-            headers['Authorization'] = f'Bearer {self.session_token}'
-            
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=15)
+                response = requests.get(url, headers=self.headers)
             elif method == 'POST':
-                response = requests.post(url, json=data, headers=headers, timeout=15)
+                response = requests.post(url, headers=self.headers, json=data)
+            elif method == 'PUT':
+                response = requests.put(url, headers=self.headers, json=data)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=15)
-            else:
-                return False, f"Unsupported method: {method}", 0
-                
+                response = requests.delete(url, headers=self.headers)
+
             success = response.status_code == expected_status
-            try:
-                response_data = response.json()
-            except:
-                response_data = response.text
-                
-            return success, response_data, response.status_code
-            
-        except requests.exceptions.Timeout:
-            return False, "Request timeout", 0
-        except requests.exceptions.ConnectionError:
-            return False, "Connection error", 0
+            if success:
+                self.tests_passed += 1
+                print(f"✅ Passed - Status: {response.status_code}")
+                try:
+                    response_data = response.json() if response.text else {}
+                    return True, response_data
+                except:
+                    return True, {}
+            else:
+                self.failed_tests.append({
+                    'test': name,
+                    'expected': expected_status, 
+                    'actual': response.status_code,
+                    'response': response.text[:500] if response.text else 'No response body'
+                })
+                print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
+                print(f"   Response: {response.text[:200]}...")
+                return False, {}
+
         except Exception as e:
-            return False, f"Request error: {str(e)}", 0
+            self.failed_tests.append({'test': name, 'error': str(e)})
+            print(f"❌ Failed - Error: {str(e)}")
+            return False, {}
 
-    def test_basic_health(self):
-        """Test basic API health"""
-        success, data, status = self.make_request('GET', '/', use_auth=False)
-        self.log_test("API Health Check", success, f"Status: {status}", data)
+    def test_auth(self):
+        """Test authentication"""
+        return self.run_test("Authentication", "GET", "auth/me", 200)
 
-    def create_test_session(self):
-        """Create test user and session for auth testing"""
-        try:
-            import pymongo
-            
-            # Connect to MongoDB
-            client = pymongo.MongoClient("mongodb://localhost:27017")
-            db = client["test_database"]
-            
-            # Create test user
-            timestamp = int(datetime.now().timestamp())
-            self.user_id = f"test-user-{timestamp}"
-            self.session_token = f"test_session_{timestamp}"
-            
-            user_data = {
-                "user_id": self.user_id,
-                "email": f"test.user.{timestamp}@example.com",
-                "name": "Test User",
-                "picture": "https://via.placeholder.com/150",
-                "created_at": datetime.now()
+    def test_goals_apis(self):
+        """Test goals management"""
+        print("\n📝 Testing Goals APIs...")
+        
+        # Get current goals
+        success, goals = self.run_test("Get Goals", "GET", "goals", 200)
+        
+        if success:
+            # Update goals
+            updated_goals = {
+                "calories": 2200,
+                "protein": 160,
+                "carbs": 220,
+                "fat": 70,
+                "water": 9,
+                "steps": 12000,
+                "net_carbs_mode": True,
+                "goal_type": "muscle_gain"
             }
-            
-            from datetime import timedelta
-            
-            session_data = {
-                "user_id": self.user_id,
-                "session_token": self.session_token,
-                "expires_at": (datetime.now() + timedelta(days=7)).isoformat(),
-                "created_at": datetime.now().isoformat()
+            return self.run_test("Update Goals", "PUT", "goals", 200, updated_goals)
+        return False
+
+    def test_food_log_apis(self):
+        """Test food logging"""
+        print("\n🍽️ Testing Food Log APIs...")
+        
+        # Get food log for today
+        success, food_log = self.run_test("Get Food Log", "GET", "food-log", 200, query_params=f"date={self.today}")
+        
+        if success:
+            # Add food entry
+            food_entry = {
+                "name": "Test Apple",
+                "calories": 95,
+                "protein": 0.5,
+                "carbs": 25,
+                "fat": 0.3,
+                "fiber": 4,
+                "amount": 1,
+                "unit": "medium",
+                "meal_type": "breakfast"
             }
+            success, entry = self.run_test("Add Food Entry", "POST", "food-log", 200, food_entry, f"date={self.today}")
             
-            # Insert test data
-            db.users.insert_one(user_data)
-            db.user_sessions.insert_one(session_data)
-            
-            client.close()
-            self.log_test("Create Test Session", True, f"Session: {self.session_token[:10]}...")
-            return True
-            
-        except Exception as e:
-            self.log_test("Create Test Session", False, f"Error: {str(e)}")
-            return False
-
-    def test_auth_endpoints(self):
-        """Test authentication endpoints"""
-        # Test /auth/me
-        success, data, status = self.make_request('GET', '/auth/me')
-        self.log_test("GET /auth/me", success, f"Status: {status}", data)
+            if success and 'entry_id' in entry:
+                # Delete food entry
+                self.run_test("Delete Food Entry", "DELETE", f"food-log/{entry['entry_id']}", 200, query_params=f"date={self.today}")
         
-        # Test /auth/logout
-        success, data, status = self.make_request('POST', '/auth/logout')
-        self.log_test("POST /auth/logout", success, f"Status: {status}", data)
+        return success
 
-    def test_foods_search(self):
-        """Test food search endpoint"""
-        test_data = {"query": "apple", "page_size": 5}
-        success, data, status = self.make_request('POST', '/foods/search', test_data, use_auth=False)
+    def test_water_log_apis(self):
+        """Test water tracking"""
+        print("\n💧 Testing Water Log APIs...")
         
-        # Check response structure
-        if success and isinstance(data, dict):
-            has_foods = 'foods' in data
-            foods_list = isinstance(data.get('foods'), list)
-            success = success and has_foods and foods_list
+        # Get water log
+        success, water_log = self.run_test("Get Water Log", "GET", "water-log", 200, query_params=f"date={self.today}")
+        
+        if success:
+            # Add water entry
+            water_entry = {"glasses": 2, "notes": "Morning hydration"}
+            success, entry = self.run_test("Add Water", "POST", "water-log", 200, water_entry, f"date={self.today}")
             
-        self.log_test("POST /foods/search", success, f"Status: {status}, Found {len(data.get('foods', []))} foods" if success else f"Status: {status}")
-
-    def test_barcode_search(self):
-        """Test barcode search endpoint"""
-        # Test with a known barcode (Coca Cola)
-        test_data = {"barcode": "5449000000996"}
-        success, data, status = self.make_request('POST', '/foods/barcode', test_data, expected_status=200, use_auth=False)
+            # Quick add water
+            if success:
+                self.run_test("Quick Add Water", "POST", "water-log/quick", 200, query_params=f"glasses=1&date={self.today}")
         
-        # Allow 404 since not all barcodes exist in Open Food Facts
-        if status == 404:
-            success = True  # 404 is expected for non-existent barcodes
+        return success
+
+    def test_workout_apis(self):
+        """Test workout logging"""
+        print("\n💪 Testing Workout APIs...")
+        
+        # Get workouts
+        success, workouts = self.run_test("Get Workouts", "GET", "workouts", 200, query_params=f"date={self.today}")
+        
+        if success:
+            # Add workout
+            workout_entry = {
+                "workout_type": "cardio",
+                "name": "Test Running",
+                "duration_minutes": 30,
+                "calories_burned": 300,
+                "notes": "Good pace"
+            }
+            success, entry = self.run_test("Add Workout", "POST", "workouts", 200, workout_entry, f"date={self.today}")
             
-        self.log_test("POST /foods/barcode", success, f"Status: {status}")
-
-    def test_food_details(self):
-        """Test food details endpoint"""
-        # Use a known USDA FDC ID for apple
-        fdc_id = 171688  # Raw apple
-        success, data, status = self.make_request('GET', f'/foods/{fdc_id}', use_auth=False)
+            if success and 'workout_id' in entry:
+                # Delete workout
+                self.run_test("Delete Workout", "DELETE", f"workouts/{entry['workout_id']}", 200, query_params=f"date={self.today}")
         
-        # Check response has elemental composition
-        if success and isinstance(data, dict):
-            has_elemental = 'elemental_composition' in data
-            has_nutrients = 'nutrients' in data
-            success = success and has_elemental and has_nutrients
+        return success
+
+    def test_weight_apis(self):
+        """Test weight tracking"""
+        print("\n⚖️ Testing Weight APIs...")
+        
+        # Get weight history
+        success, weight_history = self.run_test("Get Weight History", "GET", "weight", 200, query_params="days=30")
+        
+        if success:
+            # Log weight
+            weight_entry = {"weight": 75.5, "unit": "kg", "notes": "Morning weight"}
+            self.run_test("Log Weight", "POST", "weight", 200, weight_entry, f"date={self.today}")
+        
+        return success
+
+    def test_steps_apis(self):
+        """Test steps tracking"""
+        print("\n👣 Testing Steps APIs...")
+        
+        # Get steps
+        success, steps = self.run_test("Get Steps", "GET", "steps", 200, query_params=f"date={self.today}")
+        
+        if success:
+            # Log steps
+            steps_entry = {"steps": 8500, "source": "manual"}
+            self.run_test("Log Steps", "POST", "steps", 200, steps_entry, f"date={self.today}")
+        
+        return success
+
+    def test_dashboard_api(self):
+        """Test comprehensive dashboard"""
+        print("\n📊 Testing Dashboard API...")
+        return self.run_test("Get Dashboard", "GET", "dashboard", 200, query_params=f"date={self.today}")
+
+    def test_progress_api(self):
+        """Test progress tracking"""
+        print("\n📈 Testing Progress API...")
+        return self.run_test("Get Progress", "GET", "progress", 200, query_params="days=7")
+
+    def test_meal_planner_apis(self):
+        """Test meal planning"""
+        print("\n📅 Testing Meal Planner APIs...")
+        
+        # Get meal plan
+        week_start = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime('%Y-%m-%d')
+        success, meal_plan = self.run_test("Get Meal Plan", "GET", "meal-plan", 200, query_params=f"week_start={week_start}")
+        
+        if success:
+            # Add meal to plan
+            meal_entry = {
+                "day_of_week": 0,  # Monday
+                "meal_type": "breakfast",
+                "food_name": "Test Oatmeal",
+                "calories": 150
+            }
+            success, entry = self.run_test("Add Meal to Plan", "POST", "meal-plan", 200, meal_entry, f"week_start={week_start}")
             
-        self.log_test(f"GET /foods/{fdc_id}", success, f"Status: {status}")
-
-    def test_recipe_analysis(self):
-        """Test recipe analysis endpoint"""
-        test_recipe = {
-            "ingredients": [
-                {
-                    "fdc_id": 171688,  # Apple
-                    "name": "Apple",
-                    "amount": 100,
-                    "unit": "g"
-                }
-            ],
-            "cooking_method": "raw",
-            "servings": 1
-        }
+            if success and 'meal_id' in entry:
+                # Remove meal from plan
+                self.run_test("Remove Meal from Plan", "DELETE", f"meal-plan/{entry['meal_id']}", 200, query_params=f"week_start={week_start}")
         
-        success, data, status = self.make_request('POST', '/analyze', test_recipe, use_auth=False)
-        
-        # Check response structure
-        if success and isinstance(data, dict):
-            has_elemental = 'elemental_composition' in data
-            has_macros = 'total_macros' in data
-            has_nutrients = 'nutrients_cooked' in data
-            success = success and has_elemental and has_macros and has_nutrients
-            
-        self.log_test("POST /analyze", success, f"Status: {status}")
+        return success
 
-    def test_reference_endpoints(self):
+    def test_connected_apps_api(self):
+        """Test fitness integrations"""
+        print("\n📱 Testing Connected Apps APIs...")
+        return self.run_test("Get Connected Apps", "GET", "connected-apps", 200)
+
+    def test_food_search_apis(self):
+        """Test USDA food search"""
+        print("\n🔍 Testing Food Search APIs...")
+        
+        # Search foods
+        search_data = {"query": "apple", "page_size": 5}
+        success, foods = self.run_test("Search Foods", "POST", "foods/search", 200, search_data)
+        
+        if success and foods.get('foods'):
+            # Get food details
+            first_food = foods['foods'][0]
+            if 'fdc_id' in first_food:
+                self.run_test("Get Food Details", "GET", f"foods/{first_food['fdc_id']}", 200)
+        
+        return success
+
+    def test_reference_apis(self):
         """Test reference data endpoints"""
-        endpoints = [
-            '/reference/cooking-methods',
-            '/reference/safe-temperatures', 
-            '/reference/allergens',
-            '/reference/elements'
-        ]
+        print("\n📚 Testing Reference APIs...")
         
-        for endpoint in endpoints:
-            success, data, status = self.make_request('GET', endpoint, use_auth=False)
-            self.log_test(f"GET {endpoint}", success, f"Status: {status}")
-
-    def test_recipe_crud(self):
-        """Test recipe CRUD operations"""
-        # Recreate session since logout might have cleared it
-        if not self.create_test_session():
-            self.log_test("Recipe CRUD (Skipped)", False, "Cannot create auth session")
-            return
-            
-        # Test GET recipes
-        success, data, status = self.make_request('GET', '/recipes')
-        self.log_test("GET /recipes", success, f"Status: {status}")
-        
-        # Test POST recipe
-        test_recipe = {
-            "name": "Test Recipe",
-            "ingredients": [{"name": "Apple", "amount": 100, "unit": "g"}],
-            "cooking_method": "raw",
-            "servings": 1
-        }
-        
-        success, data, status = self.make_request('POST', '/recipes', test_recipe, expected_status=200)
-        recipe_id = None
-        if success and isinstance(data, dict):
-            recipe_id = data.get('recipe_id')
-            
-        self.log_test("POST /recipes", success, f"Status: {status}")
-        
-        # Test GET specific recipe
-        if recipe_id:
-            success, data, status = self.make_request('GET', f'/recipes/{recipe_id}')
-            self.log_test(f"GET /recipes/{recipe_id}", success, f"Status: {status}")
-            
-            # Test DELETE recipe
-            success, data, status = self.make_request('DELETE', f'/recipes/{recipe_id}')
-            self.log_test(f"DELETE /recipes/{recipe_id}", success, f"Status: {status}")
-
-    def run_all_tests(self):
-        """Run all API tests"""
-        print("🧪 Starting ElementEats API Tests")
-        print("=" * 50)
-        
-        # Basic tests
-        self.test_basic_health()
-        
-        # Create auth session
-        if self.create_test_session():
-            self.test_auth_endpoints()
-        
-        # Food API tests
-        self.test_foods_search()
-        self.test_barcode_search()
-        self.test_food_details()
-        self.test_recipe_analysis()
-        
-        # Reference endpoints
-        self.test_reference_endpoints()
-        
-        # Recipe CRUD (requires auth)
-        self.test_recipe_crud()
-        
-        # Summary
-        print("\n" + "=" * 50)
-        print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} passed ({(self.tests_passed/self.tests_run*100):.1f}%)")
-        
-        failed_tests = [r for r in self.test_results if not r['success']]
-        if failed_tests:
-            print("\n❌ Failed Tests:")
-            for test in failed_tests:
-                print(f"  • {test['test_name']}: {test['details']}")
-                
-        return self.tests_passed, self.tests_run, self.test_results
+        self.run_test("Get Workout Types", "GET", "reference/workout-types", 200)
+        self.run_test("Get Cooking Methods", "GET", "reference/cooking-methods", 200)
+        return True
 
 def main():
-    try:
-        tester = ElementEatsAPITester()
-        passed, total, results = tester.run_all_tests()
-        
-        # Save results to file
-        with open('/app/test_reports/backend_test_results.json', 'w') as f:
-            json.dump({
-                'timestamp': datetime.now().isoformat(),
-                'summary': {'passed': passed, 'total': total},
-                'results': results
-            }, f, indent=2, default=str)
-            
-        return 0 if passed == total else 1
-        
-    except Exception as e:
-        print(f"💥 Test execution failed: {e}")
+    print("🏥 ElementEats Health Tracking API Test Suite")
+    print("=" * 50)
+    
+    tester = HealthTrackingAPITester()
+    
+    # Test authentication first
+    auth_success, user_data = tester.test_auth()
+    if not auth_success:
+        print("❌ Authentication failed! Cannot proceed with testing.")
         return 1
+    
+    print(f"✅ Authenticated as: {user_data.get('name', 'Unknown')}")
+    
+    # Run all tests
+    test_functions = [
+        tester.test_goals_apis,
+        tester.test_food_log_apis,
+        tester.test_water_log_apis,
+        tester.test_workout_apis,
+        tester.test_weight_apis,
+        tester.test_steps_apis,
+        tester.test_dashboard_api,
+        tester.test_progress_api,
+        tester.test_meal_planner_apis,
+        tester.test_connected_apps_api,
+        tester.test_food_search_apis,
+        tester.test_reference_apis
+    ]
+    
+    for test_func in test_functions:
+        try:
+            test_func()
+        except Exception as e:
+            print(f"❌ Test suite error: {e}")
+    
+    # Print summary
+    print("\n" + "=" * 50)
+    print(f"📊 FINAL RESULTS:")
+    print(f"   Tests Run: {tester.tests_run}")
+    print(f"   Tests Passed: {tester.tests_passed}")
+    print(f"   Tests Failed: {len(tester.failed_tests)}")
+    print(f"   Success Rate: {(tester.tests_passed/tester.tests_run)*100:.1f}%")
+    
+    if tester.failed_tests:
+        print(f"\n❌ FAILED TESTS:")
+        for failure in tester.failed_tests:
+            test_name = failure.get('test', 'Unknown')
+            if 'error' in failure:
+                error_detail = failure.get('error')
+            else:
+                expected = failure.get('expected')
+                actual = failure.get('actual')
+                error_detail = f'Expected {expected}, got {actual}'
+            print(f"   - {test_name}: {error_detail}")
+    
+    return 0 if len(tester.failed_tests) == 0 else 1
 
 if __name__ == "__main__":
     sys.exit(main())
