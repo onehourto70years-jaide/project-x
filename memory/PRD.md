@@ -47,6 +47,20 @@ Build an application to analyze food and recipes for their elemental composition
 - Step counting (manual + sync-ready)
 - Progress charts (7/14/30 day views)
 - Goal setting and tracking
+
+### Phase 4: PWA & Native Mobile App ✅ (2026-03-16)
+- Progressive Web App (manifest.json, service worker, offline caching)
+- App icons (192px, 512px) generated for all platforms
+- Bottom tab navigation for mobile (5 tabs: Home, Food, Routines, Workouts, Progress)
+- Safe area insets for notched devices (iPhone X+, Android)
+- Touch optimization (44px targets, tap highlight removal)
+- Standalone mode support (no browser chrome)
+- Capacitor 6 integration for native Android + iOS builds
+- Android project with custom icons, dark splash screen, theme colors
+- iOS project configured and synced
+- Native plugins: SplashScreen, StatusBar, App lifecycle
+- Build guide: `/app/frontend/MOBILE_BUILD_GUIDE.md`
+
 - Meal planning (weekly)
 
 ### Phase 3: Routine Scheduling & Tracking ✅ (2026-03-16)
@@ -63,7 +77,7 @@ Build an application to analyze food and recipes for their elemental composition
 - Route ordering fix for FastAPI static vs parameterized paths
 - Full RoutineAnalytics page with summary cards, bar chart, breakdown, daily detail table
 
-### Authentication ✅
+### Authentication ✅ ✅
 - Emergent-managed Google OAuth2
 - Session-based auth with cookies
 - Protected routes on frontend
