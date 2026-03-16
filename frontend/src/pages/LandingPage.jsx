@@ -2,13 +2,24 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/App';
 import { Button } from '@/components/ui/button';
-import { Atom, Beaker, ShieldAlert, Thermometer, Search, ScanBarcode, ChevronRight } from 'lucide-react';
+import { 
+  Atom, Beaker, ShieldAlert, Thermometer, Search, ScanBarcode, ChevronRight,
+  Flame, Droplets, Dumbbell, TrendingUp, Target, Calendar
+} from 'lucide-react';
 
 export default function LandingPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
+    if (user) {
+      navigate('/health');
+    } else {
+      login();
+    }
+  };
+
+  const handleFoodAnalyzer = () => {
     if (user) {
       navigate('/dashboard');
     } else {
@@ -43,6 +54,45 @@ export default function LandingPage() {
     }
   ];
 
+  const healthFeatures = [
+    {
+      icon: Flame,
+      title: 'Calorie & Macro Tracking',
+      description: 'Log meals, track calories, protein, carbs, and fat with net carbs mode for keto.',
+      color: 'neon-gold'
+    },
+    {
+      icon: Droplets,
+      title: 'Water Tracker',
+      description: 'Stay hydrated with daily water intake goals and quick logging.',
+      color: 'neon-cyan'
+    },
+    {
+      icon: Dumbbell,
+      title: 'Workout Logging',
+      description: 'Track exercises, duration, and calories burned for all workout types.',
+      color: 'neon-purple'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Progress Charts',
+      description: 'Visualize your journey with weight trends, macro breakdowns, and analytics.',
+      color: 'neon-green'
+    },
+    {
+      icon: Target,
+      title: 'Custom Goals',
+      description: 'Set personalized targets for weight loss, gain, maintenance, or muscle building.',
+      color: 'neon-red'
+    },
+    {
+      icon: Calendar,
+      title: 'Meal Planner',
+      description: 'Plan your weekly meals in advance with an easy-to-use grid interface.',
+      color: 'neon-cyan'
+    }
+  ];
+
   const elements = [
     { symbol: 'C', name: 'Carbon', number: 6, color: 'periodic-nonmetal' },
     { symbol: 'H', name: 'Hydrogen', number: 1, color: 'periodic-nonmetal' },
@@ -67,13 +117,23 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             {user ? (
-              <Button 
-                onClick={() => navigate('/dashboard')}
-                className="btn-primary"
-                data-testid="nav-dashboard-btn"
-              >
-                Dashboard
-              </Button>
+              <>
+                <Button 
+                  variant="ghost"
+                  onClick={() => navigate('/health')}
+                  className="btn-ghost hidden sm:flex"
+                  data-testid="nav-health-btn"
+                >
+                  Health Dashboard
+                </Button>
+                <Button 
+                  onClick={() => navigate('/dashboard')}
+                  className="btn-primary"
+                  data-testid="nav-dashboard-btn"
+                >
+                  Food Analyzer
+                </Button>
+              </>
             ) : (
               <Button 
                 onClick={login}
@@ -95,17 +155,17 @@ export default function LandingPage() {
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-cyan/10 border border-neon-cyan/20">
                 <Beaker className="w-4 h-4 text-neon-cyan" />
-                <span className="text-sm font-mono text-neon-cyan">GASTRONOMIC ALCHEMY</span>
+                <span className="text-sm font-mono text-neon-cyan">FOOD SCIENCE + FITNESS</span>
               </div>
               
               <h1 className="font-chivo font-black text-5xl sm:text-6xl lg:text-7xl leading-tight">
-                Decode Your
-                <span className="block text-neon-cyan neon-text-cyan">Food's DNA</span>
+                Track, Analyze
+                <span className="block text-neon-cyan neon-text-cyan">& Transform</span>
               </h1>
               
               <p className="text-lg text-neutral-400 max-w-lg">
-                Break down any recipe into its elemental composition. Map vitamins, minerals, 
-                detect allergens, and optimize cooking methods for maximum nutrition.
+                Complete health platform: track calories & macros, log workouts, monitor hydration, 
+                and analyze food at the molecular level. Your fitness journey, scientifically optimized.
               </p>
               
               <div className="flex flex-wrap gap-4">
@@ -114,18 +174,18 @@ export default function LandingPage() {
                   className="btn-primary flex items-center gap-2 text-lg"
                   data-testid="hero-get-started-btn"
                 >
-                  <Search className="w-5 h-5" />
-                  Analyze Food
+                  <Flame className="w-5 h-5" />
+                  Start Tracking
                   <ChevronRight className="w-5 h-5" />
                 </Button>
                 <Button 
                   variant="outline"
                   className="btn-secondary flex items-center gap-2 text-lg"
-                  data-testid="hero-barcode-btn"
-                  onClick={handleGetStarted}
+                  data-testid="hero-analyzer-btn"
+                  onClick={handleFoodAnalyzer}
                 >
-                  <ScanBarcode className="w-5 h-5" />
-                  Scan Barcode
+                  <Atom className="w-5 h-5" />
+                  Food Analyzer
                 </Button>
               </div>
 
@@ -210,8 +270,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Health & Fitness Features */}
       <section className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-gold/10 border border-neon-gold/20 mb-6">
+              <Flame className="w-4 h-4 text-neon-gold" />
+              <span className="text-sm font-mono text-neon-gold">HEALTH & FITNESS TRACKING</span>
+            </div>
+            <h2 className="font-chivo font-bold text-3xl sm:text-4xl mb-4">
+              Complete Fitness Platform
+            </h2>
+            <p className="text-neutral-400 max-w-2xl mx-auto">
+              Track every aspect of your health journey — from calories and macros to workouts and hydration.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-fade-in">
+            {healthFeatures.map((feature, i) => (
+              <div 
+                key={feature.title}
+                className="glass-card glass-card-hover p-6 space-y-4"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div className={`w-12 h-12 rounded-lg bg-${feature.color}/20 flex items-center justify-center`}>
+                  <feature.icon className={`w-6 h-6 text-${feature.color}`} strokeWidth={1.5} />
+                </div>
+                <h3 className="font-chivo font-bold text-lg">{feature.title}</h3>
+                <p className="text-sm text-neutral-400">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA for Health Dashboard */}
+          <div className="mt-12 text-center">
+            <Button 
+              onClick={handleGetStarted}
+              className="btn-primary text-lg px-8"
+              data-testid="health-cta-btn"
+            >
+              <Dumbbell className="w-5 h-5 mr-2" />
+              Start Your Health Journey
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 px-6 bg-background-secondary">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
