@@ -115,24 +115,79 @@ export default function LandingPage() {
               ELEMENT<span className="text-neon-cyan">EATS</span>
             </span>
           </div>
+          
+          {/* Full Navigation for logged in users */}
+          {user && (
+            <div className="hidden md:flex items-center gap-1 bg-neutral-900/50 rounded-xl p-1 border border-white/10">
+              <button
+                onClick={() => navigate('/health')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-white bg-neon-cyan/20 hover:bg-neon-cyan/30 transition-colors"
+                data-testid="nav-health"
+              >
+                <Flame className="w-4 h-4 text-neon-gold" />
+                Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/food-log')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                data-testid="nav-food-log"
+              >
+                <Beaker className="w-4 h-4" />
+                Food Log
+              </button>
+              <button
+                onClick={() => navigate('/workouts')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                data-testid="nav-workouts"
+              >
+                <Dumbbell className="w-4 h-4" />
+                Workouts
+              </button>
+              <button
+                onClick={() => navigate('/progress')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                data-testid="nav-progress"
+              >
+                <TrendingUp className="w-4 h-4" />
+                Progress
+              </button>
+              <button
+                onClick={() => navigate('/goals')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                data-testid="nav-goals"
+              >
+                <Target className="w-4 h-4" />
+                Goals
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                data-testid="nav-analyzer"
+              >
+                <Atom className="w-4 h-4" />
+                Analyzer
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-4">
             {user ? (
               <>
-                <Button 
-                  variant="ghost"
-                  onClick={() => navigate('/health')}
-                  className="btn-ghost hidden sm:flex"
-                  data-testid="nav-health-btn"
-                >
-                  Health Dashboard
-                </Button>
-                <Button 
-                  onClick={() => navigate('/dashboard')}
-                  className="btn-primary"
-                  data-testid="nav-dashboard-btn"
-                >
-                  Food Analyzer
-                </Button>
+                {/* Mobile menu button */}
+                <div className="md:hidden flex items-center gap-2">
+                  <Button 
+                    onClick={() => navigate('/health')}
+                    className="btn-primary"
+                    data-testid="nav-health-mobile"
+                  >
+                    <Flame className="w-4 h-4 mr-1" />
+                    Dashboard
+                  </Button>
+                </div>
+                <div className="hidden md:flex items-center gap-2">
+                  <img src={user.picture} alt="" className="w-8 h-8 rounded-full" />
+                  <span className="text-sm text-neutral-300">{user.name?.split(' ')[0]}</span>
+                </div>
               </>
             ) : (
               <Button 
