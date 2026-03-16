@@ -1,0 +1,122 @@
+{
+  "timestamp": "2026-03-16T15:46:25.419769",
+  "summary": {
+    "passed": 17,
+    "total": 17
+  },
+  "results": [
+    {
+      "test_name": "API Health Check",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": {
+        "message": "ElementEats API - Food Elemental Analyzer",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "test_name": "Create Test Session",
+      "success": true,
+      "details": "Session: test_sessi...",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /auth/me",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": {
+        "user_id": "test-user-1773675965",
+        "email": "test.user.1773675965@example.com",
+        "name": "Test User",
+        "picture": "https://via.placeholder.com/150",
+        "created_at": "2026-03-16T15:46:05.846000"
+      }
+    },
+    {
+      "test_name": "POST /auth/logout",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": {
+        "message": "Logged out successfully"
+      }
+    },
+    {
+      "test_name": "POST /foods/search",
+      "success": true,
+      "details": "Status: 200, Found 5 foods",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "POST /foods/barcode",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /foods/171688",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "POST /analyze",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /reference/cooking-methods",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /reference/safe-temperatures",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /reference/allergens",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /reference/elements",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "Create Test Session",
+      "success": true,
+      "details": "Session: test_sessi...",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /recipes",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "POST /recipes",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "GET /recipes/recipe_04be06c8ee62",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    },
+    {
+      "test_name": "DELETE /recipes/recipe_04be06c8ee62",
+      "success": true,
+      "details": "Status: 200",
+      "response_data": "truncated"
+    }
+  ]
+}
