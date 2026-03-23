@@ -60,7 +60,7 @@ export default function ProfileScreen() {
               <Ionicons name="information-circle" size={20} color="#00d4ff" />
             </View>
             <View style={styles.menuContent}>
-              <Text style={styles.menuLabel}>About NutriMolecule</Text>
+              <Text style={styles.menuLabel}>About NutriOS</Text>
               <Text style={styles.menuSubtext}>Molecular Nutrition Engine v1.0</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.version}>NutriMolecule v1.0.0</Text>
+        <Text style={styles.version}>NutriOS v3.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

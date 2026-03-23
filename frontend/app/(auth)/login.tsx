@@ -43,8 +43,8 @@ export default function LoginScreen() {
           <View style={styles.logoContainer}>
             <Ionicons name="flask" size={60} color="#00d4ff" />
           </View>
-          <Text style={styles.title}>NutriMolecule</Text>
-          <Text style={styles.subtitle}>Molecular Nutrition Engine</Text>
+          <Text style={styles.title}>NutriOS</Text>
+          <Text style={styles.subtitle}>Your Personal Nutrition Operating System</Text>
         </View>
 
         {/* Features */}

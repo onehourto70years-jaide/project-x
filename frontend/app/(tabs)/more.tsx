@@ -98,7 +98,7 @@ export default function MoreScreen() {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>NutriMolecule v3.0.0</Text>
+        <Text style={styles.version}>NutriOS v3.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );

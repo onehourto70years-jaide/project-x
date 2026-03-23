@@ -26,7 +26,7 @@ USDA_BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-16f3b56Af3500F2517')
 
 # Create the main app
-app = FastAPI(title="NutriMolecule - Personal Health OS")
+app = FastAPI(title="NutriOS - Personal Health Operating System")
 api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -807,7 +807,7 @@ async def get_predictive_recommendations(user: User = Depends(require_user)):
 
 @api_router.get("/")
 async def root():
-    return {"message": "NutriMolecule - Personal Health OS", "version": "3.0.0", "status": "healthy"}
+    return {"message": "NutriOS - Personal Health Operating System", "version": "3.0.0", "status": "healthy"}
 
 @api_router.get("/elements/info")
 async def get_elements_info():
