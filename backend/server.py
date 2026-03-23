@@ -175,7 +175,9 @@ async def create_session(request: Request, response: Response):
     await db.user_sessions.delete_many({"user_id": user_id})
     await db.user_sessions.insert_one({"session_token": session_token, "user_id": user_id, "expires_at": expires_at, "created_at": datetime.now(timezone.utc)})
     response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
-    return await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    user_doc["session_token"] = session_token
+    return user_doc
 
 @api_router.get("/auth/me")
 async def get_me(user: User = Depends(require_user)):

@@ -79,7 +79,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) throw new Error('Session exchange failed');
 
       const userData = await response.json();
-      await AsyncStorage.setItem('session_token', sessionId);
+      // Use the actual session_token from the backend response (not the session_id)
+      const token = userData.session_token || sessionId;
+      await AsyncStorage.setItem('session_token', token);
       setUser(userData);
     } catch (error) {
       console.error('Sign in error:', error);
