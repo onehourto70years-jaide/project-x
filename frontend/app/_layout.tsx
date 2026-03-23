@@ -6,12 +6,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-// Auth Context
 interface User {
   user_id: string;
   email: string;
   name: string;
   picture?: string;
+  weight_kg?: number;
+  activity_level?: string;
+  health_goals?: string[];
 }
 
 interface AuthContextType {
@@ -30,7 +32,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Auth Provider Component
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,14 +79,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) throw new Error('Session exchange failed');
 
       const userData = await response.json();
-      
-      // Extract session token from response headers or get from cookies
-      const sessionToken = response.headers.get('set-cookie')?.match(/session_token=([^;]+)/)?.[1];
-      if (sessionToken) {
-        await AsyncStorage.setItem('session_token', sessionToken);
-      }
-      
-      // Store a basic token if we can't get from headers
       await AsyncStorage.setItem('session_token', sessionId);
       setUser(userData);
     } catch (error) {
@@ -117,12 +110,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  // Navigation guard
   useEffect(() => {
     if (!navigationState?.key || isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
 
     if (!user && !inAuthGroup) {
       router.replace('/(auth)/login');
@@ -146,17 +137,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
-        <Stack.Screen name="add-entry" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Add Food Entry', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
       </Stack>
     </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0f0f23',
-  },
-});

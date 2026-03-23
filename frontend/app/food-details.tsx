@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const MEAL_TYPES = [
+  { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
+  { id: 'lunch', label: 'Lunch', icon: 'restaurant', color: '#4ecdc4' },
+  { id: 'dinner', label: 'Dinner', icon: 'moon', color: '#a29bfe' },
+  { id: 'snack', label: 'Snack', icon: 'cafe', color: '#ff6b6b' },
+];
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -46,6 +53,7 @@ export default function FoodDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [portionGrams, setPortionGrams] = useState(100);
   const [cookingMethod, setCookingMethod] = useState('raw');
+  const [mealType, setMealType] = useState((params.meal_type as string) || 'snack');
   const [saving, setSaving] = useState(false);
 
   const fetchAnalysis = async () => {
@@ -83,11 +91,11 @@ export default function FoodDetailsScreen() {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) {
-        alert('Please login to track foods');
+        Alert.alert('Error', 'Please login to track foods');
         return;
       }
 
-      const response = await fetch(`${BACKEND_URL}/api/tracking/entry`, {
+      const response = await fetch(`${BACKEND_URL}/api/meals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,6 +105,7 @@ export default function FoodDetailsScreen() {
           fdc_id: analysis.fdc_id,
           food_name: analysis.food_name,
           portion_grams: analysis.portion_grams,
+          meal_type: mealType,
           cooking_method: analysis.cooking_method,
           nutrients: analysis.nutrients.cooked,
           elements: analysis.elements.mass_grams,
@@ -105,10 +114,10 @@ export default function FoodDetailsScreen() {
       });
 
       if (response.ok) {
-        alert('Food added to your log!');
+        Alert.alert('Success', 'Food added to your log!');
         router.back();
       } else {
-        alert('Failed to add food');
+        Alert.alert('Error', 'Failed to add food');
       }
     } catch (error) {
       console.error('Error saving entry:', error);

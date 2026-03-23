@@ -18,7 +18,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: '#00d4ff',
         tabBarInactiveTintColor: '#666',
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '500',
         },
       }}
@@ -26,29 +26,36 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons name="grid" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="nutrition"
         options={{
-          title: 'Search',
+          title: 'Nutrition',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
+            <Ionicons name="nutrition" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="track"
+        name="water"
         options={{
-          title: 'Track',
+          title: 'Water',
           tabBarIcon: ({ color, size }) => (
-            <View style={styles.addButton}>
-              <Ionicons name="add" size={28} color="#fff" />
-            </View>
+            <Ionicons name="water" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="routines"
+        options={{
+          title: 'Routines',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
@@ -57,36 +64,10 @@ export default function TabsLayout() {
         options={{
           title: 'AI',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bulb" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="sparkles" size={size} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  addButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#00d4ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#00d4ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-});
