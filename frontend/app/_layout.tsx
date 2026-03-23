@@ -140,6 +140,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
+        <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
+        <Stack.Screen name="badges" options={{ presentation: 'card' }} />
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="progress" options={{ presentation: 'card' }} />
         <Stack.Screen name="favorites" options={{ presentation: 'card' }} />

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
 import * as Linking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AuthCallback() {
   const params = useLocalSearchParams();
@@ -32,7 +33,14 @@ export default function AuthCallback() {
 
         if (sessionId) {
           await signIn(sessionId);
-          router.replace('/(tabs)');
+          
+          // Check if onboarding was completed
+          const onboardingDone = await AsyncStorage.getItem('onboarding_completed');
+          if (onboardingDone === 'true') {
+            router.replace('/(tabs)');
+          } else {
+            router.replace('/onboarding');
+          }
         } else {
           console.error('No session_id found');
           router.replace('/(auth)/login');

@@ -803,6 +803,219 @@ async def get_insights(user: User = Depends(require_user)):
 async def get_predictive_recommendations(user: User = Depends(require_user)):
     return {"recommendations": [{"type": "meal_timing", "title": "Optimal Eating Window", "description": "Eat main meal 1-2 hours before workouts", "optimal_time": "12:00-13:00", "expected_benefit": "Better energy"}]}
 
+# ================== AI CHAT ==================
+
+# Helper for optional auth
+async def get_current_user_optional(request: Request) -> Optional[User]:
+    try:
+        session_token = request.cookies.get("session_token")
+        if not session_token:
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                session_token = auth_header.split(" ")[1]
+        if not session_token:
+            return None
+        session = await db.user_sessions.find_one({"session_token": session_token})
+        if not session:
+            return None
+        if datetime.fromisoformat(str(session["expires_at"])).replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            return None
+        user_doc = await db.users.find_one({"user_id": session["user_id"]})
+        if not user_doc:
+            return None
+        return User(user_id=user_doc["user_id"], email=user_doc["email"], name=user_doc.get("name", ""))
+    except Exception:
+        return None
+
+class AIChatRequest(BaseModel):
+    message: str
+    conversation_history: str = ""
+    nutrition_context: str = ""
+
+@api_router.post("/ai/chat")
+async def ai_chat(request: AIChatRequest, user: Optional[User] = Depends(get_current_user_optional)):
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    try:
+        system_prompt = """You are NutriOS Coach — a friendly, expert AI nutrition advisor integrated into a molecular nutrition app. 
+You specialize in:
+- Food recommendations based on elemental composition (C, H, O, N, S and minerals)
+- Nutrient synergies and food combinations
+- Cooking method optimization for nutrient retention
+- Personalized advice based on user's current intake data
+Keep responses concise (2-4 paragraphs max), warm, and actionable. Use occasional emojis.
+When relevant, mention specific elements (Carbon, Nitrogen, etc.) and how they relate to health.
+If the user shares their nutrition context, reference their actual numbers."""
+
+        full_prompt = request.message
+        if request.nutrition_context:
+            full_prompt = f"{request.nutrition_context}\n\nUser question: {request.message}"
+        if request.conversation_history:
+            full_prompt = f"Previous conversation:\n{request.conversation_history}\n\nNew message: {full_prompt}"
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"chat_{uuid.uuid4().hex[:8]}",
+            system_message=system_prompt
+        ).with_model("gemini", "gemini-3-flash-preview")
+        response = await chat.send_message(UserMessage(text=full_prompt))
+        
+        # Log conversation for context
+        if user:
+            await db.chat_history.insert_one({
+                "user_id": user.user_id,
+                "user_message": request.message,
+                "ai_response": response,
+                "timestamp": datetime.now(timezone.utc)
+            })
+        
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"AI Chat error: {e}")
+        return {"response": "I'm having trouble connecting right now. Please try again in a moment! In the meantime, remember to stay hydrated 💧"}
+
+# ================== GAMIFICATION & BADGES ==================
+
+BADGE_DEFINITIONS = [
+    {"id": "first_meal", "name": "First Bite", "description": "Log your first meal", "icon": "restaurant", "color": "#4ecdc4", "condition": "meals_logged >= 1"},
+    {"id": "meal_streak_3", "name": "Consistent Eater", "description": "Log meals for 3 days straight", "icon": "flame", "color": "#ff6b6b", "condition": "streak >= 3"},
+    {"id": "meal_streak_7", "name": "Week Warrior", "description": "7-day logging streak", "icon": "trophy", "color": "#ffd93d", "condition": "streak >= 7"},
+    {"id": "meal_streak_30", "name": "Monthly Master", "description": "30-day logging streak", "icon": "medal", "color": "#a29bfe", "condition": "streak >= 30"},
+    {"id": "hydration_hero", "name": "Hydration Hero", "description": "Hit water goal 5 times", "icon": "water", "color": "#00d4ff", "condition": "water_goals_met >= 5"},
+    {"id": "protein_pro", "name": "Protein Pro", "description": "Hit protein goal 5 times", "icon": "barbell", "color": "#00ff88", "condition": "protein_goals_met >= 5"},
+    {"id": "element_explorer", "name": "Element Explorer", "description": "Log 10 different foods", "icon": "flask", "color": "#fd79a8", "condition": "unique_foods >= 10"},
+    {"id": "recipe_creator", "name": "Recipe Creator", "description": "Create your first recipe", "icon": "book", "color": "#e17055", "condition": "recipes_created >= 1"},
+    {"id": "routine_master", "name": "Routine Master", "description": "Complete all routines for a day", "icon": "checkmark-done", "color": "#6c5ce7", "condition": "routines_completed_days >= 1"},
+    {"id": "century_meals", "name": "Century Club", "description": "Log 100 meals total", "icon": "star", "color": "#ffeaa7", "condition": "meals_logged >= 100"},
+]
+
+@api_router.get("/badges")
+async def get_badges(user: User = Depends(require_user)):
+    # Calculate user stats
+    total_meals = await db.meals.count_documents({"user_id": user.user_id})
+    unique_foods = len(await db.meals.distinct("food_name", {"user_id": user.user_id}))
+    total_recipes = await db.recipes.count_documents({"user_id": user.user_id})
+    
+    # Calculate streak
+    streak = 0
+    today = datetime.now(timezone.utc).date()
+    for i in range(365):
+        d = (today - timedelta(days=i)).isoformat()
+        summary = await db.daily_summaries.find_one({"user_id": user.user_id, "date": d})
+        if summary and summary.get("total_calories", 0) > 0:
+            streak += 1
+        else:
+            if i > 0:
+                break
+    
+    # Water goals met
+    water_goals_met = await db.daily_summaries.count_documents({
+        "user_id": user.user_id,
+        "water_goal_met": True
+    })
+    
+    # Protein goals met
+    settings = await db.user_settings.find_one({"user_id": user.user_id}) or {}
+    protein_goal = settings.get("daily_protein_goal", 50)
+    protein_goals_met = await db.daily_summaries.count_documents({
+        "user_id": user.user_id,
+        "total_protein": {"$gte": protein_goal}
+    })
+    
+    # Routine completed days
+    routines_completed_days = 0  # Simplified
+
+    stats = {
+        "meals_logged": total_meals,
+        "streak": streak,
+        "water_goals_met": water_goals_met,
+        "protein_goals_met": protein_goals_met,
+        "unique_foods": unique_foods,
+        "recipes_created": total_recipes,
+        "routines_completed_days": routines_completed_days,
+    }
+    
+    # Determine which badges are earned
+    earned = await db.badges.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    earned_ids = {b["badge_id"] for b in earned}
+    
+    badges = []
+    newly_earned = []
+    for bd in BADGE_DEFINITIONS:
+        is_earned = bd["id"] in earned_ids
+        # Check if newly earned
+        if not is_earned:
+            condition = bd["condition"]
+            parts = condition.split(" >= ")
+            if len(parts) == 2:
+                stat_name = parts[0].strip()
+                threshold = int(parts[1].strip())
+                if stats.get(stat_name, 0) >= threshold:
+                    is_earned = True
+                    newly_earned.append(bd["id"])
+                    await db.badges.insert_one({
+                        "user_id": user.user_id,
+                        "badge_id": bd["id"],
+                        "earned_at": datetime.now(timezone.utc).isoformat()
+                    })
+        
+        badges.append({**bd, "earned": is_earned})
+    
+    # Weekly summary
+    week_start = (today - timedelta(days=today.weekday())).isoformat()
+    week_meals = await db.meals.count_documents({
+        "user_id": user.user_id,
+        "timestamp": {"$gte": week_start}
+    })
+    
+    return {
+        "badges": badges,
+        "newly_earned": newly_earned,
+        "stats": stats,
+        "weekly_summary": {
+            "meals_this_week": week_meals,
+            "current_streak": streak,
+            "total_badges_earned": len(earned_ids) + len(newly_earned),
+            "total_badges": len(BADGE_DEFINITIONS)
+        }
+    }
+
+# ================== SHARING ==================
+
+@api_router.get("/share/daily-summary")
+async def get_shareable_summary(user: User = Depends(require_user)):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    summary = await db.daily_summaries.find_one({"user_id": user.user_id, "date": today}, {"_id": 0}) or {}
+    settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    
+    cal_current = summary.get("total_calories", 0)
+    cal_goal = settings.get("daily_calorie_goal", 2000)
+    protein_current = summary.get("total_protein", 0)
+    water_current = summary.get("total_water_ml", 0)
+    water_goal = settings.get("daily_water_goal_ml", 2500)
+    
+    elements = summary.get("elements", {})
+    
+    share_text = f"🧬 My NutriOS Daily Report - {today}\n\n"
+    share_text += f"🔥 Calories: {int(cal_current)}/{cal_goal} kcal\n"
+    share_text += f"💪 Protein: {int(protein_current)}g\n"
+    share_text += f"💧 Water: {water_current}/{water_goal}ml\n\n"
+    share_text += "⚛️ Elemental Intake:\n"
+    for el in ['C', 'H', 'O', 'N']:
+        val = elements.get(el, 0)
+        share_text += f"  {el}: {val:.1f}g\n"
+    share_text += "\n📊 Tracked with NutriOS - Your Nutrition Operating System"
+    
+    return {
+        "text": share_text,
+        "data": {
+            "date": today,
+            "calories": {"current": cal_current, "goal": cal_goal},
+            "protein": int(protein_current),
+            "water": {"current": water_current, "goal": water_goal},
+            "elements": elements
+        }
+    }
+
 # ================== UTILITY ==================
 
 @api_router.get("/")
