@@ -462,7 +462,7 @@ async def create_recipe(recipe: RecipeCreate, user: User = Depends(require_user)
         "created_at": datetime.now(timezone.utc)
     }
     await db.recipes.insert_one(recipe_doc)
-    return {"message": "Recipe created", "recipe_id": recipe_doc["id"], "per_serving_nutrients": per_serving_nutrients}
+    return {"message": "Recipe created", "recipe_id": recipe_doc["id"], "per_serving_nutrients": per_serving_nutrients, "per_serving_elements": per_serving_elements, "allergens": list(set(all_allergens))}
 
 @api_router.get("/recipes")
 async def get_recipes(user: User = Depends(require_user)):

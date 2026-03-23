@@ -1,8 +1,19 @@
 import React, { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider, useTheme } from './ThemeContext';
+import * as Notifications from 'expo-notifications';
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -133,8 +144,19 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
+    <ThemeProvider>
+      <AuthProvider>
+        <RootContent />
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+function RootContent() {
+  const { isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
@@ -150,6 +172,6 @@ export default function RootLayout() {
         <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
         <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
       </Stack>
-    </AuthProvider>
+    </>
   );
 }
