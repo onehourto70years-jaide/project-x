@@ -134,9 +134,17 @@ export default function RootLayout() {
     <AuthProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
+        <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+        <Stack.Screen name="progress" options={{ presentation: 'card' }} />
+        <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
+        <Stack.Screen name="scanner" options={{ presentation: 'card' }} />
+        <Stack.Screen name="recipes" options={{ presentation: 'card' }} />
+        <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
+        <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
       </Stack>
     </AuthProvider>
   );

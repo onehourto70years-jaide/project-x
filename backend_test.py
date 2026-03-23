@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any, List
 
 # Backend URL from frontend .env
-BACKEND_URL = "https://nutrient-mapper.preview.emergentagent.com"
+BACKEND_URL = "https://elemental-nutrition.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class NutritionAPITester:
