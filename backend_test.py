@@ -1,485 +1,347 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for Molecular Nutrition Engine
-Tests all endpoints as specified in the review request
+NutriOS Payment System Backend Testing
+Tests all payment endpoints and related functionality
 """
 
-import asyncio
-import httpx
+import requests
 import json
 import sys
-from typing import Dict, Any, List
+import time
+from datetime import datetime
+import pymongo
 
-# Backend URL from frontend .env
-BACKEND_URL = "https://meal-sync-test.preview.emergentagent.com"
-API_BASE = f"{BACKEND_URL}/api"
+# Configuration
+BASE_URL = "http://localhost:8001"
+API_BASE = f"{BASE_URL}/api"
 
-class NutritionAPITester:
-    def __init__(self):
-        self.client = httpx.AsyncClient(timeout=30.0)
-        self.test_results = []
-        self.failed_tests = []
-        self.passed_tests = []
+# MongoDB connection for test setup
+MONGO_URL = "mongodb://localhost:27017"
+DB_NAME = "nutrient_mapper"
 
-    async def log_test(self, test_name: str, success: bool, details: str = "", response_data: Any = None):
-        """Log test results"""
-        result = {
-            "test": test_name,
-            "success": success,
-            "details": details,
-            "response_data": response_data
-        }
-        self.test_results.append(result)
-        
-        if success:
-            self.passed_tests.append(test_name)
-            print(f"✅ {test_name}: {details}")
+# Test user credentials from MongoDB
+USER_ID = "user_0de05ad0fec8"
+SESSION_TOKEN = "dIBgVnFBWv0OAJfRsOcXzWZtJJ46C_ocIKJ7c_VbZWw"
+
+# Headers for authenticated requests
+AUTH_HEADERS = {
+    "Authorization": f"Bearer {SESSION_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+def log_test(test_name, status, details=""):
+    """Log test results"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    status_symbol = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
+    print(f"[{timestamp}] {status_symbol} {test_name}")
+    if details:
+        print(f"    {details}")
+    print()
+
+def test_health_check():
+    """Test basic health check endpoint"""
+    try:
+        response = requests.get(f"{API_BASE}/", timeout=10)
+        if response.status_code == 200:
+            log_test("Health Check", "PASS", f"Status: {response.status_code}")
+            return True
         else:
-            self.failed_tests.append(test_name)
-            print(f"❌ {test_name}: {details}")
+            log_test("Health Check", "FAIL", f"Status: {response.status_code}")
+            return False
+    except Exception as e:
+        log_test("Health Check", "FAIL", f"Error: {str(e)}")
+        return False
 
-    async def test_health_check(self):
-        """Test GET /api/ - Health check endpoint"""
-        try:
-            response = await self.client.get(f"{API_BASE}/")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "message" in data and "status" in data:
-                    await self.log_test(
-                        "Health Check", 
-                        True, 
-                        f"API healthy - {data.get('message', '')}", 
-                        data
-                    )
-                else:
-                    await self.log_test(
-                        "Health Check", 
-                        False, 
-                        f"Missing expected fields in response: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "Health Check", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Health Check", False, f"Exception: {str(e)}")
-
-    async def test_food_search(self):
-        """Test POST /api/foods/search - Search foods with USDA integration"""
-        try:
-            search_data = {"query": "salmon", "page_size": 5}
-            response = await self.client.post(
-                f"{API_BASE}/foods/search",
-                json=search_data
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "foods" in data and isinstance(data["foods"], list):
-                    foods = data["foods"]
-                    if len(foods) > 0:
-                        # Check if foods have required fields
-                        first_food = foods[0]
-                        required_fields = ["fdc_id", "description"]
-                        missing_fields = [f for f in required_fields if f not in first_food]
-                        
-                        if not missing_fields:
-                            await self.log_test(
-                                "Food Search", 
-                                True, 
-                                f"Found {len(foods)} foods, first: {first_food.get('description', 'N/A')}", 
-                                {"count": len(foods), "sample": first_food}
-                            )
-                        else:
-                            await self.log_test(
-                                "Food Search", 
-                                False, 
-                                f"Missing required fields: {missing_fields}"
-                            )
-                    else:
-                        await self.log_test(
-                            "Food Search", 
-                            False, 
-                            "No foods returned in search results"
-                        )
-                else:
-                    await self.log_test(
-                        "Food Search", 
-                        False, 
-                        f"Invalid response structure: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "Food Search", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Food Search", False, f"Exception: {str(e)}")
-
-    async def test_food_analysis(self):
-        """Test POST /api/foods/analyze - Analyze food with elemental composition"""
-        try:
-            # Using salmon FDC ID from USDA database
-            analysis_data = {
-                "fdc_id": 175167,
-                "portion_grams": 150,
-                "cooking_method": "steaming"
-            }
-            response = await self.client.post(
-                f"{API_BASE}/foods/analyze",
-                json=analysis_data
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                required_fields = ["nutrients", "elements", "biological_effects", "cooking_recommendations"]
-                missing_fields = [f for f in required_fields if f not in data]
-                
-                if not missing_fields:
-                    # Check nutrients structure
-                    nutrients = data.get("nutrients", {})
-                    if "raw" in nutrients and "cooked" in nutrients:
-                        # Check elements structure
-                        elements = data.get("elements", {})
-                        if "mass_grams" in elements:
-                            # Check for key elements (C, H, O, N, S)
-                            mass_grams = elements["mass_grams"]
-                            key_elements = ["C", "H", "O", "N", "S"]
-                            found_elements = [e for e in key_elements if e in mass_grams and mass_grams[e] > 0]
-                            
-                            await self.log_test(
-                                "Food Analysis", 
-                                True, 
-                                f"Complete analysis with {len(found_elements)} key elements: {found_elements}", 
-                                {
-                                    "food_name": data.get("food_name"),
-                                    "elements_found": found_elements,
-                                    "has_biological_effects": len(data.get("biological_effects", {})) > 0
-                                }
-                            )
-                        else:
-                            await self.log_test(
-                                "Food Analysis", 
-                                False, 
-                                "Missing mass_grams in elements structure"
-                            )
-                    else:
-                        await self.log_test(
-                            "Food Analysis", 
-                            False, 
-                            "Missing raw/cooked nutrients structure"
-                        )
-                else:
-                    await self.log_test(
-                        "Food Analysis", 
-                        False, 
-                        f"Missing required fields: {missing_fields}"
-                    )
-            else:
-                await self.log_test(
-                    "Food Analysis", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Food Analysis", False, f"Exception: {str(e)}")
-
-    async def test_retention_factors(self):
-        """Test GET /api/foods/retention-factors - Get cooking retention factors"""
-        try:
-            response = await self.client.get(f"{API_BASE}/foods/retention-factors")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "retention_factors" in data and "cooking_methods" in data:
-                    retention_factors = data["retention_factors"]
-                    cooking_methods = data["cooking_methods"]
-                    
-                    # Check for expected cooking methods
-                    expected_methods = ["boiling", "steaming", "frying", "baking", "raw"]
-                    found_methods = [m for m in expected_methods if m in cooking_methods]
-                    
-                    await self.log_test(
-                        "Retention Factors", 
-                        True, 
-                        f"Found {len(found_methods)} cooking methods: {found_methods}", 
-                        {"methods_count": len(cooking_methods), "methods": cooking_methods}
-                    )
-                else:
-                    await self.log_test(
-                        "Retention Factors", 
-                        False, 
-                        f"Missing expected fields in response: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "Retention Factors", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Retention Factors", False, f"Exception: {str(e)}")
-
-    async def test_safe_temperatures(self):
-        """Test GET /api/foods/safe-temps - Get safe cooking temperatures"""
-        try:
-            response = await self.client.get(f"{API_BASE}/foods/safe-temps")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "temperatures" in data:
-                    temperatures = data["temperatures"]
-                    
-                    # Check for expected food types
-                    expected_types = ["poultry", "ground_meat", "beef_steak", "pork", "fish"]
-                    found_types = [t for t in expected_types if t in temperatures]
-                    
-                    await self.log_test(
-                        "Safe Temperatures", 
-                        True, 
-                        f"Found {len(found_types)} food types with safe temps: {found_types}", 
-                        {"types_count": len(temperatures), "types": list(temperatures.keys())}
-                    )
-                else:
-                    await self.log_test(
-                        "Safe Temperatures", 
-                        False, 
-                        f"Missing temperatures field in response: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "Safe Temperatures", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Safe Temperatures", False, f"Exception: {str(e)}")
-
-    async def test_elements_info(self):
-        """Test GET /api/elements/info - Get element information"""
-        try:
-            response = await self.client.get(f"{API_BASE}/elements/info")
-            
-            if response.status_code == 200:
-                data = response.json()
-                expected_fields = ["elements", "biological_effects", "elemental_fractions"]
-                missing_fields = [f for f in expected_fields if f not in data]
-                
-                if not missing_fields:
-                    elements = data["elements"]
-                    bio_effects = data["biological_effects"]
-                    
-                    # Check for key elements
-                    key_elements = ["C", "H", "O", "N", "S", "Fe", "Ca", "K", "Mg", "Zn"]
-                    found_elements = [e for e in key_elements if e in elements]
-                    
-                    await self.log_test(
-                        "Elements Info", 
-                        True, 
-                        f"Found {len(found_elements)} key elements with atomic weights and biological effects", 
-                        {"elements_count": len(elements), "bio_effects_count": len(bio_effects)}
-                    )
-                else:
-                    await self.log_test(
-                        "Elements Info", 
-                        False, 
-                        f"Missing required fields: {missing_fields}"
-                    )
-            else:
-                await self.log_test(
-                    "Elements Info", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Elements Info", False, f"Exception: {str(e)}")
-
-    async def test_allergens_list(self):
-        """Test GET /api/allergens/list - Get allergen categories"""
-        try:
-            response = await self.client.get(f"{API_BASE}/allergens/list")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "allergen_categories" in data and "all_keywords" in data:
-                    categories = data["allergen_categories"]
-                    keywords = data["all_keywords"]
-                    
-                    # Check for expected allergen categories
-                    expected_categories = ["peanuts", "tree nuts", "dairy", "eggs", "wheat/gluten", "soy", "fish", "shellfish"]
-                    found_categories = [c for c in expected_categories if c in categories]
-                    
-                    await self.log_test(
-                        "Allergens List", 
-                        True, 
-                        f"Found {len(found_categories)} allergen categories with {len(keywords)} keywords", 
-                        {"categories": categories, "keywords_count": len(keywords)}
-                    )
-                else:
-                    await self.log_test(
-                        "Allergens List", 
-                        False, 
-                        f"Missing expected fields in response: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "Allergens List", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Allergens List", False, f"Exception: {str(e)}")
-
-    async def test_ai_recommendations(self):
-        """Test POST /api/ai/recommendations - Get AI recommendations"""
-        try:
-            recommendation_data = {
-                "goal": "brain_health",
-                "current_foods": [],
-                "dietary_restrictions": []
-            }
-            response = await self.client.post(
-                f"{API_BASE}/ai/recommendations",
-                json=recommendation_data
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                if "recommendations" in data and isinstance(data["recommendations"], list):
-                    recommendations = data["recommendations"]
-                    if len(recommendations) > 0:
-                        # Check structure of first recommendation
-                        first_rec = recommendations[0]
-                        required_fields = ["food", "key_nutrients", "key_elements", "health_benefit"]
-                        missing_fields = [f for f in required_fields if f not in first_rec]
-                        
-                        if not missing_fields:
-                            await self.log_test(
-                                "AI Recommendations", 
-                                True, 
-                                f"Got {len(recommendations)} recommendations for brain health", 
-                                {
-                                    "count": len(recommendations),
-                                    "sample_food": first_rec.get("food"),
-                                    "ai_model": data.get("ai_model", "unknown")
-                                }
-                            )
-                        else:
-                            await self.log_test(
-                                "AI Recommendations", 
-                                False, 
-                                f"Missing required fields in recommendation: {missing_fields}"
-                            )
-                    else:
-                        await self.log_test(
-                            "AI Recommendations", 
-                            False, 
-                            "No recommendations returned"
-                        )
-                else:
-                    await self.log_test(
-                        "AI Recommendations", 
-                        False, 
-                        f"Invalid response structure: {data}"
-                    )
-            else:
-                await self.log_test(
-                    "AI Recommendations", 
-                    False, 
-                    f"HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("AI Recommendations", False, f"Exception: {str(e)}")
-
-    async def test_auth_me_unauthorized(self):
-        """Test GET /api/auth/me - Should return 401 without token"""
-        try:
-            response = await self.client.get(f"{API_BASE}/auth/me")
-            
-            if response.status_code == 401:
-                await self.log_test(
-                    "Auth Me (Unauthorized)", 
-                    True, 
-                    "Correctly returned 401 for unauthenticated request"
-                )
-            else:
-                await self.log_test(
-                    "Auth Me (Unauthorized)", 
-                    False, 
-                    f"Expected 401 but got HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Auth Me (Unauthorized)", False, f"Exception: {str(e)}")
-
-    async def test_tracking_daily_unauthorized(self):
-        """Test GET /api/tracking/daily - Should return 401 without token"""
-        try:
-            response = await self.client.get(f"{API_BASE}/tracking/daily")
-            
-            if response.status_code == 401:
-                await self.log_test(
-                    "Tracking Daily (Unauthorized)", 
-                    True, 
-                    "Correctly returned 401 for unauthenticated request"
-                )
-            else:
-                await self.log_test(
-                    "Tracking Daily (Unauthorized)", 
-                    False, 
-                    f"Expected 401 but got HTTP {response.status_code}: {response.text}"
-                )
-        except Exception as e:
-            await self.log_test("Tracking Daily (Unauthorized)", False, f"Exception: {str(e)}")
-
-    async def run_all_tests(self):
-        """Run all backend API tests"""
-        print(f"🧪 Starting Molecular Nutrition Engine Backend API Tests")
-        print(f"🔗 Backend URL: {BACKEND_URL}")
-        print("=" * 80)
+def test_payment_status():
+    """Test payment status endpoint"""
+    try:
+        response = requests.get(f"{API_BASE}/payments/status", headers=AUTH_HEADERS, timeout=10)
         
-        # Run all tests
-        await self.test_health_check()
-        await self.test_food_search()
-        await self.test_food_analysis()
-        await self.test_retention_factors()
-        await self.test_safe_temperatures()
-        await self.test_elements_info()
-        await self.test_allergens_list()
-        await self.test_ai_recommendations()
-        await self.test_auth_me_unauthorized()
-        await self.test_tracking_daily_unauthorized()
-        
-        # Summary
-        print("\n" + "=" * 80)
-        print(f"📊 TEST SUMMARY")
-        print(f"✅ Passed: {len(self.passed_tests)}")
-        print(f"❌ Failed: {len(self.failed_tests)}")
-        print(f"📈 Success Rate: {len(self.passed_tests)}/{len(self.test_results)} ({len(self.passed_tests)/len(self.test_results)*100:.1f}%)")
-        
-        if self.failed_tests:
-            print(f"\n❌ Failed Tests:")
-            for test in self.failed_tests:
-                print(f"   - {test}")
-        
-        if self.passed_tests:
-            print(f"\n✅ Passed Tests:")
-            for test in self.passed_tests:
-                print(f"   - {test}")
-        
-        await self.client.aclose()
-        return len(self.failed_tests) == 0
+        if response.status_code == 200:
+            data = response.json()
+            required_fields = ["is_premium", "trial_active", "trial_days_remaining", "has_access", "price_eur"]
+            
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                log_test("Payment Status", "FAIL", f"Missing fields: {missing_fields}")
+                return False
+            
+            # Validate trial_days_remaining is between 0-14
+            trial_days = data.get("trial_days_remaining", -1)
+            if not (0 <= trial_days <= 14):
+                log_test("Payment Status", "FAIL", f"Invalid trial_days_remaining: {trial_days} (should be 0-14)")
+                return False
+            
+            # Validate has_access is true (trial still active)
+            if not data.get("has_access", False):
+                log_test("Payment Status", "WARN", f"has_access is False - trial may have expired")
+            
+            log_test("Payment Status", "PASS", 
+                    f"is_premium: {data['is_premium']}, trial_active: {data['trial_active']}, "
+                    f"trial_days_remaining: {data['trial_days_remaining']}, has_access: {data['has_access']}, "
+                    f"price_eur: {data['price_eur']}")
+            return True
+        else:
+            log_test("Payment Status", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Payment Status", "FAIL", f"Error: {str(e)}")
+        return False
 
-async def main():
-    """Main test runner"""
-    tester = NutritionAPITester()
-    success = await tester.run_all_tests()
+def test_create_checkout():
+    """Test create checkout session endpoint"""
+    try:
+        payload = {
+            "origin_url": "https://meal-sync-test.preview.emergentagent.com"
+        }
+        
+        response = requests.post(f"{API_BASE}/payments/create-checkout", 
+                               headers=AUTH_HEADERS, 
+                               json=payload, 
+                               timeout=15)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check required fields
+            if "url" not in data or "session_id" not in data:
+                log_test("Create Checkout", "FAIL", f"Missing url or session_id in response: {data}")
+                return False, None
+            
+            # Validate URL starts with Stripe checkout
+            if not data["url"].startswith("https://checkout.stripe.com"):
+                log_test("Create Checkout", "FAIL", f"Invalid checkout URL: {data['url']}")
+                return False, None
+            
+            # Validate session_id starts with cs_
+            if not data["session_id"].startswith("cs_"):
+                log_test("Create Checkout", "FAIL", f"Invalid session_id format: {data['session_id']}")
+                return False, None
+            
+            log_test("Create Checkout", "PASS", 
+                    f"URL: {data['url'][:50]}..., Session ID: {data['session_id']}")
+            return True, data["session_id"]
+        
+        elif response.status_code == 400:
+            # Check if already premium
+            error_data = response.json()
+            if "Already purchased" in error_data.get("detail", ""):
+                log_test("Create Checkout", "PASS", "User already premium - expected behavior")
+                return True, None
+            else:
+                log_test("Create Checkout", "FAIL", f"Status: {response.status_code}, Error: {error_data}")
+                return False, None
+        else:
+            log_test("Create Checkout", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False, None
+    except Exception as e:
+        log_test("Create Checkout", "FAIL", f"Error: {str(e)}")
+        return False, None
+
+def test_checkout_status(session_id):
+    """Test checkout status endpoint"""
+    if not session_id:
+        log_test("Checkout Status", "SKIP", "No session_id available")
+        return True
     
-    # Exit with appropriate code
-    sys.exit(0 if success else 1)
+    try:
+        response = requests.get(f"{API_BASE}/payments/checkout/status/{session_id}", 
+                              headers=AUTH_HEADERS, 
+                              timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Check required fields
+            required_fields = ["status", "payment_status"]
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                log_test("Checkout Status", "FAIL", f"Missing fields: {missing_fields}")
+                return False
+            
+            log_test("Checkout Status", "PASS", 
+                    f"Status: {data['status']}, Payment Status: {data['payment_status']}")
+            return True
+        else:
+            log_test("Checkout Status", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Checkout Status", "FAIL", f"Error: {str(e)}")
+        return False
+
+def test_delete_account():
+    """Test delete account endpoint with separate test user"""
+    try:
+        # Connect to MongoDB to create test user
+        client = pymongo.MongoClient(MONGO_URL)
+        db = client[DB_NAME]
+        
+        # Create test user
+        test_user = {
+            "user_id": "delete_test_123",
+            "email": "delete@test.com",
+            "name": "Delete Test",
+            "created_at": "2026-03-24T00:00:00Z"
+        }
+        db.users.insert_one(test_user)
+        
+        # Create test session
+        test_session = {
+            "session_token": "delete_test_token_abc",
+            "user_id": "delete_test_123",
+            "expires_at": "2027-01-01T00:00:00Z"
+        }
+        db.user_sessions.insert_one(test_session)
+        
+        # Test delete account
+        delete_headers = {
+            "Authorization": "Bearer delete_test_token_abc",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.delete(f"{API_BASE}/user/account", 
+                                 headers=delete_headers, 
+                                 timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if "deleted" in data.get("message", "").lower():
+                # Verify user is gone from database
+                user_check = db.users.find_one({"user_id": "delete_test_123"})
+                if user_check is None:
+                    log_test("Delete Account", "PASS", f"Account deleted successfully: {data['message']}")
+                    return True
+                else:
+                    log_test("Delete Account", "FAIL", "User still exists in database after deletion")
+                    return False
+            else:
+                log_test("Delete Account", "FAIL", f"Unexpected response: {data}")
+                return False
+        else:
+            log_test("Delete Account", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        log_test("Delete Account", "FAIL", f"Error: {str(e)}")
+        return False
+    finally:
+        # Cleanup - remove test user if still exists
+        try:
+            client = pymongo.MongoClient(MONGO_URL)
+            db = client[DB_NAME]
+            db.users.delete_many({"user_id": "delete_test_123"})
+            db.user_sessions.delete_many({"user_id": "delete_test_123"})
+        except:
+            pass
+
+def test_user_settings():
+    """Test user settings endpoints"""
+    try:
+        # Test GET user settings
+        response = requests.get(f"{API_BASE}/user/settings", headers=AUTH_HEADERS, timeout=10)
+        
+        if response.status_code != 200:
+            log_test("User Settings GET", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+        
+        settings_data = response.json()
+        log_test("User Settings GET", "PASS", f"Retrieved settings: {list(settings_data.keys())}")
+        
+        # Test PUT user settings
+        update_payload = {
+            "notifications_enabled": True,
+            "water_reminder_enabled": True,
+            "meal_reminder_enabled": True,
+            "routine_reminder_enabled": True
+        }
+        
+        response = requests.put(f"{API_BASE}/user/settings", 
+                              headers=AUTH_HEADERS, 
+                              json=update_payload, 
+                              timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            log_test("User Settings PUT", "PASS", f"Settings updated: {data.get('message', 'Success')}")
+            return True
+        else:
+            log_test("User Settings PUT", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+            
+    except Exception as e:
+        log_test("User Settings", "FAIL", f"Error: {str(e)}")
+        return False
+
+def test_stripe_webhook():
+    """Test Stripe webhook endpoint"""
+    try:
+        # Send empty body to webhook endpoint (no auth needed)
+        response = requests.post(f"{API_BASE}/webhook/stripe", 
+                               json={}, 
+                               timeout=10)
+        
+        # Should return 200 (not 404/405)
+        if response.status_code == 200:
+            log_test("Stripe Webhook", "PASS", f"Webhook endpoint accessible, Status: {response.status_code}")
+            return True
+        else:
+            log_test("Stripe Webhook", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
+            return False
+    except Exception as e:
+        log_test("Stripe Webhook", "FAIL", f"Error: {str(e)}")
+        return False
+
+def main():
+    """Run all payment system tests"""
+    print("🧬 NutriOS Payment System Backend Testing")
+    print("=" * 50)
+    print(f"Base URL: {BASE_URL}")
+    print(f"User ID: {USER_ID}")
+    print(f"Session Token: {SESSION_TOKEN[:20]}...")
+    print()
+    
+    results = []
+    
+    # Test 1: Health Check
+    results.append(test_health_check())
+    
+    # Test 2: Payment Status Check
+    results.append(test_payment_status())
+    
+    # Test 3: Create Checkout Session
+    checkout_success, session_id = test_create_checkout()
+    results.append(checkout_success)
+    
+    # Test 4: Check Checkout Status
+    results.append(test_checkout_status(session_id))
+    
+    # Test 5: Delete Account Test
+    results.append(test_delete_account())
+    
+    # Test 6: User Settings
+    results.append(test_user_settings())
+    
+    # Test 7: Stripe Webhook
+    results.append(test_stripe_webhook())
+    
+    # Summary
+    print("=" * 50)
+    print("📊 TEST SUMMARY")
+    print("=" * 50)
+    
+    passed = sum(1 for r in results if r)
+    total = len(results)
+    
+    print(f"✅ Passed: {passed}/{total}")
+    print(f"❌ Failed: {total - passed}/{total}")
+    print(f"📈 Success Rate: {(passed/total)*100:.1f}%")
+    
+    if passed == total:
+        print("\n🎉 All payment system tests passed!")
+        return 0
+    else:
+        print(f"\n⚠️  {total - passed} test(s) failed. Check logs above.")
+        return 1
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(main())

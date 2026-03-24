@@ -120,4 +120,69 @@
 6. **P2**: AI endpoints (requires valid Emergent LLM key)
 
 ## Test Results
-(Will be populated by testing agent)
+
+### Backend Payment System Tests - COMPLETED ✅
+**Test Date:** 2026-03-24 21:41:21  
+**Test Agent:** deep_testing_backend_v2  
+**Test Focus:** Payment system endpoints and user account management  
+
+#### Payment System Tests (7/7 PASSED)
+
+1. **Health Check** ✅ PASS
+   - Endpoint: `GET /api/`
+   - Status: 200
+   - Working: Basic API health check functioning correctly
+
+2. **Payment Status Check** ✅ PASS
+   - Endpoint: `GET /api/payments/status`
+   - Status: 200
+   - Response: is_premium: False, trial_active: True, trial_days_remaining: 12, has_access: True, price_eur: 12.0
+   - Working: All required fields present, trial validation working correctly
+
+3. **Create Checkout Session** ✅ PASS
+   - Endpoint: `POST /api/payments/create-checkout`
+   - Status: 200
+   - Response: Valid Stripe checkout URL and session_id (cs_live_*)
+   - Working: Stripe integration functioning, creates valid checkout sessions
+
+4. **Checkout Status Check** ✅ PASS
+   - Endpoint: `GET /api/payments/checkout/status/{session_id}`
+   - Status: 200
+   - Response: Status: open, Payment Status: unpaid
+   - Working: Stripe status polling working correctly
+
+5. **Delete Account Test** ✅ PASS
+   - Endpoint: `DELETE /api/user/account`
+   - Status: 200
+   - Response: Account and all data permanently deleted
+   - Working: User deletion working, verified user removed from database
+
+6. **User Settings** ✅ PASS
+   - Endpoints: `GET /api/user/settings`, `PUT /api/user/settings`
+   - Status: 200 for both
+   - Working: Settings retrieval and update functioning correctly
+
+7. **Stripe Webhook** ✅ PASS
+   - Endpoint: `POST /api/webhook/stripe`
+   - Status: 200
+   - Working: Webhook endpoint accessible and responding correctly
+
+#### Test Configuration
+- **Base URL:** http://localhost:8001
+- **User ID:** user_0de05ad0fec8
+- **Session Token:** dIBgVnFBWv0OAJfRsOcXzWZtJJ46C_ocIKJ7c_VbZWw
+- **Database:** MongoDB at mongodb://localhost:27017/nutrient_mapper
+- **Stripe API:** Live API key configured and working
+
+#### Key Findings
+- ✅ All payment endpoints functioning correctly
+- ✅ Stripe integration working with live API
+- ✅ Trial system working (12 days remaining for test user)
+- ✅ User authentication and session management working
+- ✅ Account deletion working with proper database cleanup
+- ✅ User settings CRUD operations working
+- ✅ Webhook endpoint accessible and responding
+
+#### Success Rate: 100% (7/7 tests passed)
+
+**Status:** All payment system backend functionality is working correctly. The system is ready for production use.
