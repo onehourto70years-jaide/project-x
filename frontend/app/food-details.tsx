@@ -343,12 +343,14 @@ export default function FoodDetailsScreen() {
             </View>
           ))}
 
-          <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>Tips</Text>
-            {analysis.cooking_recommendations.tips.map((tip, i) => (
-              <Text key={i} style={styles.tipText}>• {tip}</Text>
-            ))}
-          </View>
+          {analysis.cooking_recommendations?.tips && analysis.cooking_recommendations.tips.length > 0 && (
+            <View style={styles.tipsSection}>
+              <Text style={styles.tipsTitle}>Tips</Text>
+              {analysis.cooking_recommendations.tips.map((tip: string, i: number) => (
+                <Text key={i} style={styles.tipText}>• {tip}</Text>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Add to Log Button */}
