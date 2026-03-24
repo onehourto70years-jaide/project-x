@@ -121,16 +121,23 @@ export default function DashboardScreen() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
 
   const fetchDashboard = async () => {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
-      const res = await fetch(`${BACKEND_URL}/api/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) {
-        const data = await res.json();
+      const [dashRes, payRes] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${BACKEND_URL}/api/payments/status`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      if (dashRes.ok) {
+        const data = await dashRes.json();
         setDashboard(data);
         Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+      }
+      if (payRes.ok) {
+        setPaymentStatus(await payRes.json());
       }
     } catch (e) { console.error('Dashboard fetch error:', e); }
     finally { setRefreshing(false); }
@@ -266,6 +273,31 @@ export default function DashboardScreen() {
               </View>
             </TouchableOpacity>
           </View>
+
+          {/* ── Trial Badge ── */}
+          {paymentStatus && !paymentStatus.is_premium && (
+            <TouchableOpacity
+              style={[styles.trialBadge, paymentStatus.trial_days_remaining <= 3 && styles.trialBadgeUrgent]}
+              onPress={() => router.push('/upgrade')}
+            >
+              <Ionicons name={paymentStatus.trial_days_remaining <= 3 ? 'warning' : 'time'} size={16}
+                color={paymentStatus.trial_days_remaining <= 3 ? '#ff6b6b' : '#ffd93d'} />
+              <Text style={[styles.trialBadgeText, paymentStatus.trial_days_remaining <= 3 && { color: '#ff6b6b' }]}>
+                {paymentStatus.trial_days_remaining > 0
+                  ? `${paymentStatus.trial_days_remaining} days left in trial`
+                  : 'Trial expired'}
+              </Text>
+              <View style={styles.trialBadgeBtn}>
+                <Text style={styles.trialBadgeBtnText}>Upgrade</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          {paymentStatus?.is_premium && (
+            <View style={styles.proBadge}>
+              <Ionicons name="diamond" size={14} color="#ffd93d" />
+              <Text style={styles.proBadgeText}>NutriOS Pro</Text>
+            </View>
+          )}
 
           {/* ── Score + Main Rings ── */}
           <View style={styles.heroSection}>
@@ -502,6 +534,21 @@ const styles = StyleSheet.create({
   profileBtn: { padding: 4 },
   avatarSmall: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#00d4ff', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(0, 212, 255, 0.3)' },
   avatarText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  // Trial/Pro Badge
+  trialBadge: {
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 8,
+    backgroundColor: 'rgba(255, 217, 61, 0.08)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: 'rgba(255, 217, 61, 0.15)',
+  },
+  trialBadgeUrgent: { backgroundColor: 'rgba(255, 107, 107, 0.08)', borderColor: 'rgba(255, 107, 107, 0.2)' },
+  trialBadgeText: { flex: 1, fontSize: 13, color: '#ffd93d', fontWeight: '600', marginLeft: 8 },
+  trialBadgeBtn: { backgroundColor: '#ffd93d', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  trialBadgeBtnText: { fontSize: 12, fontWeight: '700', color: '#000' },
+  proBadge: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 8,
+    backgroundColor: 'rgba(255, 217, 61, 0.1)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+  },
+  proBadgeText: { fontSize: 12, color: '#ffd93d', fontWeight: '700', marginLeft: 6 },
   // Hero
   heroSection: { alignItems: 'center', paddingVertical: 16, position: 'relative' },
   heroGlow: { position: 'absolute', top: 20, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(0, 212, 255, 0.06)' },

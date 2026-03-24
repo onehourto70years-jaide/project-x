@@ -96,14 +96,16 @@ export default function SettingsScreen() {
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
 
   const fetchData = async () => {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
-      const [profileRes, settingsRes] = await Promise.all([
+      const [profileRes, settingsRes, payRes] = await Promise.all([
         fetch(`${BACKEND_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/user/settings`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${BACKEND_URL}/api/user/settings`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${BACKEND_URL}/api/payments/status`, { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
       if (profileRes.ok) {
         const data = await profileRes.json();
@@ -112,6 +114,10 @@ export default function SettingsScreen() {
       if (settingsRes.ok) {
         const data = await settingsRes.json();
         setSettings(prev => ({ ...prev, ...data }));
+      }
+      if (payRes.ok) {
+        const data = await payRes.json();
+        setPaymentStatus(data);
       }
     } catch (e) { }
   };
@@ -375,6 +381,46 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Subscription Section */}
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Subscription</Text>
+        <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
+          {paymentStatus?.is_premium ? (
+            <View style={styles.premiumBadge}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
+                <Ionicons name="diamond" size={20} color="#ffd93d" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: '#ffd93d' }]}>NutriOS Pro</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Lifetime access activated</Text>
+              </View>
+              <Ionicons name="checkmark-circle" size={24} color="#00ff88" />
+            </View>
+          ) : (
+            <>
+              <View style={styles.trialInfo}>
+                <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
+                  <Ionicons name="time" size={20} color="#00d4ff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: theme.text }]}>Free Trial</Text>
+                  <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
+                    {paymentStatus?.trial_days_remaining > 0
+                      ? `${paymentStatus.trial_days_remaining} days remaining`
+                      : 'Trial expired'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.upgradeBtn}
+                onPress={() => router.push('/upgrade')}
+              >
+                <Ionicons name="diamond" size={18} color="#fff" />
+                <Text style={styles.upgradeBtnText}>Upgrade to Pro — €12</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* Account Section */}
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Account</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
@@ -473,5 +519,9 @@ const styles = StyleSheet.create({
   dangerInfoText: { fontSize: 13, lineHeight: 19, marginLeft: 10, flex: 1 },
   deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff3b30', paddingVertical: 14, borderRadius: 12 },
   deleteAccountText: { color: '#fff', fontSize: 15, fontWeight: '700', marginLeft: 8 },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  trialInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  upgradeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffd93d', paddingVertical: 14, borderRadius: 12 },
+  upgradeBtnText: { color: '#000', fontSize: 15, fontWeight: '700', marginLeft: 8 },
   disclaimer: { fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16 },
 });

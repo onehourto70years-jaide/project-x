@@ -31,6 +31,12 @@
 6. `PUT /api/user/profile` - Update user profile (requires auth)
 7. `DELETE /api/user/account` - Delete user account and all data (requires auth)
 
+### Payment System
+8. `GET /api/payments/status` - Check trial/payment status (requires auth)
+9. `POST /api/payments/create-checkout` - Create Stripe checkout session (requires auth, body: {"origin_url": "..."})
+10. `GET /api/payments/checkout/status/{session_id}` - Poll checkout session status (requires auth)
+11. `POST /api/webhook/stripe` - Stripe webhook (no auth required)
+
 ### Food Search & Analysis
 7. `POST /api/foods/search` - Search USDA foods (body: {"query": "chicken", "page_size": 5})
 8. `POST /api/foods/analyze` - Analyze food (body: {"fdc_id": 171052, "portion_grams": 100, "cooking_method": "raw"})
