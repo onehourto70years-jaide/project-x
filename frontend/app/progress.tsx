@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../src/ThemeContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const screenWidth = Dimensions.get('window').width - 64;

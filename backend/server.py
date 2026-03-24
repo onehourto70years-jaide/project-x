@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import httpx
 import json
+import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -215,16 +216,53 @@ async def update_user_profile(profile: Dict[str, Any], user: User = Depends(requ
 # ================== USDA FOOD FUNCTIONS ==================
 
 async def search_usda_foods(query: str, page_size: int = 10) -> List[Dict]:
-    async with httpx.AsyncClient() as client_http:
-        response = await client_http.get(f"{USDA_BASE_URL}/foods/search", params={"api_key": USDA_API_KEY, "query": query, "pageSize": page_size, "dataType": ["Foundation", "SR Legacy", "Survey (FNDDS)"]})
-        if response.status_code != 200:
-            return []
-        return [{"fdc_id": f.get("fdcId"), "description": f.get("description"), "brand_owner": f.get("brandOwner"), "data_type": f.get("dataType")} for f in response.json().get("foods", [])]
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client_http:
+                response = await client_http.get(
+                    f"{USDA_BASE_URL}/foods/search",
+                    params={"api_key": USDA_API_KEY, "query": query, "pageSize": page_size,
+                            "dataType": ["Foundation", "SR Legacy", "Survey (FNDDS)"]}
+                )
+                if response.status_code == 200:
+                    return [{"fdc_id": f.get("fdcId"), "description": f.get("description"),
+                             "brand_owner": f.get("brandOwner"), "data_type": f.get("dataType")}
+                            for f in response.json().get("foods", [])]
+                elif response.status_code == 400:
+                    # Retry with simplified query params
+                    response = await client_http.get(
+                        f"{USDA_BASE_URL}/foods/search",
+                        params={"api_key": USDA_API_KEY, "query": query, "pageSize": page_size}
+                    )
+                    if response.status_code == 200:
+                        return [{"fdc_id": f.get("fdcId"), "description": f.get("description"),
+                                 "brand_owner": f.get("brandOwner"), "data_type": f.get("dataType")}
+                                for f in response.json().get("foods", [])]
+                logger.warning(f"USDA search attempt {attempt+1} failed: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"USDA search attempt {attempt+1} error: {e}")
+            if attempt < 2:
+                await asyncio.sleep(1)
+    return []
 
 async def get_usda_food_details(fdc_id: int) -> Optional[Dict]:
-    async with httpx.AsyncClient() as client_http:
-        response = await client_http.get(f"{USDA_BASE_URL}/food/{fdc_id}", params={"api_key": USDA_API_KEY})
-        return response.json() if response.status_code == 200 else None
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client_http:
+                response = await client_http.get(
+                    f"{USDA_BASE_URL}/food/{fdc_id}",
+                    params={"api_key": USDA_API_KEY}
+                )
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 404:
+                    return None  # Food genuinely not found
+                logger.warning(f"USDA detail attempt {attempt+1} for {fdc_id}: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"USDA detail attempt {attempt+1} error: {e}")
+            if attempt < 2:
+                await asyncio.sleep(1)
+    return None
 
 def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str, float]:
     nutrients = {}
@@ -278,20 +316,27 @@ async def search_foods(request: Request):
 
 @api_router.post("/foods/analyze")
 async def analyze_food(request: Request):
-    body = await request.json()
-    food_data = await get_usda_food_details(body.get("fdc_id"))
-    if not food_data:
-        raise HTTPException(status_code=404, detail="Food not found")
-    raw_nutrients = extract_nutrients(food_data, body.get("portion_grams", 100))
-    cooking_method = body.get("cooking_method", "raw")
-    cooked_nutrients = apply_cooking_retention(raw_nutrients, cooking_method)
-    elements = calculate_elemental_composition(cooked_nutrients)
-    food_name = food_data.get("description", "")
-    allergens = detect_allergens(food_name, food_data.get("ingredients", ""))
-    bio_effects = {el: BIOLOGICAL_EFFECTS[el] for el in elements["mass_grams"] if el in BIOLOGICAL_EFFECTS and elements["mass_grams"][el] > 0}
-    method_scores = {m: sum(f.values())/len(f) for m, f in RETENTION_FACTORS.items() if m != "raw"}
-    ranked = sorted(method_scores.items(), key=lambda x: x[1], reverse=True)
-    return {"fdc_id": body.get("fdc_id"), "food_name": food_name, "portion_grams": body.get("portion_grams", 100), "cooking_method": cooking_method, "nutrients": {"raw": raw_nutrients, "cooked": cooked_nutrients, "retention_applied": cooking_method != "raw"}, "elements": elements, "allergens": allergens, "biological_effects": bio_effects, "cooking_recommendations": {"recommended_method": ranked[0][0], "method_rankings": [{"method": m, "avg_retention": round(s*100, 1)} for m, s in ranked]}, "data_source": "USDA FoodData Central"}
+    try:
+        body = await request.json()
+        fdc_id = body.get("fdc_id")
+        food_data = await get_usda_food_details(fdc_id)
+        if not food_data:
+            raise HTTPException(status_code=404, detail=f"Food not found (FDC ID: {fdc_id}). The USDA database may be temporarily unavailable.")
+        raw_nutrients = extract_nutrients(food_data, body.get("portion_grams", 100))
+        cooking_method = body.get("cooking_method", "raw")
+        cooked_nutrients = apply_cooking_retention(raw_nutrients, cooking_method)
+        elements = calculate_elemental_composition(cooked_nutrients)
+        food_name = food_data.get("description", "")
+        allergens = detect_allergens(food_name, food_data.get("ingredients", ""))
+        bio_effects = {el: BIOLOGICAL_EFFECTS[el] for el in elements["mass_grams"] if el in BIOLOGICAL_EFFECTS and elements["mass_grams"][el] > 0}
+        method_scores = {m: sum(f.values())/len(f) for m, f in RETENTION_FACTORS.items() if m != "raw"}
+        ranked = sorted(method_scores.items(), key=lambda x: x[1], reverse=True)
+        return {"fdc_id": fdc_id, "food_name": food_name, "portion_grams": body.get("portion_grams", 100), "cooking_method": cooking_method, "nutrients": {"raw": raw_nutrients, "cooked": cooked_nutrients, "retention_applied": cooking_method != "raw"}, "elements": elements, "allergens": allergens, "biological_effects": bio_effects, "cooking_recommendations": {"recommended_method": ranked[0][0], "method_rankings": [{"method": m, "avg_retention": round(s*100, 1)} for m, s in ranked]}, "data_source": "USDA FoodData Central"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Food analyze error for FDC {body.get('fdc_id', 'unknown')}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze food. Please try again. Error: {str(e)}")
 
 @api_router.get("/foods/retention-factors")
 async def get_retention_factors():
