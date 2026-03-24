@@ -7,7 +7,7 @@
 - Never edit the Testing Protocol section
 
 ## Application Overview
-**App Name:** NutriMolecule - Molecular Nutrition Engine
+**App Name:** NutriOS - Personal Health Operating System
 **Backend:** FastAPI + MongoDB (Motor async)
 **Frontend:** React Native (Expo) with expo-router
 **Backend URL:** http://localhost:8001

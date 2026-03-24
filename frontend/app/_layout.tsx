@@ -127,8 +127,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!navigationState?.key || isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    // Let index.tsx handle initial routing (privacy policy check etc.)
+    const atRoot = segments.length === 0 || segments[0] === 'index' || segments[0] === undefined;
 
-    if (!user && !inAuthGroup) {
+    if (!user && !inAuthGroup && !atRoot) {
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
       router.replace('/(tabs)');
@@ -163,6 +165,7 @@ function RootContent() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
         <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
+        {/* privacy-policy is now in (auth) group */}
         <Stack.Screen name="badges" options={{ presentation: 'card' }} />
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="progress" options={{ presentation: 'card' }} />

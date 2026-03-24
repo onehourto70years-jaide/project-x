@@ -22,9 +22,9 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'nutrient_mapper')]
 
 # API Keys
-USDA_API_KEY = "RwaqOhfPSJZJVfvVB0jc71rXAS0yjQbtvRSnudXk"
+USDA_API_KEY = os.environ.get('USDA_API_KEY', '')
 USDA_BASE_URL = "https://api.nal.usda.gov/fdc/v1"
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-16f3b56Af3500F2517')
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 # Create the main app
 app = FastAPI(title="NutriOS - Personal Health Operating System")
