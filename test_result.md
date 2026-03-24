@@ -29,6 +29,7 @@
 4. `GET /api/user/settings` - Get user settings (requires auth)
 5. `PUT /api/user/settings` - Update user settings (requires auth)
 6. `PUT /api/user/profile` - Update user profile (requires auth)
+7. `DELETE /api/user/account` - Delete user account and all data (requires auth)
 
 ### Food Search & Analysis
 7. `POST /api/foods/search` - Search USDA foods (body: {"query": "chicken", "page_size": 5})

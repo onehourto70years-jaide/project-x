@@ -69,6 +69,22 @@ async function scheduleMealReminders(enabled: boolean) {
   }
 }
 
+async function scheduleRoutineReminders(enabled: boolean) {
+  if (!enabled || Platform.OS === 'web') return;
+
+  const routines = [
+    { hour: 7, title: '🌅 Morning Routine', body: 'Time to start your morning routine!' },
+    { hour: 22, title: '🌙 Evening Routine', body: 'Wind down with your evening routine.' },
+  ];
+
+  for (const r of routines) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: r.title, body: r.body, sound: true },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: r.hour, minute: 0 },
+    });
+  }
+}
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -76,9 +92,10 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState({ weight_kg: 70, activity_level: 'moderate', health_goals: [] as string[] });
   const [settings, setSettings] = useState({
     daily_calorie_goal: 2000, daily_protein_goal: 50, daily_water_goal_ml: 2500,
-    water_reminder_enabled: true, meal_reminder_enabled: true
+    notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -119,11 +136,67 @@ export default function SettingsScreen() {
         })
       ]);
       // Schedule notifications based on settings
-      await scheduleWaterReminders(settings.water_reminder_enabled);
-      await scheduleMealReminders(settings.meal_reminder_enabled);
+      if (settings.notifications_enabled) {
+        await scheduleWaterReminders(settings.water_reminder_enabled);
+        await scheduleMealReminders(settings.meal_reminder_enabled);
+        await scheduleRoutineReminders(settings.routine_reminder_enabled);
+      } else {
+        // Master toggle off - cancel all
+        await Notifications.cancelAllScheduledNotificationsAsync();
+      }
       Alert.alert('Saved!', 'Your settings have been updated');
     } catch (e) { Alert.alert('Error', 'Failed to save settings'); }
     finally { setSaving(false); }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account and all your data? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              'This will permanently delete ALL your data including meals, water logs, routines, recipes, and badges. Type is irreversible.',
+              [
+                { text: 'Keep Account', style: 'cancel' },
+                {
+                  text: 'Permanently Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      const token = await AsyncStorage.getItem('session_token');
+                      if (!token) return;
+                      const res = await fetch(`${BACKEND_URL}/api/user/account`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+                      if (res.ok) {
+                        await AsyncStorage.clear();
+                        await Notifications.cancelAllScheduledNotificationsAsync();
+                        signOut();
+                      } else {
+                        Alert.alert('Error', 'Failed to delete account. Please try again.');
+                      }
+                    } catch (e) {
+                      Alert.alert('Error', 'Failed to delete account. Please try again.');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        }
+      ]
+    );
   };
 
   const toggleGoal = (goalId: string) => {
@@ -231,7 +304,25 @@ export default function SettingsScreen() {
         {/* Notifications Section */}
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Notifications</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
+          {/* Master Toggle */}
           <View style={styles.switchRow}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 255, 136, 0.15)' }]}>
+                <Ionicons name="notifications" size={18} color="#00ff88" />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>All Notifications</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Master toggle for all alerts</Text>
+              </View>
+            </View>
+            <Switch value={settings.notifications_enabled}
+              onValueChange={(v) => setSettings(prev => ({ ...prev, notifications_enabled: v }))}
+              trackColor={{ false: theme.bgInput, true: '#00ff88' }} thumbColor="#fff" />
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
+
+          {/* Water Reminders */}
+          <View style={[styles.switchRow, !settings.notifications_enabled && { opacity: 0.4 }]}>
             <View style={styles.switchLeft}>
               <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
                 <Ionicons name="water" size={18} color="#00d4ff" />
@@ -241,12 +332,15 @@ export default function SettingsScreen() {
                 <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Every 2 hours, 8am–8pm</Text>
               </View>
             </View>
-            <Switch value={settings.water_reminder_enabled}
+            <Switch value={settings.water_reminder_enabled && settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, water_reminder_enabled: v }))}
+              disabled={!settings.notifications_enabled}
               trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
-          <View style={styles.switchRow}>
+
+          {/* Meal Reminders */}
+          <View style={[styles.switchRow, !settings.notifications_enabled && { opacity: 0.4 }]}>
             <View style={styles.switchLeft}>
               <View style={[styles.settingIcon, { backgroundColor: 'rgba(255, 107, 107, 0.15)' }]}>
                 <Ionicons name="restaurant" size={18} color="#ff6b6b" />
@@ -256,8 +350,27 @@ export default function SettingsScreen() {
                 <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Breakfast, Lunch, Dinner</Text>
               </View>
             </View>
-            <Switch value={settings.meal_reminder_enabled}
+            <Switch value={settings.meal_reminder_enabled && settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, meal_reminder_enabled: v }))}
+              disabled={!settings.notifications_enabled}
+              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
+
+          {/* Routine Reminders */}
+          <View style={[styles.switchRow, !settings.notifications_enabled && { opacity: 0.4 }]}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(162, 155, 254, 0.15)' }]}>
+                <Ionicons name="time" size={18} color="#a29bfe" />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>Routine Reminders</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Morning & evening routines</Text>
+              </View>
+            </View>
+            <Switch value={settings.routine_reminder_enabled && settings.notifications_enabled}
+              onValueChange={(v) => setSettings(prev => ({ ...prev, routine_reminder_enabled: v }))}
+              disabled={!settings.notifications_enabled}
               trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
           </View>
         </View>
@@ -277,7 +390,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Sign Out */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => {
+        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: 'rgba(255, 107, 107, 0.1)' }]} onPress={() => {
           Alert.alert('Sign Out', 'Are you sure?', [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Sign Out', style: 'destructive', onPress: signOut }
@@ -286,6 +399,27 @@ export default function SettingsScreen() {
           <Ionicons name="log-out" size={20} color={theme.danger} />
           <Text style={[styles.logoutText, { color: theme.danger }]}>Sign Out</Text>
         </TouchableOpacity>
+
+        {/* Danger Zone */}
+        <Text style={[styles.sectionTitle, { color: '#ff6b6b', marginTop: 24 }]}>Danger Zone</Text>
+        <View style={[styles.card, { backgroundColor: 'rgba(255, 59, 48, 0.06)', borderColor: 'rgba(255, 59, 48, 0.2)' }]}>
+          <View style={styles.dangerInfo}>
+            <Ionicons name="warning" size={20} color="#ff3b30" />
+            <Text style={[styles.dangerInfoText, { color: theme.textMuted }]}>
+              Permanently delete your account and all associated data. This cannot be undone.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.deleteAccountBtn}
+            onPress={handleDeleteAccount}
+            disabled={deleting}
+          >
+            <Ionicons name="trash" size={18} color="#fff" />
+            <Text style={styles.deleteAccountText}>
+              {deleting ? 'Deleting...' : 'Delete Account'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={[styles.disclaimer, { color: theme.textDim }]}>
           NutriOS v3.0 • Nutritional information only. Not medical advice.
@@ -333,7 +467,11 @@ const styles = StyleSheet.create({
   accountDetails: { marginLeft: 14 },
   accountName: { fontSize: 16, fontWeight: '600' },
   accountEmail: { fontSize: 13, marginTop: 2 },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 107, 107, 0.1)', padding: 16, borderRadius: 14, marginTop: 12 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 14, marginTop: 12 },
   logoutText: { fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  dangerInfo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+  dangerInfoText: { fontSize: 13, lineHeight: 19, marginLeft: 10, flex: 1 },
+  deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff3b30', paddingVertical: 14, borderRadius: 12 },
+  deleteAccountText: { color: '#fff', fontSize: 15, fontWeight: '700', marginLeft: 8 },
   disclaimer: { fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16 },
 });

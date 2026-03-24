@@ -213,6 +213,24 @@ async def update_user_profile(profile: Dict[str, Any], user: User = Depends(requ
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})
     return {"message": "Profile updated"}
 
+@api_router.delete("/user/account")
+async def delete_user_account(request: Request, response: Response, user: User = Depends(require_user)):
+    """Permanently delete user account and all associated data."""
+    user_id = user.user_id
+    logger.info(f"Deleting account for user {user_id}")
+    # Delete from all user-related collections
+    collections_to_clean = [
+        "users", "user_settings", "user_sessions", "meals", "water_logs",
+        "favorites", "recipes", "meal_plans", "routines", "user_badges",
+        "ai_conversations",
+    ]
+    for collection_name in collections_to_clean:
+        await db[collection_name].delete_many({"user_id": user_id})
+    # Also clear the session cookie
+    response.delete_cookie(key="session_token", path="/")
+    logger.info(f"Account deleted for user {user_id}")
+    return {"message": "Account and all data permanently deleted"}
+
 # ================== USDA FOOD FUNCTIONS ==================
 
 async def search_usda_foods(query: str, page_size: int = 10) -> List[Dict]:
