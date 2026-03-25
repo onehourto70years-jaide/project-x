@@ -28,7 +28,9 @@ export default function UpgradeScreen() {
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
-        if (data.has_access) {
+        // Only redirect back if already premium (purchased)
+        // Trial users should be able to access upgrade screen to buy early
+        if (data.is_premium) {
           router.replace('/(tabs)');
         }
       }
