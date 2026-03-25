@@ -268,9 +268,14 @@ export default function DashboardScreen() {
               <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</Text>
             </View>
             <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/settings')}>
-              <View style={styles.avatarSmall}>
+              <View style={[styles.avatarSmall, paymentStatus?.is_premium && styles.avatarPro]}>
                 <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
               </View>
+              {paymentStatus?.is_premium && (
+                <View style={styles.avatarProBadge}>
+                  <Ionicons name="diamond" size={10} color="#ffd93d" />
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -294,8 +299,10 @@ export default function DashboardScreen() {
           )}
           {paymentStatus?.is_premium && (
             <View style={styles.proBadge}>
-              <Ionicons name="diamond" size={14} color="#ffd93d" />
+              <View style={styles.proBadgeGlow} />
+              <Ionicons name="diamond" size={16} color="#ffd93d" />
               <Text style={styles.proBadgeText}>NutriOS Pro</Text>
+              <Ionicons name="checkmark-circle" size={16} color="#00ff88" />
             </View>
           )}
 
@@ -531,8 +538,15 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   greeting: { fontSize: 14, color: '#666' },
   userName: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
-  profileBtn: { padding: 4 },
+  profileBtn: { padding: 4, position: 'relative' },
   avatarSmall: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#00d4ff', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(0, 212, 255, 0.3)' },
+  avatarPro: { borderColor: '#ffd93d', borderWidth: 2 },
+  avatarProBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#ffd93d',
+  },
   avatarText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   // Trial/Pro Badge
   trialBadge: {
@@ -546,9 +560,14 @@ const styles = StyleSheet.create({
   trialBadgeBtnText: { fontSize: 12, fontWeight: '700', color: '#000' },
   proBadge: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 8,
-    backgroundColor: 'rgba(255, 217, 61, 0.1)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: 'rgba(255, 217, 61, 0.12)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(255, 217, 61, 0.3)', position: 'relative', overflow: 'hidden',
   },
-  proBadgeText: { fontSize: 12, color: '#ffd93d', fontWeight: '700', marginLeft: 6 },
+  proBadgeGlow: {
+    position: 'absolute', width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(255, 217, 61, 0.08)', left: -10, top: -15,
+  },
+  proBadgeText: { fontSize: 14, color: '#ffd93d', fontWeight: '800', marginLeft: 8, marginRight: 8, letterSpacing: 0.5 },
   // Hero
   heroSection: { alignItems: 'center', paddingVertical: 16, position: 'relative' },
   heroGlow: { position: 'absolute', top: 20, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(0, 212, 255, 0.06)' },

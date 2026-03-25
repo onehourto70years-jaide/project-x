@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator, Alert, Linking, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from './_layout';
@@ -28,8 +28,6 @@ export default function UpgradeScreen() {
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
-        // Only redirect back if already premium (purchased)
-        // Trial users should be able to access upgrade screen to buy early
         if (data.is_premium) {
           router.replace('/(tabs)');
         }
@@ -123,13 +121,29 @@ export default function UpgradeScreen() {
   const isTrialExpired = status && !status.has_access;
   const trialDays = status?.trial_days_remaining || 0;
 
+  const features = [
+    { icon: 'analytics', color: '#00d4ff', text: 'Molecular food analysis' },
+    { icon: 'water', color: '#4ecdc4', text: 'Smart hydration tracking' },
+    { icon: 'time', color: '#a29bfe', text: 'Routine & discipline system' },
+    { icon: 'bulb', color: '#ffd93d', text: 'AI-powered nutrition coach' },
+    { icon: 'restaurant', color: '#ff6b6b', text: 'Recipe builder & meal plans' },
+    { icon: 'trophy', color: '#00ff88', text: 'Gamification & badges' },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      {/* Back button - only when trial is still active */}
+      {!isTrialExpired && (
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <Ionicons name="diamond" size={48} color="#ffd93d" />
+            <Ionicons name="diamond" size={44} color="#ffd93d" />
           </View>
           <Text style={styles.title}>
             {isTrialExpired ? 'Trial Expired' : 'Upgrade to Pro'}
@@ -137,56 +151,32 @@ export default function UpgradeScreen() {
           <Text style={styles.subtitle}>
             {isTrialExpired
               ? 'Your 14-day free trial has ended'
-              : `${trialDays} days remaining in your trial`}
+              : `${trialDays} days remaining in your free trial`}
           </Text>
         </View>
 
         {/* Features */}
         <View style={styles.featuresCard}>
-          <Text style={styles.featuresTitle}>NutriOS Pro includes:</Text>
-          {[
-            { icon: 'analytics', color: '#00d4ff', text: 'Molecular food analysis' },
-            { icon: 'water', color: '#4ecdc4', text: 'Smart hydration tracking' },
-            { icon: 'time', color: '#a29bfe', text: 'Routine & discipline system' },
-            { icon: 'bulb', color: '#ffd93d', text: 'AI-powered nutrition coach' },
-            { icon: 'restaurant', color: '#ff6b6b', text: 'Recipe builder & meal plans' },
-            { icon: 'trophy', color: '#00ff88', text: 'Gamification & badges' },
-          ].map((f, i) => (
+          <Text style={styles.featuresTitle}>Everything in NutriOS Pro:</Text>
+          {features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
               <View style={[styles.featureIcon, { backgroundColor: f.color + '20' }]}>
-                <Ionicons name={f.icon as any} size={18} color={f.color} />
+                <Ionicons name={f.icon as any} size={16} color={f.color} />
               </View>
               <Text style={styles.featureText}>{f.text}</Text>
-              <Ionicons name="checkmark-circle" size={20} color="#00ff88" />
+              <Ionicons name="checkmark-circle" size={18} color="#00ff88" />
             </View>
           ))}
         </View>
 
-        {/* Price + Buy Button */}
-        <View style={styles.priceSection}>
-          <View style={styles.priceTag}>
-            <Text style={styles.priceLabel}>One-time payment</Text>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceCurrency}>\u20ac</Text>
-              <Text style={styles.priceAmount}>12</Text>
-            </View>
-            <Text style={styles.priceNote}>Lifetime access \u2022 No subscription</Text>
+        {/* Price */}
+        <View style={styles.priceTag}>
+          <Text style={styles.priceLabel}>ONE-TIME PAYMENT</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceCurrency}>{'\u20ac'}</Text>
+            <Text style={styles.priceAmount}>12</Text>
           </View>
-
-          <TouchableOpacity
-            style={[styles.buyButton, loading && styles.buyButtonDisabled]}
-            onPress={handleUpgrade}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="card" size={22} color="#fff" />
-                <Text style={styles.buyButtonText}>Purchase NutriOS Pro</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <Text style={styles.priceNote}>Lifetime access {'\u2022'} No subscription</Text>
         </View>
 
         {/* Bottom actions */}
@@ -197,15 +187,35 @@ export default function UpgradeScreen() {
               { text: 'Sign Out', style: 'destructive', onPress: signOut }
             ]);
           }}>
-            <Ionicons name="log-out" size={18} color="#ff6b6b" />
+            <Ionicons name="log-out" size={16} color="#ff6b6b" />
             <Text style={styles.secondaryBtnText}>Sign Out</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.dangerBtn} onPress={handleDeleteAccount}>
-            <Ionicons name="trash" size={18} color="#ff3b30" />
+            <Ionicons name="trash" size={16} color="#ff3b30" />
             <Text style={styles.dangerBtnText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
+      </ScrollView>
+
+      {/* FIXED BOTTOM: Purchase Button - always visible */}
+      <View style={styles.fixedBottom}>
+        <TouchableOpacity
+          style={[styles.buyButton, loading && styles.buyButtonDisabled]}
+          onPress={handleUpgrade}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          {loading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <>
+              <Ionicons name="card" size={22} color="#000" />
+              <Text style={styles.buyButtonText}>Purchase NutriOS Pro</Text>
+              <Text style={styles.buyButtonPrice}>{'\u20ac'}12</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -214,51 +224,62 @@ export default function UpgradeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#080818' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#080818' },
-  content: { flex: 1, padding: 20, justifyContent: 'space-between' },
-  header: { alignItems: 'center', paddingTop: 20 },
+  backBtn: {
+    position: 'absolute', top: Platform.OS === 'ios' ? 56 : 16, left: 16, zIndex: 10,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
+  header: { alignItems: 'center', paddingTop: 20, marginBottom: 20 },
   iconContainer: {
-    width: 88, height: 88, borderRadius: 44,
+    width: 80, height: 80, borderRadius: 40,
     backgroundColor: 'rgba(255, 217, 61, 0.12)',
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 16, borderWidth: 2, borderColor: 'rgba(255, 217, 61, 0.25)',
+    marginBottom: 14, borderWidth: 2, borderColor: 'rgba(255, 217, 61, 0.25)',
   },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#888' },
+  title: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  subtitle: { fontSize: 14, color: '#888', textAlign: 'center' },
   featuresCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 18,
-    padding: 18, marginTop: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
+    padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  featuresTitle: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 14 },
+  featuresTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 10 },
   featureRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 9,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
   },
   featureIcon: {
-    width: 34, height: 34, borderRadius: 10,
+    width: 30, height: 30, borderRadius: 8,
     justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
-  featureText: { flex: 1, fontSize: 14, color: '#ccc' },
-  priceSection: { marginTop: 20 },
-  priceTag: { alignItems: 'center', marginBottom: 16 },
-  priceLabel: { fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  featureText: { flex: 1, fontSize: 13, color: '#ccc' },
+  priceTag: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
+  priceLabel: { fontSize: 11, color: '#888', letterSpacing: 1.5, marginBottom: 4 },
   priceRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  priceCurrency: { fontSize: 20, fontWeight: '700', color: '#ffd93d', marginTop: 4, marginRight: 2 },
-  priceAmount: { fontSize: 48, fontWeight: '800', color: '#ffd93d' },
+  priceCurrency: { fontSize: 18, fontWeight: '700', color: '#ffd93d', marginTop: 4, marginRight: 2 },
+  priceAmount: { fontSize: 44, fontWeight: '800', color: '#ffd93d' },
   priceNote: { fontSize: 12, color: '#666', marginTop: 2 },
+  bottomActions: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 20 },
+  secondaryBtn: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16,
+    borderRadius: 10, backgroundColor: 'rgba(255,107,107,0.08)',
+  },
+  secondaryBtnText: { color: '#ff6b6b', fontSize: 13, fontWeight: '600', marginLeft: 6 },
+  dangerBtn: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16,
+    borderRadius: 10, backgroundColor: 'rgba(255,59,48,0.08)',
+  },
+  dangerBtnText: { color: '#ff3b30', fontSize: 13, fontWeight: '600', marginLeft: 6 },
+  fixedBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 16, paddingTop: 12,
+    backgroundColor: '#080818',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
+  },
   buyButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#00d4ff', paddingVertical: 18, borderRadius: 16,
+    backgroundColor: '#ffd93d', paddingVertical: 18, borderRadius: 16,
   },
   buyButtonDisabled: { opacity: 0.6 },
-  buyButtonText: { fontSize: 17, fontWeight: '700', color: '#fff', marginLeft: 10 },
-  bottomActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingBottom: Platform.OS === 'ios' ? 10 : 0 },
-  secondaryBtn: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20,
-    borderRadius: 12, backgroundColor: 'rgba(255,107,107,0.08)',
-  },
-  secondaryBtnText: { color: '#ff6b6b', fontSize: 14, fontWeight: '600', marginLeft: 6 },
-  dangerBtn: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 20,
-    borderRadius: 12, backgroundColor: 'rgba(255,59,48,0.08)',
-  },
-  dangerBtnText: { color: '#ff3b30', fontSize: 14, fontWeight: '600', marginLeft: 6 },
+  buyButtonText: { fontSize: 17, fontWeight: '800', color: '#000', marginLeft: 10 },
+  buyButtonPrice: { fontSize: 17, fontWeight: '800', color: '#000', marginLeft: 8, opacity: 0.7 },
 });
