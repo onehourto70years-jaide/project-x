@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Image, Animated } from 'react-native';
 import { Redirect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './_layout';
@@ -10,6 +10,24 @@ export default function Index() {
   const { user, isLoading } = useAuth();
   const [policyAccepted, setPolicyAccepted] = useState<boolean | null>(null);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [splashDone, setSplashDone] = useState(false);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const scaleAnim = useState(new Animated.Value(0.8))[0];
+
+  // Show splash for 2.5 seconds
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
+    ]).start();
+
+    const timer = setTimeout(() => {
+      Animated.timing(fadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
+        setSplashDone(true);
+      });
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem('privacy_policy_accepted').then((val) => {
@@ -34,14 +52,29 @@ export default function Index() {
           const data = await res.json();
           setHasAccess(data.has_access);
         } else {
-          setHasAccess(true); // Default to access on error
+          setHasAccess(true);
         }
       } catch (e) {
-        setHasAccess(true); // Default to access on error
+        setHasAccess(true);
       }
     };
     checkAccess();
   }, [user]);
+
+  // Show splash screen first
+  if (!splashDone) {
+    return (
+      <View style={styles.splashContainer}>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+          <Image
+            source={require('../assets/jaide-logo.png')}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+    );
+  }
 
   // Still checking
   if (policyAccepted === null || isLoading) {
@@ -52,17 +85,14 @@ export default function Index() {
     );
   }
 
-  // If user hasn't accepted privacy policy, send them there first
   if (!policyAccepted) {
     return <Redirect href="/(auth)/privacy-policy" />;
   }
 
-  // If user is not logged in, go to login
   if (!user) {
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Waiting for payment status check
   if (hasAccess === null) {
     return (
       <View style={styles.container}>
@@ -71,12 +101,10 @@ export default function Index() {
     );
   }
 
-  // If trial expired and not premium, show upgrade
   if (!hasAccess) {
     return <Redirect href="/upgrade" />;
   }
 
-  // All good, go to dashboard
   return <Redirect href="/(tabs)" />;
 }
 
@@ -86,5 +114,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#080818',
+  },
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#080818',
+  },
+  splashLogo: {
+    width: 220,
+    height: 220,
   },
 });

@@ -89,7 +89,10 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
-  const [profile, setProfile] = useState({ weight_kg: 70, activity_level: 'moderate', health_goals: [] as string[] });
+  const [profile, setProfile] = useState({
+    weight_kg: 70, height_cm: 170, age: 30, sex: 'male',
+    activity_level: 'moderate', weight_goal: 'maintain', health_goals: [] as string[]
+  });
   const [settings, setSettings] = useState({
     daily_calorie_goal: 2000, daily_protein_goal: 50, daily_water_goal_ml: 2500,
     notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true
@@ -109,7 +112,13 @@ export default function SettingsScreen() {
       ]);
       if (profileRes.ok) {
         const data = await profileRes.json();
-        setProfile({ weight_kg: data.weight_kg || 70, activity_level: data.activity_level || 'moderate', health_goals: data.health_goals || [] });
+        setProfile({
+          weight_kg: data.weight_kg || 70, height_cm: data.height_cm || 170,
+          age: data.age || 30, sex: data.sex || 'male',
+          activity_level: data.activity_level || 'moderate',
+          weight_goal: data.weight_goal || 'maintain',
+          health_goals: data.health_goals || []
+        });
       }
       if (settingsRes.ok) {
         const data = await settingsRes.json();
@@ -247,11 +256,70 @@ export default function SettingsScreen() {
         {/* Profile Section */}
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Profile</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
-          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Weight (kg)</Text>
-          <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
-            value={String(profile.weight_kg)}
-            onChangeText={(t) => setProfile(prev => ({ ...prev, weight_kg: parseFloat(t) || 0 }))}
-            keyboardType="numeric" placeholderTextColor={theme.textDim} />
+          {/* Weight & Height in row */}
+          <View style={styles.profileRow}>
+            <View style={styles.profileField}>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Weight (kg)</Text>
+              <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
+                value={String(profile.weight_kg)}
+                onChangeText={(t) => setProfile(prev => ({ ...prev, weight_kg: parseFloat(t) || 0 }))}
+                keyboardType="numeric" placeholderTextColor={theme.textDim} />
+            </View>
+            <View style={styles.profileField}>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Height (cm)</Text>
+              <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
+                value={String(profile.height_cm)}
+                onChangeText={(t) => setProfile(prev => ({ ...prev, height_cm: parseFloat(t) || 0 }))}
+                keyboardType="numeric" placeholderTextColor={theme.textDim} />
+            </View>
+          </View>
+
+          {/* Age & Sex in row */}
+          <View style={styles.profileRow}>
+            <View style={styles.profileField}>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Age</Text>
+              <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
+                value={String(profile.age)}
+                onChangeText={(t) => setProfile(prev => ({ ...prev, age: parseInt(t) || 0 }))}
+                keyboardType="numeric" placeholderTextColor={theme.textDim} />
+            </View>
+            <View style={styles.profileField}>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Sex</Text>
+              <View style={styles.sexToggle}>
+                {[{ id: 'male', icon: 'male' }, { id: 'female', icon: 'female' }].map((s) => (
+                  <TouchableOpacity key={s.id}
+                    style={[styles.sexOption, { backgroundColor: theme.bgInput }, profile.sex === s.id && { backgroundColor: theme.accent }]}
+                    onPress={() => setProfile(prev => ({ ...prev, sex: s.id }))}>
+                    <Ionicons name={s.icon as any} size={18} color={profile.sex === s.id ? '#fff' : theme.textMuted} />
+                    <Text style={[styles.sexLabel, { color: theme.textMuted }, profile.sex === s.id && { color: '#fff' }]}>
+                      {s.id === 'male' ? 'Male' : 'Female'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* Weight Goal */}
+          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Weight Goal</Text>
+          <View style={styles.weightGoalGrid}>
+            {[
+              { id: 'lose', label: 'Lose Weight', icon: 'trending-down', color: '#ff6b6b' },
+              { id: 'maintain', label: 'Maintain', icon: 'remove', color: '#00d4ff' },
+              { id: 'gain', label: 'Gain Weight', icon: 'trending-up', color: '#00ff88' },
+            ].map((g) => (
+              <TouchableOpacity key={g.id}
+                style={[styles.weightGoalOption, { backgroundColor: theme.bgInput },
+                  profile.weight_goal === g.id && { backgroundColor: g.color + '20', borderColor: g.color, borderWidth: 1 }]}
+                onPress={() => setProfile(prev => ({ ...prev, weight_goal: g.id }))}>
+                <Ionicons name={g.icon as any} size={18} color={profile.weight_goal === g.id ? g.color : theme.textMuted} />
+                <Text style={[styles.weightGoalLabel, { color: theme.textMuted },
+                  profile.weight_goal === g.id && { color: g.color }]}>
+                  {g.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Activity Level</Text>
           <View style={styles.activityGrid}>
@@ -492,6 +560,14 @@ const styles = StyleSheet.create({
   activityGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
   activityOption: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, marginRight: 8, marginBottom: 8 },
   activityLabel: { fontSize: 13, fontWeight: '500' },
+  profileRow: { flexDirection: 'row', gap: 12 },
+  profileField: { flex: 1 },
+  sexToggle: { flexDirection: 'row', gap: 8 },
+  sexOption: { flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center', paddingVertical: 12, borderRadius: 12 },
+  sexLabel: { fontSize: 13, fontWeight: '600', marginLeft: 6 },
+  weightGoalGrid: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  weightGoalOption: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'transparent' },
+  weightGoalLabel: { fontSize: 11, fontWeight: '600', marginTop: 4 },
   goalsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   goalOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: 'transparent' },
   goalLabel: { fontSize: 12, marginLeft: 6, fontWeight: '500' },

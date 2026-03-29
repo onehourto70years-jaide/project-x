@@ -120,6 +120,11 @@ export default function DashboardScreen() {
   const [quickSearch, setQuickSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [portionAmount, setPortionAmount] = useState('100');
+  const [portionUnit, setPortionUnit] = useState<'g' | 'ml'>('g');
+  const [cookingMethod, setCookingMethod] = useState('raw');
+  const [logging, setLogging] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
 
@@ -172,33 +177,45 @@ export default function DashboardScreen() {
     finally { setSearching(false); }
   };
 
-  const quickLogMeal = async (food: any) => {
+  const selectFood = (food: any) => {
+    setSelectedFood(food);
+    setPortionAmount('100');
+    setPortionUnit('g');
+    setCookingMethod('raw');
+  };
+
+  const confirmLogMeal = async () => {
+    if (!selectedFood) return;
+    setLogging(true);
     try {
+      const grams = portionUnit === 'ml' ? parseFloat(portionAmount) || 100 : parseFloat(portionAmount) || 100;
       const res = await fetch(`${BACKEND_URL}/api/foods/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fdc_id: food.fdc_id, portion_grams: 100, cooking_method: 'raw' })
+        body: JSON.stringify({ fdc_id: selectedFood.fdc_id, portion_grams: grams, cooking_method: cookingMethod })
       });
       if (res.ok) {
         const analysis = await res.json();
         const token = await AsyncStorage.getItem('session_token');
         if (!token) return;
+        const nutrientData = cookingMethod !== 'raw' && analysis.nutrients?.cooked
+          ? analysis.nutrients.cooked : analysis.nutrients?.raw || {};
         await fetch(`${BACKEND_URL}/api/meals`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({
-            fdc_id: food.fdc_id, food_name: analysis.food_name || food.description,
-            portion_grams: 100, meal_type: getAutoMealType(), cooking_method: 'raw',
-            nutrients: analysis.nutrients?.cooked || analysis.nutrients?.raw || {},
-            elements: analysis.elements?.mass_grams || {},
+            fdc_id: selectedFood.fdc_id, food_name: analysis.food_name || selectedFood.description,
+            portion_grams: grams, meal_type: getAutoMealType(), cooking_method: cookingMethod,
+            nutrients: nutrientData, elements: analysis.elements?.mass_grams || {},
             allergens: analysis.allergens || []
           })
         });
-        setShowQuickMeal(false); setQuickSearch(''); setSearchResults([]);
+        setShowQuickMeal(false); setQuickSearch(''); setSearchResults([]); setSelectedFood(null);
         fetchDashboard();
-        Alert.alert('Logged!', `${food.description} added to ${getAutoMealType()}`);
+        Alert.alert('Logged!', `${selectedFood.description} (${grams}${portionUnit}, ${cookingMethod}) added to ${getAutoMealType()}`);
       }
     } catch (e) { Alert.alert('Error', 'Failed to log meal'); }
+    finally { setLogging(false); }
   };
 
   const getAutoMealType = () => {
@@ -497,33 +514,114 @@ export default function DashboardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Quick Add Meal</Text>
-              <TouchableOpacity onPress={() => { setShowQuickMeal(false); setSearchResults([]); setQuickSearch(''); }}>
-                <Ionicons name="close" size={24} color="#fff" />
+              <Text style={styles.modalTitle}>
+                {selectedFood ? 'Customize Meal' : 'Quick Add Meal'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                if (selectedFood) { setSelectedFood(null); }
+                else { setShowQuickMeal(false); setSearchResults([]); setQuickSearch(''); }
+              }}>
+                <Ionicons name={selectedFood ? 'arrow-back' : 'close'} size={24} color="#fff" />
               </TouchableOpacity>
             </View>
-            <View style={styles.searchRow}>
-              <TextInput style={styles.searchInput} value={quickSearch} onChangeText={setQuickSearch}
-                placeholder="Search food... (e.g. chicken)" placeholderTextColor="#666"
-                onSubmitEditing={quickSearchFoods} returnKeyType="search" autoFocus />
-              <TouchableOpacity style={styles.searchBtn} onPress={quickSearchFoods}>
-                <Ionicons name="search" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalHint}>Auto-detects meal type: {getAutoMealType()} • 100g portion</Text>
-            <ScrollView style={styles.modalScroll}>
-              {searching && <Text style={styles.searchingText}>Searching...</Text>}
-              {searchResults.map((food) => (
-                <TouchableOpacity key={food.fdc_id} style={styles.foodResult} onPress={() => quickLogMeal(food)}>
-                  <Ionicons name="add-circle" size={22} color="#00d4ff" />
-                  <View style={styles.foodResultInfo}>
-                    <Text style={styles.foodResultName} numberOfLines={1}>{food.description}</Text>
-                    <Text style={styles.foodResultMeta}>{food.data_type} • Tap to log</Text>
+
+            {!selectedFood ? (
+              <>
+                <View style={styles.searchRow}>
+                  <TextInput style={styles.searchInput} value={quickSearch} onChangeText={setQuickSearch}
+                    placeholder="Search food... (e.g. chicken)" placeholderTextColor="#666"
+                    onSubmitEditing={quickSearchFoods} returnKeyType="search" autoFocus />
+                  <TouchableOpacity style={styles.searchBtn} onPress={quickSearchFoods}>
+                    <Ionicons name="search" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.modalScroll}>
+                  {searching && <Text style={styles.searchingText}>Searching...</Text>}
+                  {searchResults.map((food) => (
+                    <TouchableOpacity key={food.fdc_id} style={styles.foodResult} onPress={() => selectFood(food)}>
+                      <Ionicons name="add-circle" size={22} color="#00d4ff" />
+                      <View style={styles.foodResultInfo}>
+                        <Text style={styles.foodResultName} numberOfLines={1}>{food.description}</Text>
+                        <Text style={styles.foodResultMeta}>{food.data_type} • Tap to customize</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#444" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : (
+              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                {/* Selected food name */}
+                <View style={styles.selectedFoodCard}>
+                  <Ionicons name="restaurant" size={20} color="#4ecdc4" />
+                  <Text style={styles.selectedFoodName} numberOfLines={2}>{selectedFood.description}</Text>
+                </View>
+
+                {/* Portion Amount + Unit */}
+                <Text style={styles.mealFormLabel}>Portion</Text>
+                <View style={styles.portionRow}>
+                  <TextInput
+                    style={styles.portionInput}
+                    value={portionAmount}
+                    onChangeText={setPortionAmount}
+                    keyboardType="numeric"
+                    placeholder="100"
+                    placeholderTextColor="#666"
+                  />
+                  <View style={styles.unitToggle}>
+                    {(['g', 'ml'] as const).map((u) => (
+                      <TouchableOpacity key={u}
+                        style={[styles.unitBtn, portionUnit === u && styles.unitBtnActive]}
+                        onPress={() => setPortionUnit(u)}>
+                        <Text style={[styles.unitBtnText, portionUnit === u && styles.unitBtnTextActive]}>{u}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#444" />
+                </View>
+
+                {/* Cooking Method */}
+                <Text style={styles.mealFormLabel}>Cooking Method</Text>
+                <View style={styles.cookingGrid}>
+                  {[
+                    { id: 'raw', label: 'Raw', icon: 'leaf' },
+                    { id: 'boiling', label: 'Boiled', icon: 'water' },
+                    { id: 'steaming', label: 'Steamed', icon: 'cloud' },
+                    { id: 'frying', label: 'Fried', icon: 'flame' },
+                    { id: 'baking', label: 'Baked', icon: 'pizza' },
+                    { id: 'grilling', label: 'Grilled', icon: 'bonfire' },
+                  ].map((m) => (
+                    <TouchableOpacity key={m.id}
+                      style={[styles.cookingOption, cookingMethod === m.id && styles.cookingOptionActive]}
+                      onPress={() => setCookingMethod(m.id)}>
+                      <Ionicons name={m.icon as any} size={18}
+                        color={cookingMethod === m.id ? '#00d4ff' : '#888'} />
+                      <Text style={[styles.cookingLabel, cookingMethod === m.id && styles.cookingLabelActive]}>
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Meal Type (auto-detected) */}
+                <Text style={styles.mealFormLabel}>Meal Type: <Text style={{ color: '#00d4ff' }}>{getAutoMealType()}</Text></Text>
+
+                {/* Confirm Button */}
+                <TouchableOpacity
+                  style={[styles.confirmLogBtn, logging && { opacity: 0.6 }]}
+                  onPress={confirmLogMeal}
+                  disabled={logging}
+                >
+                  {logging ? (
+                    <Text style={styles.confirmLogText}>Analyzing & Logging...</Text>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                      <Text style={styles.confirmLogText}>Log {portionAmount}{portionUnit} ({cookingMethod})</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -650,4 +748,34 @@ const styles = StyleSheet.create({
   foodResultInfo: { flex: 1, marginLeft: 12 },
   foodResultName: { color: '#fff', fontSize: 14, fontWeight: '500' },
   foodResultMeta: { color: '#666', fontSize: 11, marginTop: 2 },
+  // Meal customization form
+  selectedFoodCard: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(78, 205, 196, 0.2)',
+  },
+  selectedFoodName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600', marginLeft: 10 },
+  mealFormLabel: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 8, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  portionRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  portionInput: {
+    flex: 1, backgroundColor: '#1a1a3e', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    color: '#fff', fontSize: 18, fontWeight: '700', marginRight: 10,
+  },
+  unitToggle: { flexDirection: 'row', backgroundColor: '#1a1a3e', borderRadius: 12, overflow: 'hidden' },
+  unitBtn: { paddingHorizontal: 20, paddingVertical: 14 },
+  unitBtnActive: { backgroundColor: '#00d4ff' },
+  unitBtnText: { color: '#888', fontSize: 16, fontWeight: '700' },
+  unitBtnTextActive: { color: '#fff' },
+  cookingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  cookingOption: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 10, backgroundColor: '#1a1a3e', borderWidth: 1, borderColor: 'transparent',
+  },
+  cookingOptionActive: { borderColor: '#00d4ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' },
+  cookingLabel: { color: '#888', fontSize: 13, fontWeight: '500', marginLeft: 6 },
+  cookingLabelActive: { color: '#00d4ff' },
+  confirmLogBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#00d4ff', borderRadius: 14, paddingVertical: 16, marginTop: 16, marginBottom: 8,
+  },
+  confirmLogText: { color: '#fff', fontSize: 16, fontWeight: '700', marginLeft: 8 },
 });
