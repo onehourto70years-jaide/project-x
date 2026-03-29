@@ -165,6 +165,15 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
+    // Block if active subscription not cancelled
+    if (paymentStatus?.is_premium && !paymentStatus?.cancel_at_period_end) {
+      Alert.alert(
+        'Cancel Subscription First',
+        'Please cancel your subscription before deleting your account. Go to Settings → Subscription → Cancel Subscription.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     Alert.alert(
       'Delete Account',
       'Are you sure you want to permanently delete your account and all your data? This action cannot be undone.',
@@ -174,7 +183,6 @@ export default function SettingsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            // Second confirmation
             Alert.alert(
               'Final Confirmation',
               'This will permanently delete ALL your data including meals, water logs, routines, recipes, and badges. Type is irreversible.',
@@ -197,7 +205,8 @@ export default function SettingsScreen() {
                         await Notifications.cancelAllScheduledNotificationsAsync();
                         signOut();
                       } else {
-                        Alert.alert('Error', 'Failed to delete account. Please try again.');
+                        const err = await res.json();
+                        Alert.alert('Error', err.detail || 'Failed to delete account.');
                       }
                     } catch (e) {
                       Alert.alert('Error', 'Failed to delete account. Please try again.');

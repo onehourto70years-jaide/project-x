@@ -227,6 +227,15 @@ async def update_user_profile(profile: Dict[str, Any], user: User = Depends(requ
 async def delete_user_account(request: Request, response: Response, user: User = Depends(require_user)):
     """Permanently delete user account and all associated data."""
     user_id = user.user_id
+    user_doc = await db.users.find_one({"user_id": user_id})
+
+    # Block deletion if user has an active subscription that isn't cancelled
+    if user_doc and user_doc.get("is_premium") and not user_doc.get("cancel_at_period_end", False):
+        raise HTTPException(
+            status_code=400,
+            detail="Please cancel your subscription before deleting your account."
+        )
+
     logger.info(f"Deleting account for user {user_id}")
     # Delete from all user-related collections
     collections_to_clean = [

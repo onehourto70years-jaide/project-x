@@ -82,6 +82,15 @@ export default function UpgradeScreen() {
   };
 
   const handleDeleteAccount = () => {
+    // Block if active subscription not cancelled
+    if (status?.is_premium && !status?.cancel_at_period_end) {
+      Alert.alert(
+        'Cancel Subscription First',
+        'Please cancel your subscription before deleting your account. Go to Settings → Subscription → Cancel Subscription.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     Alert.alert(
       'Delete Account',
       'Are you sure you want to permanently delete your account and all your data?',
@@ -101,6 +110,9 @@ export default function UpgradeScreen() {
               if (res.ok) {
                 await AsyncStorage.clear();
                 signOut();
+              } else {
+                const err = await res.json();
+                Alert.alert('Error', err.detail || 'Failed to delete account');
               }
             } catch (e) {
               Alert.alert('Error', 'Failed to delete account');
