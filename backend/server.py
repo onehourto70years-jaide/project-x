@@ -69,6 +69,103 @@ BIOLOGICAL_EFFECTS = {"C": ["Energy metabolism", "Cell structure"], "H": ["Cellu
 
 DAILY_RECOMMENDED = {"energy_kcal": 2000, "protein_g": 50, "carbohydrate_g": 275, "fat_g": 78, "fiber_g": 28, "vitamin_a_mcg": 900, "vitamin_c_mg": 90, "iron_mg": 18, "calcium_mg": 1000, "magnesium_mg": 400, "potassium_mg": 4700, "zinc_mg": 11}
 
+# ================== MOLECULAR OPTIMIZATION PROFILES ==================
+
+GOAL_PROFILES = {
+    "muscle_gain": {
+        "name": "Muscle Growth",
+        "description": "Optimize nitrogen balance and protein synthesis for lean muscle mass",
+        "priority_elements": {"N": 2.0, "S": 1.5, "Zn": 1.8, "Mg": 1.5, "Fe": 1.3, "K": 1.2, "Ca": 1.2},
+        "priority_nutrients": {"protein_g": 2.0, "iron_mg": 1.5, "zinc_mg": 1.8, "magnesium_mg": 1.5, "potassium_mg": 1.2, "calcium_mg": 1.2, "vitamin_b6_mg": 1.5},
+        "ideal_macro_ratio": {"protein": 0.35, "carbs": 0.40, "fat": 0.25},
+        "key_foods": ["chicken breast", "salmon", "eggs", "greek yogurt", "quinoa", "lentils", "beef", "tofu", "almonds", "sweet potato"],
+        "synergy_pairs": [
+            {"foods": ["chicken", "brown rice"], "reason": "Complete amino acid profile with sustained energy"},
+            {"foods": ["salmon", "spinach"], "reason": "Omega-3 + Iron + Magnesium for recovery"},
+            {"foods": ["eggs", "avocado"], "reason": "Complete protein + healthy fats for hormone synthesis"},
+            {"foods": ["beef", "broccoli"], "reason": "Iron + Vitamin C for maximum iron absorption"},
+        ],
+    },
+    "brain_health": {
+        "name": "Brain Function",
+        "description": "Enhance cognitive performance with omega-3, B vitamins, and key minerals",
+        "priority_elements": {"Mg": 2.0, "Zn": 1.8, "Fe": 1.5, "K": 1.5, "P": 1.5, "Ca": 1.2},
+        "priority_nutrients": {"magnesium_mg": 2.0, "zinc_mg": 1.5, "iron_mg": 1.3, "potassium_mg": 1.5, "vitamin_c_mg": 1.3, "vitamin_a_mcg": 1.3},
+        "ideal_macro_ratio": {"protein": 0.25, "carbs": 0.45, "fat": 0.30},
+        "key_foods": ["salmon", "walnuts", "blueberries", "spinach", "dark chocolate", "turmeric", "avocado", "eggs", "sardines", "olive oil"],
+        "synergy_pairs": [
+            {"foods": ["salmon", "walnuts"], "reason": "DHA + ALA omega-3 synergy for neuroprotection"},
+            {"foods": ["spinach", "eggs"], "reason": "Folate + Choline for neurotransmitter synthesis"},
+            {"foods": ["dark chocolate", "blueberries"], "reason": "Flavonoids synergy for cerebral blood flow"},
+            {"foods": ["turmeric", "olive oil"], "reason": "Curcumin + fat for brain anti-inflammatory absorption"},
+        ],
+    },
+    "immune_system": {
+        "name": "Immune Defense",
+        "description": "Strengthen immune response with zinc, vitamin C, and antioxidants",
+        "priority_elements": {"Zn": 2.5, "Fe": 1.8, "Ca": 1.3, "Mg": 1.5, "K": 1.2},
+        "priority_nutrients": {"zinc_mg": 2.5, "vitamin_c_mg": 2.0, "iron_mg": 1.8, "vitamin_a_mcg": 1.8, "magnesium_mg": 1.3},
+        "ideal_macro_ratio": {"protein": 0.30, "carbs": 0.45, "fat": 0.25},
+        "key_foods": ["citrus fruits", "garlic", "ginger", "spinach", "yogurt", "almonds", "bell peppers", "broccoli", "shellfish", "sunflower seeds"],
+        "synergy_pairs": [
+            {"foods": ["citrus", "spinach"], "reason": "Vitamin C enhances iron absorption for immune cells"},
+            {"foods": ["garlic", "ginger"], "reason": "Allicin + Gingerol dual antimicrobial action"},
+            {"foods": ["yogurt", "berries"], "reason": "Probiotics + antioxidants for gut-immune axis"},
+            {"foods": ["bell peppers", "almonds"], "reason": "Vitamin C + Vitamin E antioxidant synergy"},
+        ],
+    },
+    "gut_microbiome": {
+        "name": "Gut Health",
+        "description": "Nourish beneficial bacteria with fiber, prebiotics, and fermented foods",
+        "priority_elements": {"Mg": 1.8, "K": 1.5, "Ca": 1.5, "Zn": 1.3, "Fe": 1.2},
+        "priority_nutrients": {"fiber_g": 2.5, "magnesium_mg": 1.5, "potassium_mg": 1.5, "calcium_mg": 1.5, "zinc_mg": 1.3},
+        "ideal_macro_ratio": {"protein": 0.20, "carbs": 0.55, "fat": 0.25},
+        "key_foods": ["yogurt", "kefir", "sauerkraut", "kimchi", "oats", "bananas", "garlic", "onions", "asparagus", "lentils"],
+        "synergy_pairs": [
+            {"foods": ["yogurt", "banana"], "reason": "Probiotics + prebiotic fiber feeds beneficial bacteria"},
+            {"foods": ["oats", "berries"], "reason": "Beta-glucan + polyphenols for microbiome diversity"},
+            {"foods": ["garlic", "lentils"], "reason": "Inulin + resistant starch for short-chain fatty acids"},
+            {"foods": ["kimchi", "brown rice"], "reason": "Fermented cultures + fiber for gut lining repair"},
+        ],
+    },
+    "longevity": {
+        "name": "Longevity & Anti-Aging",
+        "description": "Reduce inflammation and oxidative stress for healthy aging",
+        "priority_elements": {"Mg": 2.0, "Zn": 1.5, "K": 1.8, "Ca": 1.5, "Fe": 1.0},
+        "priority_nutrients": {"magnesium_mg": 2.0, "potassium_mg": 1.8, "vitamin_c_mg": 1.5, "vitamin_a_mcg": 1.5, "zinc_mg": 1.5, "fiber_g": 1.8},
+        "ideal_macro_ratio": {"protein": 0.20, "carbs": 0.50, "fat": 0.30},
+        "key_foods": ["olive oil", "salmon", "blueberries", "nuts", "leafy greens", "beans", "green tea", "tomatoes", "sweet potatoes", "avocado"],
+        "synergy_pairs": [
+            {"foods": ["olive oil", "tomatoes"], "reason": "Fat + lycopene synergy for cardiovascular protection"},
+            {"foods": ["salmon", "leafy greens"], "reason": "Omega-3 + folate for DNA repair and telomere health"},
+            {"foods": ["blueberries", "nuts"], "reason": "Anthocyanins + Vitamin E antioxidant cascade"},
+            {"foods": ["green tea", "lemon"], "reason": "Catechins + Vitamin C for enhanced antioxidant stability"},
+        ],
+    },
+    "reduce_inflammation": {
+        "name": "Anti-Inflammation",
+        "description": "Target inflammatory markers with omega-3, antioxidants, and key minerals",
+        "priority_elements": {"Mg": 2.0, "Zn": 1.5, "K": 1.5, "Fe": 1.0, "Ca": 1.2},
+        "priority_nutrients": {"magnesium_mg": 2.0, "vitamin_c_mg": 1.8, "zinc_mg": 1.5, "potassium_mg": 1.5, "vitamin_a_mcg": 1.5},
+        "ideal_macro_ratio": {"protein": 0.25, "carbs": 0.45, "fat": 0.30},
+        "key_foods": ["salmon", "turmeric", "ginger", "olive oil", "walnuts", "berries", "leafy greens", "tomatoes", "green tea", "avocado"],
+        "synergy_pairs": [
+            {"foods": ["turmeric", "black pepper"], "reason": "Piperine increases curcumin absorption 2000%"},
+            {"foods": ["salmon", "olive oil"], "reason": "EPA/DHA + oleic acid dual anti-inflammatory pathway"},
+            {"foods": ["ginger", "green tea"], "reason": "Gingerol + EGCG synergistic COX-2 inhibition"},
+            {"foods": ["walnuts", "berries"], "reason": "ALA omega-3 + polyphenols reduce CRP markers"},
+        ],
+    },
+}
+
+IDEAL_ELEMENTAL_BALANCE = {
+    "C": {"min_pct": 45, "max_pct": 55, "ideal_pct": 50, "role": "Energy backbone"},
+    "H": {"min_pct": 6, "max_pct": 10, "ideal_pct": 7.5, "role": "Hydration & bonding"},
+    "O": {"min_pct": 20, "max_pct": 35, "ideal_pct": 28, "role": "Cellular respiration"},
+    "N": {"min_pct": 3, "max_pct": 8, "ideal_pct": 5, "role": "Protein synthesis"},
+    "S": {"min_pct": 0.2, "max_pct": 1.5, "ideal_pct": 0.8, "role": "Protein structure & detox"},
+}
+
 # ================== PYDANTIC MODELS ==================
 
 class User(BaseModel):
@@ -1470,6 +1567,280 @@ async def get_elements_info():
 @api_router.get("/recommended-values")
 async def get_recommended_values():
     return {"daily_recommended": DAILY_RECOMMENDED}
+
+# ================== MOLECULAR OPTIMIZATION ENGINE ==================
+
+def calculate_elemental_balance(elements_grams: Dict[str, float]) -> Dict:
+    """Calculate how well a meal's elemental composition matches the ideal balance."""
+    total = sum(elements_grams.values()) or 1
+    scores = {}
+    total_score = 0
+    element_count = 0
+
+    for el, ideal in IDEAL_ELEMENTAL_BALANCE.items():
+        actual_pct = (elements_grams.get(el, 0) / total) * 100
+        min_pct, max_pct, ideal_pct = ideal["min_pct"], ideal["max_pct"], ideal["ideal_pct"]
+
+        if min_pct <= actual_pct <= max_pct:
+            deviation = abs(actual_pct - ideal_pct) / ideal_pct
+            score = max(0, 100 - (deviation * 100))
+        elif actual_pct < min_pct:
+            score = max(0, (actual_pct / min_pct) * 60)
+        else:
+            score = max(0, 60 - ((actual_pct - max_pct) / max_pct) * 60)
+
+        status = "optimal" if abs(actual_pct - ideal_pct) < 2 else ("low" if actual_pct < min_pct else ("high" if actual_pct > max_pct else "acceptable"))
+        scores[el] = {"actual_pct": round(actual_pct, 2), "ideal_pct": ideal_pct, "score": round(score), "status": status, "role": ideal["role"]}
+        total_score += score
+        element_count += 1
+
+    return {"overall_score": round(total_score / max(element_count, 1)), "elements": scores, "total_mass_g": round(total, 2)}
+
+
+def score_food_for_goal(nutrients: Dict, elements: Dict, goal_key: str) -> float:
+    """Score a food based on how well it matches a specific health goal."""
+    profile = GOAL_PROFILES.get(goal_key)
+    if not profile:
+        return 0
+
+    score = 0
+    weight_sum = 0
+
+    for nutrient, multiplier in profile.get("priority_nutrients", {}).items():
+        value = nutrients.get(nutrient, 0)
+        recommended = DAILY_RECOMMENDED.get(nutrient, 1)
+        contribution = min((value / recommended) * 100, 150)
+        score += contribution * multiplier
+        weight_sum += multiplier
+
+    for element, multiplier in profile.get("priority_elements", {}).items():
+        value = elements.get(element, 0)
+        if value > 0:
+            score += 20 * multiplier
+            weight_sum += multiplier
+
+    return round(score / max(weight_sum, 1), 1)
+
+
+@api_router.get("/molecular/profiles")
+async def get_goal_profiles():
+    """Get all molecular optimization goal profiles."""
+    profiles = {}
+    for key, profile in GOAL_PROFILES.items():
+        profiles[key] = {
+            "name": profile["name"],
+            "description": profile["description"],
+            "ideal_macro_ratio": profile["ideal_macro_ratio"],
+            "key_foods": profile["key_foods"],
+            "synergy_pairs": profile["synergy_pairs"],
+        }
+    return {"profiles": profiles}
+
+
+@api_router.post("/molecular/analyze-meal")
+async def analyze_meal_balance(request: Request, user: User = Depends(require_user)):
+    """Analyze a meal's elemental balance and score it."""
+    body = await request.json()
+    meal_foods = body.get("foods", [])
+    user_goals = body.get("goals", [])
+
+    total_elements = {}
+    total_nutrients = {}
+    food_names = []
+
+    for food_item in meal_foods:
+        elements = food_item.get("elements", {})
+        nutrients = food_item.get("nutrients", {})
+        food_names.append(food_item.get("food_name", "Unknown"))
+
+        for el, val in elements.items():
+            total_elements[el] = total_elements.get(el, 0) + val
+        for nut, val in nutrients.items():
+            total_nutrients[nut] = total_nutrients.get(nut, 0) + val
+
+    balance = calculate_elemental_balance(total_elements)
+
+    goal_scores = {}
+    for goal in user_goals:
+        goal_scores[goal] = {
+            "score": score_food_for_goal(total_nutrients, total_elements, goal),
+            "profile_name": GOAL_PROFILES.get(goal, {}).get("name", goal),
+        }
+
+    deficiencies = []
+    excesses = []
+    for el, data in balance["elements"].items():
+        if data["status"] == "low":
+            deficiencies.append({"element": el, "actual": data["actual_pct"], "ideal": data["ideal_pct"], "role": data["role"]})
+        elif data["status"] == "high":
+            excesses.append({"element": el, "actual": data["actual_pct"], "ideal": data["ideal_pct"], "role": data["role"]})
+
+    return {
+        "balance_score": balance["overall_score"],
+        "elements": balance["elements"],
+        "total_mass_g": balance["total_mass_g"],
+        "goal_scores": goal_scores,
+        "deficiencies": deficiencies,
+        "excesses": excesses,
+        "food_names": food_names,
+        "total_nutrients": total_nutrients,
+    }
+
+
+@api_router.post("/molecular/fix-meal")
+async def fix_meal_suggestions(request: Request, user: User = Depends(require_user)):
+    """Suggest fixes to improve a meal's elemental balance using AI."""
+    body = await request.json()
+    meal_foods = body.get("foods", [])
+    user_goals = body.get("goals", [])
+    deficiencies = body.get("deficiencies", [])
+
+    food_names = [f.get("food_name", "") for f in meal_foods]
+    goals_text = ", ".join([GOAL_PROFILES.get(g, {}).get("name", g) for g in user_goals])
+    deficiency_text = ", ".join([f"{d['element']} ({d['role']})" for d in deficiencies])
+
+    prompt = f"""You are a molecular nutrition expert. Analyze this meal and suggest specific improvements.
+
+Current meal: {', '.join(food_names)}
+User goals: {goals_text}
+Elemental deficiencies: {deficiency_text}
+
+Based on the molecular composition and the user's goals, suggest:
+1. 2-3 specific foods to ADD to this meal that would fix the elemental deficiencies
+2. For each suggestion, explain WHY at the molecular/elemental level
+3. Any food SWAPS that would improve the balance
+
+Respond in JSON format:
+{{
+    "additions": [
+        {{"food": "food name", "portion_g": 100, "reason": "molecular reason", "fixes_elements": ["element1", "element2"]}}
+    ],
+    "swaps": [
+        {{"remove": "food name", "replace_with": "food name", "reason": "molecular reason"}}
+    ],
+    "explanation": "Brief overall explanation"
+}}"""
+
+    try:
+        from emergentintegrations.llm.chat import ChatMessage, chat
+        messages = [ChatMessage(role="system", content="You are a molecular nutrition AI. Always respond with valid JSON."),
+                    ChatMessage(role="user", content=prompt)]
+        response = await chat(api_key=EMERGENT_LLM_KEY, model="gemini-2.0-flash", messages=messages, temperature=0.3)
+
+        import re
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            suggestions = json.loads(json_match.group())
+        else:
+            suggestions = {"additions": [], "swaps": [], "explanation": response}
+    except Exception as e:
+        logger.error(f"AI fix-meal error: {e}")
+        key_foods = []
+        for goal in user_goals:
+            key_foods.extend(GOAL_PROFILES.get(goal, {}).get("key_foods", [])[:3])
+        suggestions = {
+            "additions": [{"food": f, "portion_g": 100, "reason": "Recommended for your goals", "fixes_elements": []} for f in key_foods[:3]],
+            "swaps": [],
+            "explanation": "Based on your goals, these foods would help improve your elemental balance."
+        }
+
+    return {"suggestions": suggestions}
+
+
+@api_router.post("/molecular/generate-meal")
+async def generate_optimal_meal(request: Request, user: User = Depends(require_user)):
+    """Auto-generate a perfect meal optimized for the user's goals."""
+    body = await request.json()
+    user_goals = body.get("goals", ["muscle_gain"])
+    meal_type = body.get("meal_type", "lunch")
+    num_foods = body.get("num_foods", 5)
+
+    all_key_foods = []
+    all_synergies = []
+    goals_text = []
+    for goal in user_goals:
+        profile = GOAL_PROFILES.get(goal, {})
+        all_key_foods.extend(profile.get("key_foods", []))
+        all_synergies.extend(profile.get("synergy_pairs", []))
+        goals_text.append(profile.get("name", goal))
+
+    prompt = f"""You are a molecular nutrition expert who creates meals optimized at the atomic/elemental level.
+
+User goals: {', '.join(goals_text)}
+Meal type: {meal_type}
+Number of foods: {num_foods}
+
+Key foods for these goals: {', '.join(set(all_key_foods))}
+
+Known synergistic pairs:
+{json.dumps(all_synergies[:6], indent=2)}
+
+Create an OPTIMAL meal that maximizes:
+1. Elemental balance (C, H, O, N, S ratios)
+2. Mineral synergies (Zn, Mg, Fe, Ca, K)
+3. Food combination synergies
+4. Achievement of the user's specific goals
+
+Respond in JSON:
+{{
+    "meal_name": "Creative meal name",
+    "foods": [
+        {{"food_name": "name", "portion_g": 150, "cooking_method": "method", "key_elements": ["N", "Mg"], "goal_contribution": "what this food contributes"}}
+    ],
+    "synergies": ["synergy explanation 1", "synergy explanation 2"],
+    "elemental_reasoning": "Why this combination is molecularly optimal",
+    "estimated_macros": {{"protein_g": 40, "carbs_g": 50, "fat_g": 20, "calories": 540}}
+}}"""
+
+    try:
+        from emergentintegrations.llm.chat import ChatMessage, chat
+        messages = [ChatMessage(role="system", content="You are a molecular nutrition AI. Always respond with valid JSON."),
+                    ChatMessage(role="user", content=prompt)]
+        response = await chat(api_key=EMERGENT_LLM_KEY, model="gemini-2.0-flash", messages=messages, temperature=0.4)
+
+        import re
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            meal = json.loads(json_match.group())
+        else:
+            meal = {"meal_name": "AI Generated Meal", "foods": [], "synergies": [], "elemental_reasoning": response, "estimated_macros": {}}
+    except Exception as e:
+        logger.error(f"AI generate-meal error: {e}")
+        foods = []
+        for f in all_key_foods[:num_foods]:
+            foods.append({"food_name": f, "portion_g": 150, "cooking_method": "steaming", "key_elements": [], "goal_contribution": "Supports your goals"})
+        meal = {
+            "meal_name": f"Optimized {meal_type.title()} for {goals_text[0] if goals_text else 'Health'}",
+            "foods": foods,
+            "synergies": [s["reason"] for s in all_synergies[:3]],
+            "elemental_reasoning": "Combined for optimal elemental balance",
+            "estimated_macros": {}
+        }
+
+    return {"meal": meal, "goals": goals_text}
+
+
+@api_router.post("/molecular/suggest-combinations")
+async def suggest_food_combinations(request: Request, user: User = Depends(require_user)):
+    """Suggest the best food combinations based on elemental + vitamin synergy for user goals."""
+    body = await request.json()
+    user_goals = body.get("goals", ["muscle_gain"])
+
+    result = {"goals": {}}
+    for goal in user_goals:
+        profile = GOAL_PROFILES.get(goal)
+        if not profile:
+            continue
+        result["goals"][goal] = {
+            "name": profile["name"],
+            "description": profile["description"],
+            "key_foods": profile["key_foods"],
+            "synergy_pairs": profile["synergy_pairs"],
+            "ideal_macro_ratio": profile["ideal_macro_ratio"],
+            "priority_elements": list(profile["priority_elements"].keys()),
+        }
+
+    return result
 
 app.include_router(api_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

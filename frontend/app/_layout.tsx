@@ -170,6 +170,7 @@ function RootContent() {
         {/* privacy-policy is now in (auth) group */}
         <Stack.Screen name="upgrade" options={{ presentation: 'card', gestureEnabled: false }} />
         <Stack.Screen name="payment-success" options={{ presentation: 'card', gestureEnabled: false }} />
+        <Stack.Screen name="molecular-engine" options={{ presentation: 'card' }} />
         <Stack.Screen name="badges" options={{ presentation: 'card' }} />
         <Stack.Screen name="settings" options={{ presentation: 'card' }} />
         <Stack.Screen name="progress" options={{ presentation: 'card' }} />

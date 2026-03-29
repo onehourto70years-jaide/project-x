@@ -492,9 +492,9 @@ export default function DashboardScreen() {
           {/* ── Quick Nav Grid ── */}
           <View style={styles.navGrid}>
             {[
+              { label: 'Molecular', icon: 'flask', color: '#00ff88', route: '/molecular-engine' },
               { label: 'Progress', icon: 'analytics', color: '#00d4ff', route: '/progress' },
               { label: 'Recipes', icon: 'restaurant', color: '#4ecdc4', route: '/recipes' },
-              { label: 'Meal Plan', icon: 'calendar', color: '#a29bfe', route: '/meal-plan' },
               { label: 'AI Coach', icon: 'sparkles', color: '#fd79a8', route: '/ai-home' },
             ].map((item) => (
               <TouchableOpacity key={item.label} style={styles.navItem} onPress={() => router.push(item.route as any)}>
