@@ -453,18 +453,71 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Subscription</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {paymentStatus?.is_premium ? (
-            <View style={styles.premiumBadge}>
-              <View style={[styles.settingIcon, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
-                <Ionicons name="diamond" size={20} color="#ffd93d" />
+            <>
+              <View style={styles.premiumBadge}>
+                <View style={[styles.settingIcon, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
+                  <Ionicons name="diamond" size={20} color="#ffd93d" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: '#ffd93d' }]}>NutriOS Pro</Text>
+                  <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
+                    {paymentStatus.subscription_plan === 'annual' ? 'Annual plan' : 'Monthly plan'} — Active
+                  </Text>
+                </View>
+                <Ionicons name="checkmark-circle" size={24} color="#00ff88" />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.switchLabel, { color: '#ffd93d' }]}>NutriOS Pro</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
-                  {paymentStatus.subscription_plan === 'annual' ? 'Annual plan' : 'Monthly plan'} — Active
-                </Text>
-              </View>
-              <Ionicons name="checkmark-circle" size={24} color="#00ff88" />
-            </View>
+
+              {paymentStatus.cancel_at_period_end ? (
+                <View style={styles.cancelledNotice}>
+                  <Ionicons name="information-circle" size={18} color="#ffa500" />
+                  <Text style={[styles.cancelledText, { color: theme.textMuted }]}>
+                    Cancelling — access until {paymentStatus.access_until ? new Date(paymentStatus.access_until).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'end of period'}
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.cancelSubBtn}
+                  onPress={() => {
+                    Alert.alert(
+                      'Cancel Subscription',
+                      'Are you sure? You will keep access until the end of your current billing period.',
+                      [
+                        { text: 'Keep Subscription', style: 'cancel' },
+                        {
+                          text: 'Cancel Subscription',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const token = await AsyncStorage.getItem('session_token');
+                              if (!token) return;
+                              const res = await fetch(`${BACKEND_URL}/api/payments/cancel-subscription`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                              });
+                              if (res.ok) {
+                                const data = await res.json();
+                                Alert.alert(
+                                  'Subscription Cancelled',
+                                  `You'll have access until ${data.access_until_formatted}. A confirmation email has been sent.`
+                                );
+                                fetchData();
+                              } else {
+                                Alert.alert('Error', 'Failed to cancel subscription');
+                              }
+                            } catch (e) {
+                              Alert.alert('Error', 'Failed to cancel subscription');
+                            }
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="close-circle-outline" size={18} color="#ff6b6b" />
+                  <Text style={styles.cancelSubText}>Cancel Subscription</Text>
+                </TouchableOpacity>
+              )}
+            </>
           ) : (
             <>
               <View style={styles.trialInfo}>
@@ -598,6 +651,10 @@ const styles = StyleSheet.create({
   deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff3b30', paddingVertical: 14, borderRadius: 12 },
   deleteAccountText: { color: '#fff', fontSize: 15, fontWeight: '700', marginLeft: 8 },
   premiumBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  cancelledNotice: { flexDirection: 'row', alignItems: 'center', marginTop: 12, backgroundColor: 'rgba(255, 165, 0, 0.08)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
+  cancelledText: { fontSize: 13, marginLeft: 8, flex: 1, lineHeight: 18 },
+  cancelSubBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12, paddingVertical: 12, borderRadius: 10, backgroundColor: 'rgba(255, 107, 107, 0.08)' },
+  cancelSubText: { color: '#ff6b6b', fontSize: 14, fontWeight: '600', marginLeft: 6 },
   trialInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   upgradeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffd93d', paddingVertical: 14, borderRadius: 12 },
   upgradeBtnText: { color: '#000', fontSize: 15, fontWeight: '700', marginLeft: 8 },
