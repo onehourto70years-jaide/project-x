@@ -13,6 +13,7 @@ export default function UpgradeScreen() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<any>(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
 
   useEffect(() => {
     fetchPaymentStatus();
@@ -39,7 +40,7 @@ export default function UpgradeScreen() {
     }
   };
 
-  const handleUpgrade = async () => {
+  const handleSubscribe = async () => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('session_token');
@@ -55,7 +56,7 @@ export default function UpgradeScreen() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ origin_url: originUrl }),
+        body: JSON.stringify({ origin_url: originUrl, plan: selectedPlan }),
       });
 
       if (!res.ok) {
@@ -120,6 +121,9 @@ export default function UpgradeScreen() {
 
   const isTrialExpired = status && !status.has_access;
   const trialDays = status?.trial_days_remaining || 0;
+  const monthlyPrice = status?.monthly_price_eur || 2.99;
+  const annualPrice = status?.annual_price_eur || 29.99;
+  const monthlySavings = Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100);
 
   const features = [
     { icon: 'analytics', color: '#00d4ff', text: 'Molecular food analysis' },
@@ -143,7 +147,7 @@ export default function UpgradeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <Ionicons name="diamond" size={44} color="#ffd93d" />
+            <Ionicons name="diamond" size={40} color="#ffd93d" />
           </View>
           <Text style={styles.title}>
             {isTrialExpired ? 'Trial Expired' : 'Upgrade to Pro'}
@@ -155,28 +159,66 @@ export default function UpgradeScreen() {
           </Text>
         </View>
 
+        {/* Plan Selection */}
+        <View style={styles.plansContainer}>
+          {/* Annual Plan */}
+          <TouchableOpacity
+            style={[styles.planCard, selectedPlan === 'annual' && styles.planCardSelected]}
+            onPress={() => setSelectedPlan('annual')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.planBadge}>
+              <Text style={styles.planBadgeText}>SAVE {monthlySavings}%</Text>
+            </View>
+            <View style={styles.planRadio}>
+              <View style={[styles.radioOuter, selectedPlan === 'annual' && styles.radioOuterActive]}>
+                {selectedPlan === 'annual' && <View style={styles.radioInner} />}
+              </View>
+            </View>
+            <View style={styles.planInfo}>
+              <Text style={[styles.planName, selectedPlan === 'annual' && styles.planNameActive]}>Annual</Text>
+              <Text style={styles.planDesc}>{'\u20ac'}{(annualPrice / 12).toFixed(2)}/mo</Text>
+            </View>
+            <View style={styles.planPriceContainer}>
+              <Text style={[styles.planPrice, selectedPlan === 'annual' && styles.planPriceActive]}>{'\u20ac'}{annualPrice}</Text>
+              <Text style={styles.planInterval}>/year</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Monthly Plan */}
+          <TouchableOpacity
+            style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]}
+            onPress={() => setSelectedPlan('monthly')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.planRadio}>
+              <View style={[styles.radioOuter, selectedPlan === 'monthly' && styles.radioOuterActive]}>
+                {selectedPlan === 'monthly' && <View style={styles.radioInner} />}
+              </View>
+            </View>
+            <View style={styles.planInfo}>
+              <Text style={[styles.planName, selectedPlan === 'monthly' && styles.planNameActive]}>Monthly</Text>
+              <Text style={styles.planDesc}>Flexible, cancel anytime</Text>
+            </View>
+            <View style={styles.planPriceContainer}>
+              <Text style={[styles.planPrice, selectedPlan === 'monthly' && styles.planPriceActive]}>{'\u20ac'}{monthlyPrice}</Text>
+              <Text style={styles.planInterval}>/month</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Features */}
         <View style={styles.featuresCard}>
           <Text style={styles.featuresTitle}>Everything in NutriOS Pro:</Text>
           {features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
               <View style={[styles.featureIcon, { backgroundColor: f.color + '20' }]}>
-                <Ionicons name={f.icon as any} size={16} color={f.color} />
+                <Ionicons name={f.icon as any} size={15} color={f.color} />
               </View>
               <Text style={styles.featureText}>{f.text}</Text>
-              <Ionicons name="checkmark-circle" size={18} color="#00ff88" />
+              <Ionicons name="checkmark-circle" size={16} color="#00ff88" />
             </View>
           ))}
-        </View>
-
-        {/* Price */}
-        <View style={styles.priceTag}>
-          <Text style={styles.priceLabel}>ONE-TIME PAYMENT</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceCurrency}>{'\u20ac'}</Text>
-            <Text style={styles.priceAmount}>12</Text>
-          </View>
-          <Text style={styles.priceNote}>Lifetime access {'\u2022'} No subscription</Text>
         </View>
 
         {/* Bottom actions */}
@@ -198,11 +240,11 @@ export default function UpgradeScreen() {
         </View>
       </ScrollView>
 
-      {/* FIXED BOTTOM: Purchase Button - always visible */}
+      {/* FIXED BOTTOM: Subscribe Button */}
       <View style={styles.fixedBottom}>
         <TouchableOpacity
           style={[styles.buyButton, loading && styles.buyButtonDisabled]}
-          onPress={handleUpgrade}
+          onPress={handleSubscribe}
           disabled={loading}
           activeOpacity={0.8}
         >
@@ -211,11 +253,13 @@ export default function UpgradeScreen() {
           ) : (
             <>
               <Ionicons name="card" size={22} color="#000" />
-              <Text style={styles.buyButtonText}>Purchase NutriOS Pro</Text>
-              <Text style={styles.buyButtonPrice}>{'\u20ac'}12</Text>
+              <Text style={styles.buyButtonText}>
+                Subscribe {selectedPlan === 'annual' ? `\u20ac${annualPrice}/yr` : `\u20ac${monthlyPrice}/mo`}
+              </Text>
             </>
           )}
         </TouchableOpacity>
+        <Text style={styles.cancelNote}>Cancel anytime {'\u2022'} Secure payment via Stripe</Text>
       </View>
     </SafeAreaView>
   );
@@ -229,35 +273,60 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120 },
   header: { alignItems: 'center', paddingTop: 20, marginBottom: 20 },
   iconContainer: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 72, height: 72, borderRadius: 36,
     backgroundColor: 'rgba(255, 217, 61, 0.12)',
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 14, borderWidth: 2, borderColor: 'rgba(255, 217, 61, 0.25)',
+    marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255, 217, 61, 0.25)',
   },
   title: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
   subtitle: { fontSize: 14, color: '#888', textAlign: 'center' },
+
+  // Plans
+  plansContainer: { gap: 10, marginBottom: 16 },
+  planCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 16,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.06)', position: 'relative',
+  },
+  planCardSelected: { borderColor: '#ffd93d', backgroundColor: 'rgba(255, 217, 61, 0.06)' },
+  planBadge: {
+    position: 'absolute', top: -10, right: 16,
+    backgroundColor: '#00ff88', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8,
+  },
+  planBadgeText: { color: '#000', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  planRadio: { marginRight: 14 },
+  radioOuter: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#444',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  radioOuterActive: { borderColor: '#ffd93d' },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#ffd93d' },
+  planInfo: { flex: 1 },
+  planName: { fontSize: 16, fontWeight: '700', color: '#999' },
+  planNameActive: { color: '#fff' },
+  planDesc: { fontSize: 12, color: '#666', marginTop: 2 },
+  planPriceContainer: { alignItems: 'flex-end' },
+  planPrice: { fontSize: 22, fontWeight: '800', color: '#999' },
+  planPriceActive: { color: '#ffd93d' },
+  planInterval: { fontSize: 11, color: '#666' },
+
+  // Features
   featuresCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16,
-    padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  featuresTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 10 },
-  featureRow: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 8,
-  },
+  featuresTitle: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 10 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
   featureIcon: {
-    width: 30, height: 30, borderRadius: 8,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    width: 28, height: 28, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center', marginRight: 10,
   },
   featureText: { flex: 1, fontSize: 13, color: '#ccc' },
-  priceTag: { alignItems: 'center', marginTop: 24, marginBottom: 16 },
-  priceLabel: { fontSize: 11, color: '#888', letterSpacing: 1.5, marginBottom: 4 },
-  priceRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  priceCurrency: { fontSize: 18, fontWeight: '700', color: '#ffd93d', marginTop: 4, marginRight: 2 },
-  priceAmount: { fontSize: 44, fontWeight: '800', color: '#ffd93d' },
-  priceNote: { fontSize: 12, color: '#666', marginTop: 2 },
+
+  // Bottom actions
   bottomActions: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 20 },
   secondaryBtn: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16,
@@ -269,6 +338,8 @@ const styles = StyleSheet.create({
     borderRadius: 10, backgroundColor: 'rgba(255,59,48,0.08)',
   },
   dangerBtnText: { color: '#ff3b30', fontSize: 13, fontWeight: '600', marginLeft: 6 },
+
+  // Fixed bottom
   fixedBottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 34 : 16, paddingTop: 12,
@@ -281,5 +352,5 @@ const styles = StyleSheet.create({
   },
   buyButtonDisabled: { opacity: 0.6 },
   buyButtonText: { fontSize: 17, fontWeight: '800', color: '#000', marginLeft: 10 },
-  buyButtonPrice: { fontSize: 17, fontWeight: '800', color: '#000', marginLeft: 8, opacity: 0.7 },
+  cancelNote: { fontSize: 11, color: '#666', textAlign: 'center', marginTop: 8 },
 });

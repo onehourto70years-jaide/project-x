@@ -310,7 +310,7 @@ export default function DashboardScreen() {
                   : 'Trial expired'}
               </Text>
               <View style={styles.trialBadgeBtn}>
-                <Text style={styles.trialBadgeBtnText}>Upgrade</Text>
+                <Text style={styles.trialBadgeBtnText}>Subscribe</Text>
               </View>
             </TouchableOpacity>
           )}

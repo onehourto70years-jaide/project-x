@@ -459,7 +459,9 @@ export default function SettingsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.switchLabel, { color: '#ffd93d' }]}>NutriOS Pro</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Lifetime access activated</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
+                  {paymentStatus.subscription_plan === 'annual' ? 'Annual plan' : 'Monthly plan'} — Active
+                </Text>
               </View>
               <Ionicons name="checkmark-circle" size={24} color="#00ff88" />
             </View>
@@ -482,8 +484,8 @@ export default function SettingsScreen() {
                 style={styles.upgradeBtn}
                 onPress={() => router.push('/upgrade')}
               >
-                <Ionicons name="diamond" size={18} color="#fff" />
-                <Text style={styles.upgradeBtnText}>Upgrade to Pro — €12</Text>
+                <Ionicons name="diamond" size={18} color="#000" />
+                <Text style={styles.upgradeBtnText}>Subscribe from {'\u20ac'}2.99/mo</Text>
               </TouchableOpacity>
             </>
           )}
