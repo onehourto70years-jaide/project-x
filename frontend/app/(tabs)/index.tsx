@@ -212,37 +212,70 @@ export default function DashboardScreen() {
     if (!selectedFood) return;
     setLogging(true);
     try {
-      const grams = portionUnit === 'ml' ? parseFloat(portionAmount) || 100 : parseFloat(portionAmount) || 100;
-      const res = await fetch(`${BACKEND_URL}/api/foods/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fdc_id: selectedFood.fdc_id, portion_grams: grams, cooking_method: cookingMethod })
-      });
-      if (res.ok) {
-        const analysis = await res.json();
-        const token = await AsyncStorage.getItem('session_token');
-        if (!token) return;
-        const nutrientData = cookingMethod !== 'raw' && analysis.nutrients?.cooked
-          ? analysis.nutrients.cooked : analysis.nutrients?.raw || {};
-        await fetch(`${BACKEND_URL}/api/meals`, {
+      const grams = parseFloat(portionAmount) || 100;
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) { Alert.alert('Error', 'Not logged in'); return; }
+
+      let foodName = selectedFood.description;
+      let nutrientData: Record<string, number> = {};
+      let elementsData: Record<string, number> = {};
+      let allergensList: string[] = [];
+
+      // Try full analysis first
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/foods/analyze`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({
-            fdc_id: selectedFood.fdc_id, food_name: analysis.food_name || selectedFood.description,
-            portion_grams: grams, meal_type: getAutoMealType(), cooking_method: cookingMethod,
-            nutrients: nutrientData, elements: analysis.elements?.mass_grams || {},
-            allergens: analysis.allergens || []
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fdc_id: selectedFood.fdc_id, portion_grams: grams, cooking_method: cookingMethod })
         });
+        if (res.ok) {
+          const analysis = await res.json();
+          foodName = analysis.food_name || selectedFood.description;
+          nutrientData = cookingMethod !== 'raw' && analysis.nutrients?.cooked
+            ? analysis.nutrients.cooked : analysis.nutrients?.raw || {};
+          elementsData = analysis.elements?.mass_grams || {};
+          allergensList = analysis.allergens || [];
+        } else {
+          // Analysis failed — use basic nutrients from search results if available
+          console.log('Analysis failed, using basic food data');
+          const basicNutrients = selectedFood.foodNutrients || [];
+          basicNutrients.forEach((n: any) => {
+            const factor = grams / 100;
+            if (n.nutrientName?.includes('Energy')) nutrientData['energy_kcal'] = Math.round((n.value || 0) * factor * 10) / 10;
+            else if (n.nutrientName?.includes('Protein')) nutrientData['protein_g'] = Math.round((n.value || 0) * factor * 10) / 10;
+            else if (n.nutrientName?.includes('fat') || n.nutrientName?.includes('Fat')) nutrientData['fat_g'] = Math.round((n.value || 0) * factor * 10) / 10;
+            else if (n.nutrientName?.includes('Carbohydrate')) nutrientData['carbohydrate_g'] = Math.round((n.value || 0) * factor * 10) / 10;
+          });
+        }
+      } catch (analyzeError) {
+        console.log('Analysis network error, using basic food data');
+      }
+
+      // Log the meal regardless — basic data is better than no data
+      const mealRes = await fetch(`${BACKEND_URL}/api/meals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          fdc_id: selectedFood.fdc_id, food_name: foodName,
+          portion_grams: grams, meal_type: getAutoMealType(), cooking_method: cookingMethod,
+          nutrients: nutrientData, elements: elementsData,
+          allergens: allergensList
+        })
+      });
+
+      if (mealRes.ok) {
         setShowQuickMeal(false); setQuickSearch(''); setSearchResults([]); setSelectedFood(null);
         await Promise.all([
           clearCacheForKey(CacheKeys.dashboard),
           clearCacheForKey(CacheKeys.mealsToday),
         ]);
         fetchDashboard();
-        Alert.alert('Logged!', `${selectedFood.description} (${grams}${portionUnit}, ${cookingMethod}) added to ${getAutoMealType()}`);
+        Alert.alert('Logged!', `${foodName} (${grams}${portionUnit}, ${cookingMethod}) added to ${getAutoMealType()}`);
+      } else {
+        const errData = await mealRes.json().catch(() => ({}));
+        Alert.alert('Error', errData.detail || 'Failed to save meal. Please try again.');
       }
-    } catch (e) { Alert.alert('Error', 'Failed to log meal'); }
+    } catch (e) { Alert.alert('Error', 'Failed to log meal. Check your connection.'); }
     finally { setLogging(false); }
   };
 
