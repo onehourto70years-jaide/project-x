@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Switch, Alert, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Switch, Alert, Platform, Linking, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from './_layout';
@@ -164,6 +164,9 @@ export default function SettingsScreen() {
     finally { setSaving(false); }
   };
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+
   const handleDeleteAccount = () => {
     // Block if active subscription not cancelled
     if (paymentStatus?.is_premium && !paymentStatus?.cancel_at_period_end) {
@@ -174,53 +177,33 @@ export default function SettingsScreen() {
       );
       return;
     }
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to permanently delete your account and all your data? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Final Confirmation',
-              'This will permanently delete ALL your data including meals, water logs, routines, recipes, and badges. Type is irreversible.',
-              [
-                { text: 'Keep Account', style: 'cancel' },
-                {
-                  text: 'Permanently Delete',
-                  style: 'destructive',
-                  onPress: async () => {
-                    setDeleting(true);
-                    try {
-                      const token = await AsyncStorage.getItem('session_token');
-                      if (!token) return;
-                      const res = await fetch(`${BACKEND_URL}/api/user/account`, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-                      if (res.ok) {
-                        await AsyncStorage.clear();
-                        await Notifications.cancelAllScheduledNotificationsAsync();
-                        signOut();
-                      } else {
-                        const err = await res.json();
-                        Alert.alert('Error', err.detail || 'Failed to delete account.');
-                      }
-                    } catch (e) {
-                      Alert.alert('Error', 'Failed to delete account. Please try again.');
-                    } finally {
-                      setDeleting(false);
-                    }
-                  }
-                }
-              ]
-            );
-          }
-        }
-      ]
-    );
+    setDeleteStep(1);
+    setShowDeleteModal(true);
+  };
+
+  const executeDeleteAccount = async () => {
+    setDeleting(true);
+    setShowDeleteModal(false);
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/user/account`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        await AsyncStorage.clear();
+        try { await Notifications.cancelAllScheduledNotificationsAsync(); } catch (e) {}
+        signOut();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert('Error', err.detail || 'Failed to delete account.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const toggleGoal = (goalId: string) => {
@@ -632,6 +615,57 @@ export default function SettingsScreen() {
           <Text style={[styles.tosText, { color: theme.accent }]}>Terms of Service</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={() => setShowDeleteModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: theme.cardBg || '#1a1a2e', borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: 'rgba(255,59,48,0.3)' }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="warning" size={48} color="#ff3b30" />
+            </View>
+
+            {deleteStep === 1 ? (
+              <>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>Delete Account?</Text>
+                <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+                  Are you sure you want to permanently delete your account and all your data? This action cannot be undone.
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#ff3b30', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 10 }}
+                  onPress={() => setDeleteStep(2)}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Yes, Delete My Account</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                  onPress={() => setShowDeleteModal(false)}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>Final Confirmation</Text>
+                <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+                  This will permanently delete ALL your data including meals, water logs, routines, recipes, and badges. This is irreversible.
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#ff3b30', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 10 }}
+                  onPress={executeDeleteAccount}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Permanently Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                  onPress={() => setShowDeleteModal(false)}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Keep My Account</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
