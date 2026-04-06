@@ -15,25 +15,39 @@ async def get_dashboard(user: User = Depends(require_user)):
     if not summary:
         summary = await update_daily_summary(user.user_id, today)
     settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
-    meals = await db.meals.find({"user_id": user.user_id, "date": today}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5)
-    water_logs = await db.water_logs.find({"user_id": user.user_id, "date": today}, {"_id": 0}).to_list(100)
-    total_water = sum(log["amount_ml"] for log in water_logs)
+    meals = await db.meals.find(
+        {"user_id": user.user_id, "date": today},
+        {"_id": 0, "id": 1, "food_name": 1, "portion_grams": 1, "cooking_method": 1, "nutrients": 1, "elements": 1, "allergens": 1, "meal_type": 1, "logged_at": 1, "timestamp": 1}
+    ).sort("timestamp", -1).limit(5).to_list(5)
+    water_logs = await db.water_logs.find(
+        {"user_id": user.user_id, "date": today},
+        {"_id": 0, "id": 1, "amount_ml": 1, "logged_at": 1}
+    ).to_list(100)
+    total_water = sum(log.get("amount_ml", 0) for log in water_logs)
     day_of_week = datetime.now(timezone.utc).strftime("%a").lower()
     routines = await db.routines.find({"user_id": user.user_id, "is_active": True, "days": day_of_week}, {"_id": 0}).to_list(20)
-    completions = await db.task_completions.find({"user_id": user.user_id, "date": today}, {"_id": 0}).to_list(200)
+    completions = await db.task_completions.find({"user_id": user.user_id, "date": today}, {"_id": 0, "task_id": 1}).to_list(200)
     completed_task_ids = {c["task_id"] for c in completions}
     for routine in routines:
         for task in routine.get("tasks", []):
             task["completed"] = task.get("id", "") in completed_task_ids
+
+    # Optimized streak calculation — single query instead of N+1
     streak = 0
+    streak_summaries = await db.daily_summaries.find(
+        {"user_id": user.user_id},
+        {"_id": 0, "date": 1, "routines_completed": 1, "routines_total": 1}
+    ).sort("date", -1).limit(365).to_list(365)
     current_date = datetime.now(timezone.utc).date()
+    summary_map = {s["date"]: s for s in streak_summaries}
     for i in range(365):
         check_date = (current_date - timedelta(days=i)).strftime("%Y-%m-%d")
-        s = await db.daily_summaries.find_one({"user_id": user.user_id, "date": check_date}, {"_id": 0})
+        s = summary_map.get(check_date)
         if s and s.get("routines_completed", 0) > 0 and s.get("routines_completed") >= s.get("routines_total", 1):
             streak += 1
         elif i > 0:
             break
+
     insights = await db.insights.find({"user_id": user.user_id, "date": today}, {"_id": 0}).sort("created_at", -1).limit(5).to_list(5)
     calorie_goal = settings.get("daily_calorie_goal", 2000)
     protein_goal = settings.get("daily_protein_goal", 50)

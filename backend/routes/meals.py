@@ -20,14 +20,20 @@ async def add_meal(meal: MealEntryCreate, user: User = Depends(require_user)):
 @router.get("/meals/today")
 async def get_today_meals(user: User = Depends(require_user)):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    meals = await db.meals.find({"user_id": user.user_id, "date": today}, {"_id": 0}).sort("timestamp", 1).to_list(100)
+    meals = await db.meals.find(
+        {"user_id": user.user_id, "date": today},
+        {"_id": 0, "id": 1, "food_name": 1, "fdc_id": 1, "portion_grams": 1, "cooking_method": 1, "meal_type": 1, "nutrients": 1, "elements": 1, "allergens": 1, "timestamp": 1, "date": 1, "source": 1}
+    ).sort("timestamp", 1).to_list(100)
     return {"meals": meals, "date": today}
 
 
 @router.get("/meals/history")
 async def get_meal_history(days: int = 7, user: User = Depends(require_user)):
     start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-    meals = await db.meals.find({"user_id": user.user_id, "date": {"$gte": start_date}}, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    meals = await db.meals.find(
+        {"user_id": user.user_id, "date": {"$gte": start_date}},
+        {"_id": 0, "id": 1, "food_name": 1, "fdc_id": 1, "portion_grams": 1, "cooking_method": 1, "meal_type": 1, "nutrients": 1, "elements": 1, "timestamp": 1, "date": 1}
+    ).sort("timestamp", -1).to_list(200)
     return {"meals": meals}
 
 
@@ -52,8 +58,11 @@ async def add_water(water: WaterLogCreate, user: User = Depends(require_user)):
 @router.get("/water/today")
 async def get_today_water(user: User = Depends(require_user)):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    logs = await db.water_logs.find({"user_id": user.user_id, "date": today}, {"_id": 0}).to_list(100)
-    total = sum(log["amount_ml"] for log in logs)
+    logs = await db.water_logs.find(
+        {"user_id": user.user_id, "date": today},
+        {"_id": 0, "id": 1, "amount_ml": 1, "logged_at": 1, "timestamp": 1}
+    ).to_list(100)
+    total = sum(log.get("amount_ml", 0) for log in logs)
     settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
     goal = settings.get("daily_water_goal_ml", 2500)
     return {"logs": logs, "total_ml": total, "goal_ml": goal, "percentage": round((total / goal) * 100, 1) if goal > 0 else 0}
@@ -87,7 +96,10 @@ async def add_favorite(fav: FavoriteCreate, user: User = Depends(require_user)):
 
 @router.get("/favorites")
 async def get_favorites(user: User = Depends(require_user)):
-    favorites = await db.favorites.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    favorites = await db.favorites.find(
+        {"user_id": user.user_id},
+        {"_id": 0, "id": 1, "fdc_id": 1, "food_name": 1, "default_portion_grams": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
     return {"favorites": favorites}
 
 
