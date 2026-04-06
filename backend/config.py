@@ -22,7 +22,7 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 
 # ── Payment Constants ──
-TRIAL_DAYS = 14
+TRIAL_DAYS = 17
 MONTHLY_PRICE_EUR = 2.99
 ANNUAL_PRICE_EUR = 29.99
 

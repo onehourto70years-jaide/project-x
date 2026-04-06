@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../_layout';
 import { useRouter } from 'expo-router';
@@ -55,7 +55,7 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>App Information</Text>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('https://sites.google.com/view/jaide-one/home-page')}>
             <View style={[styles.menuIcon, { backgroundColor: 'rgba(0, 212, 255, 0.1)' }]}>
               <Ionicons name="information-circle" size={20} color="#00d4ff" />
             </View>
@@ -93,7 +93,7 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Legal & Privacy</Text>
           
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('https://sites.google.com/view/nutrios-privacypolicy/home-page')}>
             <View style={[styles.menuIcon, { backgroundColor: 'rgba(162, 155, 254, 0.1)' }]}>
               <Ionicons name="document-text" size={20} color="#a29bfe" />
             </View>
@@ -104,7 +104,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => Linking.openURL('https://sites.google.com/view/nutrios-terms-of-service/home-page')}>
             <View style={[styles.menuIcon, { backgroundColor: 'rgba(253, 121, 168, 0.1)' }]}>
               <Ionicons name="shield-checkmark" size={20} color="#fd79a8" />
             </View>
