@@ -1,414 +1,366 @@
 #!/usr/bin/env python3
 """
-NutriOS Backend API Testing
-Tests core backend endpoints including health check, dashboard, user settings, payment status, and Resend email integration
+NutriOS Backend API Regression Test Suite
+Testing all endpoints after major refactoring from monolithic server.py to modular structure.
 """
 
-import requests
+import asyncio
+import httpx
 import json
-import sys
-import time
 from datetime import datetime, timezone, timedelta
-import pymongo
-import uuid
-import resend
-import os
+from typing import Dict, Any, Optional
 
-# Configuration - Use production URL from frontend .env
+# Test Configuration
 BASE_URL = "https://meal-sync-test.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
-# MongoDB connection for test setup
-MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "nutrient_mapper"
+# Test User Setup (as specified in review request)
+TEST_USER_ID = "test_refactor_user"
+TEST_EMAIL = "test@nutrios.com"
+TEST_NAME = "Test User"
+TEST_TOKEN = "test_refactor_token_2026"
 
-# Test user credentials - will be created dynamically
-USER_ID = f"test_user_{uuid.uuid4().hex[:8]}"
-SESSION_TOKEN = f"test_token_{uuid.uuid4().hex[:16]}"
-
-# Headers for authenticated requests (will be updated after user creation)
-AUTH_HEADERS = {
-    "Authorization": f"Bearer {SESSION_TOKEN}",
-    "Content-Type": "application/json"
-}
-
-def log_test(test_name, status, details=""):
-    """Log test results"""
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    status_symbol = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
-    print(f"[{timestamp}] {status_symbol} {test_name}")
-    if details:
-        print(f"    {details}")
-    print()
-
-def setup_test_user():
-    """Create test user and session in MongoDB for authenticated tests"""
-    try:
-        client = pymongo.MongoClient(MONGO_URL)
-        db = client[DB_NAME]
+class NutriOSAPITester:
+    def __init__(self):
+        self.client = httpx.AsyncClient(timeout=30.0)
+        self.test_results = []
+        self.auth_headers = {"Authorization": f"Bearer {TEST_TOKEN}"}
         
-        # Create test user
-        test_user = {
-            "user_id": USER_ID,
-            "email": "test@example.com",
-            "name": "Test User",
-            "created_at": datetime.now(timezone.utc),
-            "weight_kg": 70.0,
-            "activity_level": "moderate",
-            "health_goals": []
+    async def __aenter__(self):
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose()
+    
+    def log_result(self, endpoint: str, method: str, status: int, success: bool, response_data: Any = None, error: str = None):
+        """Log test result"""
+        result = {
+            "endpoint": endpoint,
+            "method": method,
+            "status": status,
+            "success": success,
+            "timestamp": datetime.now().isoformat(),
+            "response_data": response_data,
+            "error": error
         }
+        self.test_results.append(result)
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} {method} {endpoint} - Status: {status}")
+        if error:
+            print(f"   Error: {error}")
+        if response_data and isinstance(response_data, dict):
+            if "message" in response_data:
+                print(f"   Message: {response_data['message']}")
+    
+    async def setup_test_user(self):
+        """Setup test user and session in MongoDB"""
+        print("\n🔧 Setting up test user in MongoDB...")
         
-        # Remove existing test user if exists
-        db.users.delete_many({"user_id": USER_ID})
-        db.user_sessions.delete_many({"user_id": USER_ID})
+        # MongoDB connection setup
+        from motor.motor_asyncio import AsyncIOMotorClient
+        mongo_client = AsyncIOMotorClient("mongodb://localhost:27017")
+        db = mongo_client["nutrient_mapper"]
         
-        # Insert new test user
-        db.users.insert_one(test_user)
+        try:
+            # Create test user
+            user_doc = {
+                "user_id": TEST_USER_ID,
+                "email": TEST_EMAIL,
+                "name": TEST_NAME,
+                "created_at": datetime.now(timezone.utc),
+                "weight_kg": 70,
+                "activity_level": "moderate",
+                "health_goals": []
+            }
+            await db.users.update_one(
+                {"user_id": TEST_USER_ID},
+                {"$set": user_doc},
+                upsert=True
+            )
+            
+            # Create test session
+            session_doc = {
+                "session_token": TEST_TOKEN,
+                "user_id": TEST_USER_ID,
+                "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+                "created_at": datetime.now(timezone.utc)
+            }
+            await db.user_sessions.update_one(
+                {"session_token": TEST_TOKEN},
+                {"$set": session_doc},
+                upsert=True
+            )
+            
+            # Create test user settings
+            settings_doc = {
+                "user_id": TEST_USER_ID,
+                "daily_water_goal_ml": 2500,
+                "daily_calorie_goal": 2000,
+                "daily_protein_goal": 50
+            }
+            await db.user_settings.update_one(
+                {"user_id": TEST_USER_ID},
+                {"$set": settings_doc},
+                upsert=True
+            )
+            
+            print(f"✅ Test user setup complete: {TEST_USER_ID}")
+            
+        except Exception as e:
+            print(f"❌ Test user setup failed: {e}")
+            raise
+        finally:
+            mongo_client.close()
+    
+    async def cleanup_test_user(self):
+        """Cleanup test user from all collections"""
+        print("\n🧹 Cleaning up test user from MongoDB...")
         
-        # Create test session with future expiry
-        expires_at = datetime.now(timezone.utc) + timedelta(days=1)
-        test_session = {
-            "session_token": SESSION_TOKEN,
-            "user_id": USER_ID,
-            "expires_at": expires_at,
-            "created_at": datetime.now(timezone.utc)
-        }
-        db.user_sessions.insert_one(test_session)
+        from motor.motor_asyncio import AsyncIOMotorClient
+        mongo_client = AsyncIOMotorClient("mongodb://localhost:27017")
+        db = mongo_client["nutrient_mapper"]
         
-        log_test("Test User Setup", "PASS", f"Created user {USER_ID} with session token")
-        return True
-        
-    except Exception as e:
-        log_test("Test User Setup", "FAIL", f"Error: {str(e)}")
-        return False
-
-def cleanup_test_user():
-    """Remove test user and session from MongoDB"""
-    try:
-        client = pymongo.MongoClient(MONGO_URL)
-        db = client[DB_NAME]
-        
-        # Remove test user and all related data
         collections_to_clean = [
-            "users", "user_settings", "user_sessions", "meals", "water_logs",
-            "favorites", "recipes", "meal_plans", "routines", "user_badges",
-            "ai_conversations", "daily_summaries"
+            "users", "user_sessions", "user_settings", "meals", "water_logs",
+            "routines", "favorites", "recipes", "daily_summaries", "badges",
+            "task_completions"
         ]
         
-        for collection_name in collections_to_clean:
-            db[collection_name].delete_many({"user_id": USER_ID})
-        
-        log_test("Test User Cleanup", "PASS", f"Cleaned up test user {USER_ID}")
-        return True
-        
-    except Exception as e:
-        log_test("Test User Cleanup", "FAIL", f"Error: {str(e)}")
-        return False
-
-def test_health_check():
-    """Test basic health check endpoint"""
-    try:
-        response = requests.get(f"{API_BASE}/", timeout=10)
-        if response.status_code == 200:
-            log_test("Health Check", "PASS", f"Status: {response.status_code}")
-            return True
-        else:
-            log_test("Health Check", "FAIL", f"Status: {response.status_code}")
-            return False
-    except Exception as e:
-        log_test("Health Check", "FAIL", f"Error: {str(e)}")
-        return False
-
-def test_payment_status():
-    """Test payment status endpoint"""
-    try:
-        response = requests.get(f"{API_BASE}/payments/status", headers=AUTH_HEADERS, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            required_fields = ["is_premium", "trial_active", "trial_days_remaining", "has_access", "price_eur"]
-            
-            missing_fields = [field for field in required_fields if field not in data]
-            if missing_fields:
-                log_test("Payment Status", "FAIL", f"Missing fields: {missing_fields}")
-                return False
-            
-            # Validate trial_days_remaining is between 0-14
-            trial_days = data.get("trial_days_remaining", -1)
-            if not (0 <= trial_days <= 14):
-                log_test("Payment Status", "FAIL", f"Invalid trial_days_remaining: {trial_days} (should be 0-14)")
-                return False
-            
-            # Validate has_access is true (trial still active)
-            if not data.get("has_access", False):
-                log_test("Payment Status", "WARN", f"has_access is False - trial may have expired")
-            
-            log_test("Payment Status", "PASS", 
-                    f"is_premium: {data['is_premium']}, trial_active: {data['trial_active']}, "
-                    f"trial_days_remaining: {data['trial_days_remaining']}, has_access: {data['has_access']}, "
-                    f"price_eur: {data['price_eur']}")
-            return True
-        else:
-            log_test("Payment Status", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
-    except Exception as e:
-        log_test("Payment Status", "FAIL", f"Error: {str(e)}")
-        return False
-
-def test_create_checkout():
-    """Test create checkout session endpoint"""
-    try:
-        payload = {
-            "origin_url": "https://meal-sync-test.preview.emergentagent.com"
-        }
-        
-        response = requests.post(f"{API_BASE}/payments/create-checkout", 
-                               headers=AUTH_HEADERS, 
-                               json=payload, 
-                               timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Check required fields
-            if "url" not in data or "session_id" not in data:
-                log_test("Create Checkout", "FAIL", f"Missing url or session_id in response: {data}")
-                return False, None
-            
-            # Validate URL starts with Stripe checkout
-            if not data["url"].startswith("https://checkout.stripe.com"):
-                log_test("Create Checkout", "FAIL", f"Invalid checkout URL: {data['url']}")
-                return False, None
-            
-            # Validate session_id starts with cs_
-            if not data["session_id"].startswith("cs_"):
-                log_test("Create Checkout", "FAIL", f"Invalid session_id format: {data['session_id']}")
-                return False, None
-            
-            log_test("Create Checkout", "PASS", 
-                    f"URL: {data['url'][:50]}..., Session ID: {data['session_id']}")
-            return True, data["session_id"]
-        
-        elif response.status_code == 400:
-            # Check if already premium
-            error_data = response.json()
-            if "Already purchased" in error_data.get("detail", ""):
-                log_test("Create Checkout", "PASS", "User already premium - expected behavior")
-                return True, None
-            else:
-                log_test("Create Checkout", "FAIL", f"Status: {response.status_code}, Error: {error_data}")
-                return False, None
-        else:
-            log_test("Create Checkout", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False, None
-    except Exception as e:
-        log_test("Create Checkout", "FAIL", f"Error: {str(e)}")
-        return False, None
-
-def test_checkout_status(session_id):
-    """Test checkout status endpoint"""
-    if not session_id:
-        log_test("Checkout Status", "SKIP", "No session_id available")
-        return True
-    
-    try:
-        response = requests.get(f"{API_BASE}/payments/checkout/status/{session_id}", 
-                              headers=AUTH_HEADERS, 
-                              timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Check required fields
-            required_fields = ["status", "payment_status"]
-            missing_fields = [field for field in required_fields if field not in data]
-            if missing_fields:
-                log_test("Checkout Status", "FAIL", f"Missing fields: {missing_fields}")
-                return False
-            
-            log_test("Checkout Status", "PASS", 
-                    f"Status: {data['status']}, Payment Status: {data['payment_status']}")
-            return True
-        else:
-            log_test("Checkout Status", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
-    except Exception as e:
-        log_test("Checkout Status", "FAIL", f"Error: {str(e)}")
-        return False
-
-def test_delete_account():
-    """Test delete account endpoint with separate test user"""
-    try:
-        # Connect to MongoDB to create test user
-        client = pymongo.MongoClient(MONGO_URL)
-        db = client[DB_NAME]
-        
-        # Create test user
-        test_user = {
-            "user_id": "delete_test_123",
-            "email": "delete@test.com",
-            "name": "Delete Test",
-            "created_at": "2026-03-24T00:00:00Z"
-        }
-        db.users.insert_one(test_user)
-        
-        # Create test session
-        test_session = {
-            "session_token": "delete_test_token_abc",
-            "user_id": "delete_test_123",
-            "expires_at": "2027-01-01T00:00:00Z"
-        }
-        db.user_sessions.insert_one(test_session)
-        
-        # Test delete account
-        delete_headers = {
-            "Authorization": "Bearer delete_test_token_abc",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.delete(f"{API_BASE}/user/account", 
-                                 headers=delete_headers, 
-                                 timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if "deleted" in data.get("message", "").lower():
-                # Verify user is gone from database
-                user_check = db.users.find_one({"user_id": "delete_test_123"})
-                if user_check is None:
-                    log_test("Delete Account", "PASS", f"Account deleted successfully: {data['message']}")
-                    return True
-                else:
-                    log_test("Delete Account", "FAIL", "User still exists in database after deletion")
-                    return False
-            else:
-                log_test("Delete Account", "FAIL", f"Unexpected response: {data}")
-                return False
-        else:
-            log_test("Delete Account", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
-            
-    except Exception as e:
-        log_test("Delete Account", "FAIL", f"Error: {str(e)}")
-        return False
-    finally:
-        # Cleanup - remove test user if still exists
         try:
-            client = pymongo.MongoClient(MONGO_URL)
-            db = client[DB_NAME]
-            db.users.delete_many({"user_id": "delete_test_123"})
-            db.user_sessions.delete_many({"user_id": "delete_test_123"})
-        except:
-            pass
-
-def test_user_settings():
-    """Test user settings endpoints"""
-    try:
-        # Test GET user settings
-        response = requests.get(f"{API_BASE}/user/settings", headers=AUTH_HEADERS, timeout=10)
-        
-        if response.status_code != 200:
-            log_test("User Settings GET", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
-        
-        settings_data = response.json()
-        log_test("User Settings GET", "PASS", f"Retrieved settings: {list(settings_data.keys())}")
-        
-        # Test PUT user settings
-        update_payload = {
-            "notifications_enabled": True,
-            "water_reminder_enabled": True,
-            "meal_reminder_enabled": True,
-            "routine_reminder_enabled": True
-        }
-        
-        response = requests.put(f"{API_BASE}/user/settings", 
-                              headers=AUTH_HEADERS, 
-                              json=update_payload, 
-                              timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            log_test("User Settings PUT", "PASS", f"Settings updated: {data.get('message', 'Success')}")
-            return True
-        else:
-            log_test("User Settings PUT", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
+            for collection_name in collections_to_clean:
+                result = await db[collection_name].delete_many({"user_id": TEST_USER_ID})
+                if result.deleted_count > 0:
+                    print(f"   Cleaned {result.deleted_count} documents from {collection_name}")
             
-    except Exception as e:
-        log_test("User Settings", "FAIL", f"Error: {str(e)}")
-        return False
-
-def test_stripe_webhook():
-    """Test Stripe webhook endpoint"""
-    try:
-        # Send empty body to webhook endpoint (no auth needed)
-        response = requests.post(f"{API_BASE}/webhook/stripe", 
-                               json={}, 
-                               timeout=10)
+            print("✅ Test user cleanup complete")
+            
+        except Exception as e:
+            print(f"❌ Test user cleanup failed: {e}")
+        finally:
+            mongo_client.close()
+    
+    async def test_endpoint(self, method: str, endpoint: str, headers: Dict = None, json_data: Dict = None, params: Dict = None) -> Dict:
+        """Test a single endpoint"""
+        url = f"{API_BASE}{endpoint}"
         
-        # Should return 200 (not 404/405)
-        if response.status_code == 200:
-            log_test("Stripe Webhook", "PASS", f"Webhook endpoint accessible, Status: {response.status_code}")
-            return True
-        else:
-            log_test("Stripe Webhook", "FAIL", f"Status: {response.status_code}, Response: {response.text}")
-            return False
-    except Exception as e:
-        log_test("Stripe Webhook", "FAIL", f"Error: {str(e)}")
-        return False
+        try:
+            if method.upper() == "GET":
+                response = await self.client.get(url, headers=headers, params=params)
+            elif method.upper() == "POST":
+                response = await self.client.post(url, headers=headers, json=json_data, params=params)
+            elif method.upper() == "PUT":
+                response = await self.client.put(url, headers=headers, json=json_data, params=params)
+            elif method.upper() == "DELETE":
+                response = await self.client.delete(url, headers=headers, params=params)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
+            
+            success = 200 <= response.status_code < 300
+            
+            try:
+                response_data = response.json()
+            except:
+                response_data = response.text
+            
+            self.log_result(endpoint, method.upper(), response.status_code, success, response_data)
+            
+            return {
+                "status_code": response.status_code,
+                "success": success,
+                "data": response_data,
+                "headers": dict(response.headers)
+            }
+            
+        except Exception as e:
+            self.log_result(endpoint, method.upper(), 0, False, error=str(e))
+            return {
+                "status_code": 0,
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def run_all_tests(self):
+        """Run all API endpoint tests as specified in review request"""
+        print("🚀 Starting NutriOS Backend API Regression Tests")
+        print("=" * 60)
+        
+        # Setup test user
+        await self.setup_test_user()
+        
+        print("\n📋 Testing All Endpoints...")
+        
+        # 1. Health Check
+        await self.test_endpoint("GET", "/")
+        
+        # 2. Element Info
+        await self.test_endpoint("GET", "/elements/info")
+        
+        # 3. Recommended Values
+        await self.test_endpoint("GET", "/recommended-values")
+        
+        # 4. Food Search
+        await self.test_endpoint("POST", "/foods/search", json_data={"query": "apple", "page_size": 3})
+        
+        # 5. Retention Factors
+        await self.test_endpoint("GET", "/foods/retention-factors")
+        
+        # 6. Dashboard (auth required)
+        await self.test_endpoint("GET", "/dashboard", headers=self.auth_headers)
+        
+        # 7. User Settings - Get (auth required)
+        await self.test_endpoint("GET", "/user/settings", headers=self.auth_headers)
+        
+        # 8. User Settings - Update (auth required)
+        await self.test_endpoint("PUT", "/user/settings", headers=self.auth_headers, json_data={"daily_water_goal_ml": 3000})
+        
+        # 9. User Profile - Update (auth required)
+        await self.test_endpoint("PUT", "/user/profile", headers=self.auth_headers, json_data={"weight_kg": 75})
+        
+        # 10. Add Meal (auth required)
+        meal_data = {
+            "food_name": "Apple",
+            "portion_grams": 150,
+            "meal_type": "snack",
+            "cooking_method": "raw",
+            "nutrients": {"energy_kcal": 78, "protein_g": 0.4},
+            "elements": {"C": 6.5, "H": 1.2, "O": 8.3}
+        }
+        await self.test_endpoint("POST", "/meals", headers=self.auth_headers, json_data=meal_data)
+        
+        # 11. Get Today's Meals (auth required)
+        await self.test_endpoint("GET", "/meals/today", headers=self.auth_headers)
+        
+        # 12. Add Water Log (auth required)
+        await self.test_endpoint("POST", "/water", headers=self.auth_headers, json_data={"amount_ml": 300})
+        
+        # 13. Get Today's Water (auth required)
+        await self.test_endpoint("GET", "/water/today", headers=self.auth_headers)
+        
+        # 14. Smart Water Goal (auth required)
+        await self.test_endpoint("GET", "/water/smart-goal", headers=self.auth_headers)
+        
+        # 15. Create Routine (auth required)
+        routine_data = {
+            "name": "Test Routine",
+            "type": "morning",
+            "time_start": "07:00",
+            "time_end": "08:00",
+            "days": ["mon", "tue"],
+            "tasks": [{"id": "t1", "name": "Wake up"}]
+        }
+        await self.test_endpoint("POST", "/routines", headers=self.auth_headers, json_data=routine_data)
+        
+        # 16. Get Routines (auth required)
+        await self.test_endpoint("GET", "/routines", headers=self.auth_headers)
+        
+        # 17. Get Today's Routines (auth required)
+        await self.test_endpoint("GET", "/routines/today", headers=self.auth_headers)
+        
+        # 18. Get Routine Streak (auth required)
+        await self.test_endpoint("GET", "/routines/streak", headers=self.auth_headers)
+        
+        # 19. Add Favorite (auth required)
+        favorite_data = {
+            "fdc_id": 171052,
+            "food_name": "Chicken",
+            "default_portion_grams": 100
+        }
+        await self.test_endpoint("POST", "/favorites", headers=self.auth_headers, json_data=favorite_data)
+        
+        # 20. Get Favorites (auth required)
+        await self.test_endpoint("GET", "/favorites", headers=self.auth_headers)
+        
+        # 21. Create Recipe (auth required)
+        recipe_data = {
+            "name": "Simple Apple",
+            "description": "test",
+            "servings": 1,
+            "ingredients": []
+        }
+        await self.test_endpoint("POST", "/recipes", headers=self.auth_headers, json_data=recipe_data)
+        
+        # 22. Get Recipes (auth required)
+        await self.test_endpoint("GET", "/recipes", headers=self.auth_headers)
+        
+        # 23. Nutrition Progress (auth required)
+        await self.test_endpoint("GET", "/progress/nutrition", headers=self.auth_headers, params={"days": 7})
+        
+        # 24. Water Progress (auth required)
+        await self.test_endpoint("GET", "/progress/water", headers=self.auth_headers, params={"days": 7})
+        
+        # 25. Routines Progress (auth required)
+        await self.test_endpoint("GET", "/progress/routines", headers=self.auth_headers, params={"days": 7})
+        
+        # 26. Elements Progress (auth required)
+        await self.test_endpoint("GET", "/progress/elements", headers=self.auth_headers, params={"days": 7})
+        
+        # 27. Get Badges (auth required)
+        await self.test_endpoint("GET", "/badges", headers=self.auth_headers)
+        
+        # 28. Molecular Profiles
+        await self.test_endpoint("GET", "/molecular/profiles")
+        
+        # 29. Payment Status (auth required)
+        await self.test_endpoint("GET", "/payments/status", headers=self.auth_headers)
+        
+        # 30. Notification Status (auth required)
+        await self.test_endpoint("GET", "/notifications/status", headers=self.auth_headers)
+        
+        # 31. Daily Summary Share (auth required)
+        await self.test_endpoint("GET", "/share/daily-summary", headers=self.auth_headers)
+        
+        # 32. AI Predictive Recommendations (auth required)
+        await self.test_endpoint("POST", "/ai/predictive-recommendations", headers=self.auth_headers)
+        
+        # 33. AI Insights (auth required)
+        await self.test_endpoint("GET", "/ai/insights", headers=self.auth_headers)
+        
+        # Cleanup
+        await self.cleanup_test_user()
+        
+        # Generate summary
+        self.generate_summary()
+    
+    def generate_summary(self):
+        """Generate test summary"""
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
+        
+        total_tests = len(self.test_results)
+        passed_tests = sum(1 for result in self.test_results if result["success"])
+        failed_tests = total_tests - passed_tests
+        
+        print(f"Total Tests: {total_tests}")
+        print(f"Passed: {passed_tests} ✅")
+        print(f"Failed: {failed_tests} ❌")
+        print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        
+        if failed_tests > 0:
+            print("\n❌ FAILED TESTS:")
+            for result in self.test_results:
+                if not result["success"]:
+                    print(f"   {result['method']} {result['endpoint']} - Status: {result['status']}")
+                    if result.get("error"):
+                        print(f"      Error: {result['error']}")
+        
+        print("\n✅ PASSED TESTS:")
+        for result in self.test_results:
+            if result["success"]:
+                print(f"   {result['method']} {result['endpoint']} - Status: {result['status']}")
+        
+        # Save detailed results to file
+        with open("/app/test_results_detailed.json", "w") as f:
+            json.dump(self.test_results, f, indent=2, default=str)
+        
+        print(f"\n📄 Detailed results saved to: /app/test_results_detailed.json")
 
-def main():
-    """Run all payment system tests"""
-    print("🧬 NutriOS Payment System Backend Testing")
-    print("=" * 50)
-    print(f"Base URL: {BASE_URL}")
-    print(f"User ID: {USER_ID}")
-    print(f"Session Token: {SESSION_TOKEN[:20]}...")
-    print()
-    
-    results = []
-    
-    # Test 1: Health Check
-    results.append(test_health_check())
-    
-    # Test 2: Payment Status Check
-    results.append(test_payment_status())
-    
-    # Test 3: Create Checkout Session
-    checkout_success, session_id = test_create_checkout()
-    results.append(checkout_success)
-    
-    # Test 4: Check Checkout Status
-    results.append(test_checkout_status(session_id))
-    
-    # Test 5: Delete Account Test
-    results.append(test_delete_account())
-    
-    # Test 6: User Settings
-    results.append(test_user_settings())
-    
-    # Test 7: Stripe Webhook
-    results.append(test_stripe_webhook())
-    
-    # Summary
-    print("=" * 50)
-    print("📊 TEST SUMMARY")
-    print("=" * 50)
-    
-    passed = sum(1 for r in results if r)
-    total = len(results)
-    
-    print(f"✅ Passed: {passed}/{total}")
-    print(f"❌ Failed: {total - passed}/{total}")
-    print(f"📈 Success Rate: {(passed/total)*100:.1f}%")
-    
-    if passed == total:
-        print("\n🎉 All payment system tests passed!")
-        return 0
-    else:
-        print(f"\n⚠️  {total - passed} test(s) failed. Check logs above.")
-        return 1
+
+async def main():
+    """Main test runner"""
+    async with NutriOSAPITester() as tester:
+        await tester.run_all_tests()
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    asyncio.run(main())

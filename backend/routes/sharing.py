@@ -68,7 +68,8 @@ async def share_weekly_report(user: User = Depends(require_user)):
         for el, val in meal.get("elements", {}).items():
             weekly_elements[el] = weekly_elements.get(el, 0) + val
     badges_earned = await db.badges.count_documents({"user_id": user.user_id})
-    share_text = f"\U0001f4ca {name}'s NutriOS Weekly Report\n{'\u2500' * 30}\n\n"
+    separator = '\u2500' * 30
+    share_text = f"\U0001f4ca {name}'s NutriOS Weekly Report\n{separator}\n\n"
     share_text += f"\U0001f37d\ufe0f Meals logged: {total_meals}\n\U0001f525 Calories: {int(total_calories)} kcal\n\U0001f4aa Protein: {int(total_protein)}g\n\U0001f4a7 Water: {total_water}ml ({total_water / 1000:.1f}L)\n\U0001f9ea Unique foods: {unique_foods}\n\U0001f3c6 Badges earned: {badges_earned}\n\n"
     if weekly_elements:
         share_text += "\u269b\ufe0f Elemental Intake:\n"

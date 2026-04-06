@@ -224,6 +224,58 @@ async def notify_badge_earned(user_id: str, badge_name: str):
     await send_expo_push([token_doc["push_token"]], "\U0001f3c6 New Badge Earned!", f"Congratulations! You've earned the '{badge_name}' badge!", {"type": "badge", "screen": "badges"})
 
 
+# ── Scheduled Notification Helpers ──
+
+async def send_scheduled_notifications(notification_type: str, title: str, body: str):
+    """Send push notifications to all users who have the given notification type enabled."""
+    try:
+        all_tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(10000)
+        if not all_tokens:
+            return
+        for token_doc in all_tokens:
+            user_id = token_doc.get("user_id")
+            push_token = token_doc.get("push_token")
+            if not push_token:
+                continue
+            settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+            if not settings.get("notifications_enabled", True):
+                continue
+            if notification_type == "water" and not settings.get("water_reminder_enabled", True):
+                continue
+            elif notification_type == "meal" and not settings.get("meal_reminder_enabled", True):
+                continue
+            elif notification_type == "routine" and not settings.get("routine_reminder_enabled", True):
+                continue
+            await send_expo_push([push_token], title, body, {"type": notification_type})
+    except Exception as e:
+        logger.error(f"Scheduled notification error ({notification_type}): {e}")
+
+
+async def send_daily_summary_notification():
+    """Send a daily summary push to all users at end of day."""
+    try:
+        all_tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(10000)
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        for token_doc in all_tokens:
+            user_id = token_doc.get("user_id")
+            push_token = token_doc.get("push_token")
+            if not push_token:
+                continue
+            settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+            if not settings.get("notifications_enabled", True):
+                continue
+            meals_count = await db.meals.count_documents({"user_id": user_id, "date": today})
+            if meals_count > 0:
+                await send_expo_push(
+                    [push_token],
+                    "\U0001f4ca Daily Summary Ready",
+                    f"You logged {meals_count} meal(s) today. Check your elemental report!",
+                    {"type": "summary", "screen": "badges"}
+                )
+    except Exception as e:
+        logger.error(f"Daily summary notification error: {e}")
+
+
 # ── Daily Summary Helper ──
 
 async def update_daily_summary(user_id: str, date: str):

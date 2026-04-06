@@ -1,0 +1,1206 @@
+[
+  {
+    "endpoint": "/",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.072746",
+    "response_data": {
+      "message": "NutriOS - Personal Health Operating System",
+      "version": "4.0.0",
+      "status": "healthy"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/elements/info",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.140641",
+    "response_data": {
+      "elements": {
+        "C": 12.011,
+        "H": 1.008,
+        "O": 15.999,
+        "N": 14.007,
+        "S": 32.065,
+        "Na": 22.99,
+        "K": 39.098,
+        "Ca": 40.078,
+        "Fe": 55.845,
+        "Zn": 65.38,
+        "Mg": 24.305,
+        "P": 30.974
+      },
+      "biological_effects": {
+        "C": [
+          "Energy metabolism",
+          "Cell structure"
+        ],
+        "H": [
+          "Cellular hydration"
+        ],
+        "O": [
+          "Cellular respiration"
+        ],
+        "N": [
+          "Protein synthesis"
+        ],
+        "S": [
+          "Protein structure"
+        ],
+        "Fe": [
+          "Oxygen transport"
+        ],
+        "Ca": [
+          "Bone health"
+        ],
+        "K": [
+          "Heart rhythm"
+        ],
+        "Mg": [
+          "Enzyme activation"
+        ],
+        "Zn": [
+          "Immune function"
+        ]
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/recommended-values",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.197841",
+    "response_data": {
+      "daily_recommended": {
+        "energy_kcal": 2000,
+        "protein_g": 50,
+        "carbohydrate_g": 275,
+        "fat_g": 78,
+        "fiber_g": 28,
+        "vitamin_a_mcg": 900,
+        "vitamin_c_mg": 90,
+        "iron_mg": 18,
+        "calcium_mg": 1000,
+        "magnesium_mg": 400,
+        "potassium_mg": 4700,
+        "zinc_mg": 11
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/foods/search",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.831766",
+    "response_data": {
+      "foods": [
+        {
+          "fdc_id": 2709294,
+          "description": "Apple, candied",
+          "brand_owner": null,
+          "data_type": "Survey (FNDDS)"
+        },
+        {
+          "fdc_id": 2709215,
+          "description": "Apple, raw",
+          "brand_owner": null,
+          "data_type": "Survey (FNDDS)"
+        },
+        {
+          "fdc_id": 2709196,
+          "description": "Apple, dried",
+          "brand_owner": null,
+          "data_type": "Survey (FNDDS)"
+        }
+      ],
+      "query": "apple"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/foods/retention-factors",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.889709",
+    "response_data": {
+      "retention_factors": {
+        "boiling": {
+          "vitamin_a": 0.75,
+          "vitamin_c": 0.45,
+          "iron": 0.9,
+          "magnesium": 0.75,
+          "potassium": 0.7,
+          "zinc": 0.85,
+          "calcium": 0.8,
+          "protein": 0.95
+        },
+        "steaming": {
+          "vitamin_a": 0.9,
+          "vitamin_c": 0.7,
+          "iron": 0.95,
+          "magnesium": 0.9,
+          "potassium": 0.85,
+          "zinc": 0.95,
+          "calcium": 0.9,
+          "protein": 0.98
+        },
+        "frying": {
+          "vitamin_a": 0.8,
+          "vitamin_c": 0.5,
+          "iron": 0.85,
+          "magnesium": 0.85,
+          "potassium": 0.8,
+          "zinc": 0.9,
+          "calcium": 0.85,
+          "protein": 0.92
+        },
+        "baking": {
+          "vitamin_a": 0.85,
+          "vitamin_c": 0.55,
+          "iron": 0.9,
+          "magnesium": 0.88,
+          "potassium": 0.82,
+          "zinc": 0.92,
+          "calcium": 0.88,
+          "protein": 0.95
+        },
+        "raw": {
+          "vitamin_a": 1.0,
+          "vitamin_c": 1.0,
+          "iron": 1.0,
+          "magnesium": 1.0,
+          "potassium": 1.0,
+          "zinc": 1.0,
+          "calcium": 1.0,
+          "protein": 1.0
+        }
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/dashboard",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:47.978867",
+    "response_data": {
+      "date": "2026-04-06",
+      "user": {
+        "name": "Test User",
+        "weight_kg": 70.0,
+        "activity_level": "moderate"
+      },
+      "nutrition": {
+        "calories": {
+          "current": 0,
+          "goal": 2000,
+          "percentage": 0.0
+        },
+        "protein": {
+          "current": 0,
+          "goal": 50,
+          "percentage": 0.0
+        },
+        "carbs": {
+          "current": 0
+        },
+        "fat": {
+          "current": 0
+        },
+        "deficiencies": [
+          "energy_kcal",
+          "protein_g",
+          "carbohydrate_g",
+          "fat_g",
+          "fiber_g",
+          "vitamin_a_mcg",
+          "vitamin_c_mg",
+          "iron_mg",
+          "calcium_mg",
+          "magnesium_mg",
+          "potassium_mg",
+          "zinc_mg"
+        ],
+        "meals_count": 0
+      },
+      "hydration": {
+        "current_ml": 0,
+        "goal_ml": 2500,
+        "percentage": 0.0,
+        "logs_count": 0
+      },
+      "routines": {
+        "completed": 0,
+        "total": 0,
+        "percentage": 0.0,
+        "streak_days": 0,
+        "today_routines": []
+      },
+      "elements": {},
+      "recent_meals": [],
+      "insights": []
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.042759",
+    "response_data": {
+      "user_id": "test_refactor_user",
+      "daily_calorie_goal": 2000,
+      "daily_protein_goal": 50,
+      "daily_water_goal_ml": 2500
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.097658",
+    "response_data": {
+      "message": "Settings updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/profile",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.150416",
+    "response_data": {
+      "message": "Profile updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/meals",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.225324",
+    "response_data": {
+      "message": "Meal added",
+      "meal_id": "6c4c142e-6e4a-4ce3-bf96-547eb47f5289"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/meals/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.294889",
+    "response_data": {
+      "meals": [
+        {
+          "id": "6c4c142e-6e4a-4ce3-bf96-547eb47f5289",
+          "user_id": "test_refactor_user",
+          "fdc_id": null,
+          "food_name": "Apple",
+          "portion_grams": 150.0,
+          "meal_type": "snack",
+          "cooking_method": "raw",
+          "nutrients": {
+            "energy_kcal": 78.0,
+            "protein_g": 0.4
+          },
+          "elements": {
+            "C": 6.5,
+            "H": 1.2,
+            "O": 8.3
+          },
+          "allergens": [],
+          "timestamp": "2026-04-06T19:29:48.194000",
+          "date": "2026-04-06"
+        }
+      ],
+      "date": "2026-04-06"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/water",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.356502",
+    "response_data": {
+      "message": "Water logged",
+      "log_id": "f752fc77-e39f-4a3b-bb55-b6ba6a378945",
+      "amount_ml": 300
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/water/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.410960",
+    "response_data": {
+      "logs": [
+        {
+          "id": "f752fc77-e39f-4a3b-bb55-b6ba6a378945",
+          "user_id": "test_refactor_user",
+          "amount_ml": 300,
+          "timestamp": "2026-04-06T19:29:48.332000",
+          "date": "2026-04-06"
+        }
+      ],
+      "total_ml": 300,
+      "goal_ml": 3000,
+      "percentage": 10.0
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/water/smart-goal",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.464234",
+    "response_data": {
+      "recommended_ml": 2722,
+      "weight_kg": 75.0,
+      "activity_level": "moderate"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/routines",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.528438",
+    "response_data": {
+      "message": "Routine created",
+      "routine_id": "c54bc78a-bb1f-4fe5-a78e-ec2cc2c3408c"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/routines",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.580009",
+    "response_data": {
+      "routines": [
+        {
+          "id": "c54bc78a-bb1f-4fe5-a78e-ec2cc2c3408c",
+          "user_id": "test_refactor_user",
+          "name": "Test Routine",
+          "type": "morning",
+          "time_start": "07:00",
+          "time_end": "08:00",
+          "days": [
+            "mon",
+            "tue"
+          ],
+          "tasks": [
+            {
+              "id": "t1",
+              "name": "Wake up"
+            }
+          ],
+          "is_active": true,
+          "created_at": "2026-04-06T19:29:48.503000"
+        }
+      ]
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/routines/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.640060",
+    "response_data": {
+      "routines": [
+        {
+          "id": "c54bc78a-bb1f-4fe5-a78e-ec2cc2c3408c",
+          "user_id": "test_refactor_user",
+          "name": "Test Routine",
+          "type": "morning",
+          "time_start": "07:00",
+          "time_end": "08:00",
+          "days": [
+            "mon",
+            "tue"
+          ],
+          "tasks": [
+            {
+              "id": "t1",
+              "name": "Wake up",
+              "completed": false
+            }
+          ],
+          "is_active": true,
+          "created_at": "2026-04-06T19:29:48.503000"
+        }
+      ],
+      "date": "2026-04-06"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/routines/streak",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.694722",
+    "response_data": {
+      "streak_days": 0
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/favorites",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.768823",
+    "response_data": {
+      "message": "Added to favorites",
+      "favorite_id": "1fd325c7-e66b-49de-8ff1-4dc32b4f55be"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/favorites",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.821035",
+    "response_data": {
+      "favorites": [
+        {
+          "id": "1fd325c7-e66b-49de-8ff1-4dc32b4f55be",
+          "user_id": "test_refactor_user",
+          "fdc_id": 171052,
+          "food_name": "Chicken",
+          "default_portion_grams": 100.0,
+          "default_cooking_method": "raw",
+          "created_at": "2026-04-06T19:29:48.727000"
+        }
+      ]
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/recipes",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.881953",
+    "response_data": {
+      "message": "Recipe created",
+      "recipe_id": "bcd154eb-8f8e-466d-9a33-ccdee6762773",
+      "per_serving_nutrients": {},
+      "per_serving_elements": {},
+      "allergens": []
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/recipes",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.932515",
+    "response_data": {
+      "recipes": [
+        {
+          "id": "bcd154eb-8f8e-466d-9a33-ccdee6762773",
+          "user_id": "test_refactor_user",
+          "name": "Simple Apple",
+          "description": "test",
+          "ingredients": [],
+          "servings": 1,
+          "prep_time_mins": 0,
+          "cook_time_mins": 0,
+          "instructions": [],
+          "total_nutrients": {},
+          "total_elements": {},
+          "per_serving_nutrients": {},
+          "per_serving_elements": {},
+          "allergens": [],
+          "created_at": "2026-04-06T19:29:48.854000"
+        }
+      ]
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/progress/nutrition",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:48.983264",
+    "response_data": {
+      "chart_data": [
+        {
+          "date": "2026-03-31",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-01",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-02",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-03",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-04",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-05",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0
+        },
+        {
+          "date": "2026-04-06",
+          "calories": 78.0,
+          "protein": 0.4,
+          "carbs": 0,
+          "fat": 0
+        }
+      ],
+      "days": 7
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/progress/water",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.035732",
+    "response_data": {
+      "chart_data": [
+        {
+          "date": "2026-04-06",
+          "amount_ml": 300,
+          "goal_ml": 3000,
+          "percentage": 10.0
+        }
+      ],
+      "goal_ml": 3000,
+      "days": 7
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/progress/routines",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.097104",
+    "response_data": {
+      "chart_data": [
+        {
+          "date": "2026-04-06",
+          "completed": 0,
+          "total": 0,
+          "percentage": 0
+        }
+      ],
+      "days": 7
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/progress/elements",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.146417",
+    "response_data": {
+      "chart_data": [
+        {
+          "date": "2026-04-06",
+          "C": 6.5,
+          "H": 1.2,
+          "O": 8.3,
+          "N": 0,
+          "Fe": 0,
+          "Ca": 0,
+          "Mg": 0
+        }
+      ],
+      "days": 7
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/badges",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.224555",
+    "response_data": {
+      "badges": [
+        {
+          "id": "first_meal",
+          "name": "First Bite",
+          "description": "Log your first meal",
+          "icon": "restaurant",
+          "color": "#4ecdc4",
+          "condition": "meals_logged >= 1",
+          "earned": true
+        },
+        {
+          "id": "meal_streak_3",
+          "name": "Consistent Eater",
+          "description": "Log meals for 3 days straight",
+          "icon": "flame",
+          "color": "#ff6b6b",
+          "condition": "streak >= 3",
+          "earned": false
+        },
+        {
+          "id": "meal_streak_7",
+          "name": "Week Warrior",
+          "description": "7-day logging streak",
+          "icon": "trophy",
+          "color": "#ffd93d",
+          "condition": "streak >= 7",
+          "earned": false
+        },
+        {
+          "id": "meal_streak_30",
+          "name": "Monthly Master",
+          "description": "30-day logging streak",
+          "icon": "medal",
+          "color": "#a29bfe",
+          "condition": "streak >= 30",
+          "earned": false
+        },
+        {
+          "id": "hydration_hero",
+          "name": "Hydration Hero",
+          "description": "Hit water goal 5 times",
+          "icon": "water",
+          "color": "#00d4ff",
+          "condition": "water_goals_met >= 5",
+          "earned": false
+        },
+        {
+          "id": "protein_pro",
+          "name": "Protein Pro",
+          "description": "Hit protein goal 5 times",
+          "icon": "barbell",
+          "color": "#00ff88",
+          "condition": "protein_goals_met >= 5",
+          "earned": false
+        },
+        {
+          "id": "element_explorer",
+          "name": "Element Explorer",
+          "description": "Log 10 different foods",
+          "icon": "flask",
+          "color": "#fd79a8",
+          "condition": "unique_foods >= 10",
+          "earned": false
+        },
+        {
+          "id": "recipe_creator",
+          "name": "Recipe Creator",
+          "description": "Create your first recipe",
+          "icon": "book",
+          "color": "#e17055",
+          "condition": "recipes_created >= 1",
+          "earned": true
+        },
+        {
+          "id": "routine_master",
+          "name": "Routine Master",
+          "description": "Complete all routines for a day",
+          "icon": "checkmark-done",
+          "color": "#6c5ce7",
+          "condition": "routines_completed_days >= 1",
+          "earned": false
+        },
+        {
+          "id": "century_meals",
+          "name": "Century Club",
+          "description": "Log 100 meals total",
+          "icon": "star",
+          "color": "#ffeaa7",
+          "condition": "meals_logged >= 100",
+          "earned": false
+        }
+      ],
+      "newly_earned": [
+        "first_meal",
+        "recipe_creator"
+      ],
+      "stats": {
+        "meals_logged": 1,
+        "streak": 1,
+        "water_goals_met": 0,
+        "protein_goals_met": 0,
+        "unique_foods": 1,
+        "recipes_created": 1,
+        "routines_completed_days": 0
+      },
+      "weekly_summary": {
+        "meals_this_week": 0,
+        "current_streak": 1,
+        "total_badges_earned": 2,
+        "total_badges": 10
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/molecular/profiles",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.280810",
+    "response_data": {
+      "profiles": {
+        "muscle_gain": {
+          "name": "Muscle Growth",
+          "description": "Optimize nitrogen balance and protein synthesis for lean muscle mass",
+          "ideal_macro_ratio": {
+            "protein": 0.35,
+            "carbs": 0.4,
+            "fat": 0.25
+          },
+          "key_foods": [
+            "chicken breast",
+            "salmon",
+            "eggs",
+            "greek yogurt",
+            "quinoa",
+            "lentils",
+            "beef",
+            "tofu",
+            "almonds",
+            "sweet potato"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "chicken",
+                "brown rice"
+              ],
+              "reason": "Complete amino acid profile with sustained energy"
+            },
+            {
+              "foods": [
+                "salmon",
+                "spinach"
+              ],
+              "reason": "Omega-3 + Iron + Magnesium for recovery"
+            },
+            {
+              "foods": [
+                "eggs",
+                "avocado"
+              ],
+              "reason": "Complete protein + healthy fats for hormone synthesis"
+            },
+            {
+              "foods": [
+                "beef",
+                "broccoli"
+              ],
+              "reason": "Iron + Vitamin C for maximum iron absorption"
+            }
+          ]
+        },
+        "brain_health": {
+          "name": "Brain Function",
+          "description": "Enhance cognitive performance with omega-3, B vitamins, and key minerals",
+          "ideal_macro_ratio": {
+            "protein": 0.25,
+            "carbs": 0.45,
+            "fat": 0.3
+          },
+          "key_foods": [
+            "salmon",
+            "walnuts",
+            "blueberries",
+            "spinach",
+            "dark chocolate",
+            "turmeric",
+            "avocado",
+            "eggs",
+            "sardines",
+            "olive oil"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "salmon",
+                "walnuts"
+              ],
+              "reason": "DHA + ALA omega-3 synergy for neuroprotection"
+            },
+            {
+              "foods": [
+                "spinach",
+                "eggs"
+              ],
+              "reason": "Folate + Choline for neurotransmitter synthesis"
+            },
+            {
+              "foods": [
+                "dark chocolate",
+                "blueberries"
+              ],
+              "reason": "Flavonoids synergy for cerebral blood flow"
+            },
+            {
+              "foods": [
+                "turmeric",
+                "olive oil"
+              ],
+              "reason": "Curcumin + fat for brain anti-inflammatory absorption"
+            }
+          ]
+        },
+        "immune_system": {
+          "name": "Immune Defense",
+          "description": "Strengthen immune response with zinc, vitamin C, and antioxidants",
+          "ideal_macro_ratio": {
+            "protein": 0.3,
+            "carbs": 0.45,
+            "fat": 0.25
+          },
+          "key_foods": [
+            "citrus fruits",
+            "garlic",
+            "ginger",
+            "spinach",
+            "yogurt",
+            "almonds",
+            "bell peppers",
+            "broccoli",
+            "shellfish",
+            "sunflower seeds"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "citrus",
+                "spinach"
+              ],
+              "reason": "Vitamin C enhances iron absorption for immune cells"
+            },
+            {
+              "foods": [
+                "garlic",
+                "ginger"
+              ],
+              "reason": "Allicin + Gingerol dual antimicrobial action"
+            },
+            {
+              "foods": [
+                "yogurt",
+                "berries"
+              ],
+              "reason": "Probiotics + antioxidants for gut-immune axis"
+            },
+            {
+              "foods": [
+                "bell peppers",
+                "almonds"
+              ],
+              "reason": "Vitamin C + Vitamin E antioxidant synergy"
+            }
+          ]
+        },
+        "gut_microbiome": {
+          "name": "Gut Health",
+          "description": "Nourish beneficial bacteria with fiber, prebiotics, and fermented foods",
+          "ideal_macro_ratio": {
+            "protein": 0.2,
+            "carbs": 0.55,
+            "fat": 0.25
+          },
+          "key_foods": [
+            "yogurt",
+            "kefir",
+            "sauerkraut",
+            "kimchi",
+            "oats",
+            "bananas",
+            "garlic",
+            "onions",
+            "asparagus",
+            "lentils"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "yogurt",
+                "banana"
+              ],
+              "reason": "Probiotics + prebiotic fiber feeds beneficial bacteria"
+            },
+            {
+              "foods": [
+                "oats",
+                "berries"
+              ],
+              "reason": "Beta-glucan + polyphenols for microbiome diversity"
+            },
+            {
+              "foods": [
+                "garlic",
+                "lentils"
+              ],
+              "reason": "Inulin + resistant starch for short-chain fatty acids"
+            },
+            {
+              "foods": [
+                "kimchi",
+                "brown rice"
+              ],
+              "reason": "Fermented cultures + fiber for gut lining repair"
+            }
+          ]
+        },
+        "longevity": {
+          "name": "Longevity & Anti-Aging",
+          "description": "Reduce inflammation and oxidative stress for healthy aging",
+          "ideal_macro_ratio": {
+            "protein": 0.2,
+            "carbs": 0.5,
+            "fat": 0.3
+          },
+          "key_foods": [
+            "olive oil",
+            "salmon",
+            "blueberries",
+            "nuts",
+            "leafy greens",
+            "beans",
+            "green tea",
+            "tomatoes",
+            "sweet potatoes",
+            "avocado"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "olive oil",
+                "tomatoes"
+              ],
+              "reason": "Fat + lycopene synergy for cardiovascular protection"
+            },
+            {
+              "foods": [
+                "salmon",
+                "leafy greens"
+              ],
+              "reason": "Omega-3 + folate for DNA repair and telomere health"
+            },
+            {
+              "foods": [
+                "blueberries",
+                "nuts"
+              ],
+              "reason": "Anthocyanins + Vitamin E antioxidant cascade"
+            },
+            {
+              "foods": [
+                "green tea",
+                "lemon"
+              ],
+              "reason": "Catechins + Vitamin C for enhanced antioxidant stability"
+            }
+          ]
+        },
+        "reduce_inflammation": {
+          "name": "Anti-Inflammation",
+          "description": "Target inflammatory markers with omega-3, antioxidants, and key minerals",
+          "ideal_macro_ratio": {
+            "protein": 0.25,
+            "carbs": 0.45,
+            "fat": 0.3
+          },
+          "key_foods": [
+            "salmon",
+            "turmeric",
+            "ginger",
+            "olive oil",
+            "walnuts",
+            "berries",
+            "leafy greens",
+            "tomatoes",
+            "green tea",
+            "avocado"
+          ],
+          "synergy_pairs": [
+            {
+              "foods": [
+                "turmeric",
+                "black pepper"
+              ],
+              "reason": "Piperine increases curcumin absorption 2000%"
+            },
+            {
+              "foods": [
+                "salmon",
+                "olive oil"
+              ],
+              "reason": "EPA/DHA + oleic acid dual anti-inflammatory pathway"
+            },
+            {
+              "foods": [
+                "ginger",
+                "green tea"
+              ],
+              "reason": "Gingerol + EGCG synergistic COX-2 inhibition"
+            },
+            {
+              "foods": [
+                "walnuts",
+                "berries"
+              ],
+              "reason": "ALA omega-3 + polyphenols reduce CRP markers"
+            }
+          ]
+        }
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/payments/status",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.331498",
+    "response_data": {
+      "is_premium": false,
+      "subscription_plan": null,
+      "trial_active": true,
+      "trial_days_remaining": 13,
+      "trial_end_date": "2026-04-20T19:29:46.798000+00:00",
+      "has_access": true,
+      "monthly_price_eur": 2.99,
+      "annual_price_eur": 29.99,
+      "cancel_at_period_end": false,
+      "access_until": null
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/status",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.388898",
+    "response_data": {
+      "push_token_registered": false,
+      "notifications_enabled": true,
+      "water_reminder_enabled": true,
+      "meal_reminder_enabled": true,
+      "routine_reminder_enabled": true
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/share/daily-summary",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.454065",
+    "response_data": {
+      "text": "\ud83e\uddec My NutriOS Daily Report - 2026-04-06\n\n\ud83d\udd25 Calories: 78/2000 kcal\n\ud83d\udcaa Protein: 0g\n\ud83d\udca7 Water: 300/3000ml\n\n\u269b\ufe0f Elemental Intake:\n  C: 6.5g\n  H: 1.2g\n  O: 8.3g\n  N: 0.0g\n\n\ud83d\udcca Tracked with NutriOS - Your Nutrition Operating System",
+      "data": {
+        "date": "2026-04-06",
+        "calories": {
+          "current": 78.0,
+          "goal": 2000
+        },
+        "protein": 0,
+        "water": {
+          "current": 300,
+          "goal": 3000
+        },
+        "elements": {
+          "C": 6.5,
+          "H": 1.2,
+          "O": 8.3
+        }
+      }
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/ai/predictive-recommendations",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.516921",
+    "response_data": {
+      "recommendations": [
+        {
+          "type": "meal_timing",
+          "title": "Optimal Eating Window",
+          "description": "Eat main meal 1-2 hours before workouts",
+          "optimal_time": "12:00-13:00",
+          "expected_benefit": "Better energy"
+        }
+      ]
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/ai/insights",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-06T19:29:49.569312",
+    "response_data": {
+      "insights": []
+    },
+    "error": null
+  }
+]
