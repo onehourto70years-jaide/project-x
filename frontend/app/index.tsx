@@ -11,7 +11,7 @@ const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function Index() {
   const { user, isLoading } = useAuth();
-  const { locale, setLocale } = useLanguage();
+  const { locale, setLocale, t } = useLanguage();
   const [policyAccepted, setPolicyAccepted] = useState<boolean | null>(null);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   const [languageSelected, setLanguageSelected] = useState<boolean | null>(null);
@@ -114,7 +114,7 @@ export default function Index() {
               <Ionicons name="language" size={40} color="#00d4ff" />
             </View>
           </View>
-          <Text style={styles.langTitle}>Choose Your Language</Text>
+          <Text style={styles.langTitle}>{t('lang_title')}</Text>
           <Text style={styles.langSubtitle}>Scegli · Elige · Choisissez</Text>
 
           <View style={styles.langList}>
@@ -124,7 +124,10 @@ export default function Index() {
                 <TouchableOpacity
                   key={lang.code}
                   style={[styles.langOption, isActive && styles.langOptionActive]}
-                  onPress={() => setSelectedLang(lang.code)}
+                  onPress={() => {
+                    setSelectedLang(lang.code);
+                    setLocale(lang.code);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.langFlag}>{lang.flag}</Text>
@@ -142,10 +145,10 @@ export default function Index() {
             })}
           </View>
 
-          <Text style={styles.langNote}>You can change this later in Settings</Text>
+          <Text style={styles.langNote}>{t('lang_subtitle')}</Text>
 
           <TouchableOpacity style={styles.langContinueBtn} onPress={handleLanguageContinue} activeOpacity={0.8}>
-            <Text style={styles.langContinueText}>Continue</Text>
+            <Text style={styles.langContinueText}>{t('lang_continue')}</Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
           </TouchableOpacity>
         </View>

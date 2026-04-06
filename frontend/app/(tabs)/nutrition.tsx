@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL } from '../../src/cache';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -33,6 +34,7 @@ const MEAL_TYPES = [
 
 export default function NutritionScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [refreshing, setRefreshing] = useState(false);
@@ -108,7 +110,7 @@ export default function NutritionScreen() {
     return num < 1 ? num.toFixed(2) : num.toFixed(0);
   };
 
-  const getMealTypeInfo = (type: string) => MEAL_TYPES.find(t => t.id === type) || MEAL_TYPES[0];
+  const getMealTypeInfo = (type: string) => MEAL_TYPES.find(mt => mt.id === type) || MEAL_TYPES[0];
 
   const getMealsByType = (type: string) => meals.filter(m => m.meal_type === type);
 
@@ -121,8 +123,8 @@ export default function NutritionScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Nutrition</Text>
-            <Text style={styles.subtitle}>Track your daily intake</Text>
+            <Text style={styles.title}>{t('nutr_title')}</Text>
+            <Text style={styles.subtitle}>{t('nutr_subtitle')}</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setShowSearchModal(true)}>
             <Ionicons name="add" size={24} color="#fff" />
@@ -131,7 +133,7 @@ export default function NutritionScreen() {
 
         {/* Today's Summary */}
         <View style={styles.summaryCard}>
-          <Text style={styles.cardTitle}>Today's Summary</Text>
+          <Text style={styles.cardTitle}>{t('nutr_today_summary')}</Text>
           <View style={styles.macrosRow}>
             <View style={styles.macroItem}>
               <View style={[styles.macroIcon, { backgroundColor: 'rgba(255, 107, 107, 0.1)' }]}>
@@ -145,28 +147,28 @@ export default function NutritionScreen() {
                 <Ionicons name="barbell" size={20} color="#00d4ff" />
               </View>
               <Text style={styles.macroValue}>{formatNumber(totals.protein_g)}g</Text>
-              <Text style={styles.macroLabel}>Protein</Text>
+              <Text style={styles.macroLabel}>{t('dash_protein')}</Text>
             </View>
             <View style={styles.macroItem}>
               <View style={[styles.macroIcon, { backgroundColor: 'rgba(78, 205, 196, 0.1)' }]}>
                 <Ionicons name="leaf" size={20} color="#4ecdc4" />
               </View>
               <Text style={styles.macroValue}>{formatNumber(totals.carbohydrate_g)}g</Text>
-              <Text style={styles.macroLabel}>Carbs</Text>
+              <Text style={styles.macroLabel}>{t('dash_carbs')}</Text>
             </View>
             <View style={styles.macroItem}>
               <View style={[styles.macroIcon, { backgroundColor: 'rgba(255, 217, 61, 0.1)' }]}>
                 <Ionicons name="water" size={20} color="#ffd93d" />
               </View>
               <Text style={styles.macroValue}>{formatNumber(totals.fat_g)}g</Text>
-              <Text style={styles.macroLabel}>Fat</Text>
+              <Text style={styles.macroLabel}>{t('dash_fat')}</Text>
             </View>
           </View>
         </View>
 
         {/* Micronutrients */}
         <View style={styles.microCard}>
-          <Text style={styles.cardTitle}>Micronutrients</Text>
+          <Text style={styles.cardTitle}>{t('nutr_micronutrients')}</Text>
           <View style={styles.microGrid}>
             {[
               { key: 'vitamin_c_mg', label: 'Vitamin C', unit: 'mg', rec: 90 },
@@ -233,7 +235,7 @@ export default function NutritionScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Food</Text>
+              <Text style={styles.modalTitle}>{t('nutr_add_food')}</Text>
               <TouchableOpacity onPress={() => setShowSearchModal(false)}>
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>
@@ -261,21 +263,21 @@ export default function NutritionScreen() {
                   style={styles.searchField}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholder="Search foods..."
+                  placeholder={t('nutr_search_food')}
                   placeholderTextColor="#666"
                   onSubmitEditing={searchFoods}
                   returnKeyType="search"
                 />
               </View>
               <TouchableOpacity style={styles.searchBtn} onPress={searchFoods}>
-                <Text style={styles.searchBtnText}>Search</Text>
+                <Text style={styles.searchBtnText}>{t('nutr_search_btn')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Results */}
             <ScrollView style={styles.resultsScroll}>
               {searching ? (
-                <Text style={styles.searchingText}>Searching...</Text>
+                <Text style={styles.searchingText}>{t('nutr_searching')}</Text>
               ) : searchResults.length > 0 ? (
                 searchResults.map((food) => (
                   <TouchableOpacity key={food.fdc_id} style={styles.foodResult} onPress={() => handleFoodSelect(food)}>

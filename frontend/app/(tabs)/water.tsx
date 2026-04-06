@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -20,6 +21,7 @@ interface WaterHistory {
 }
 
 export default function WaterScreen() {
+  const { t } = useLanguage();
   const [waterData, setWaterData] = useState<WaterData | null>(null);
   const [history, setHistory] = useState<WaterHistory[]>([]);
   const [smartGoal, setSmartGoal] = useState<any>(null);
@@ -94,10 +96,10 @@ export default function WaterScreen() {
 
   const getHydrationStatus = () => {
     const pct = waterData?.percentage || 0;
-    if (pct >= 100) return { text: 'Goal Reached!', color: '#4ecdc4', icon: 'checkmark-circle' };
-    if (pct >= 75) return { text: 'Almost there!', color: '#00d4ff', icon: 'water' };
-    if (pct >= 50) return { text: 'Keep drinking!', color: '#ffd93d', icon: 'water-outline' };
-    return { text: 'Need more water', color: '#ff6b6b', icon: 'alert-circle' };
+    if (pct >= 100) return { text: t('water_goal_reached'), color: '#4ecdc4', icon: 'checkmark-circle' };
+    if (pct >= 75) return { text: t('water_almost'), color: '#00d4ff', icon: 'water' };
+    if (pct >= 50) return { text: t('water_keep_drinking'), color: '#ffd93d', icon: 'water-outline' };
+    return { text: t('water_need_more'), color: '#ff6b6b', icon: 'alert-circle' };
   };
 
   const status = getHydrationStatus();
@@ -110,14 +112,14 @@ export default function WaterScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Water Tracking</Text>
-          <Text style={styles.subtitle}>Stay hydrated, stay healthy</Text>
+          <Text style={styles.title}>{t('water_title')}</Text>
+          <Text style={styles.subtitle}>{t('water_subtitle')}</Text>
         </View>
 
         {isOffline && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,217,61,0.12)', paddingVertical: 8, marginHorizontal: 16, marginBottom: 12, borderRadius: 10, gap: 8 }}>
             <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
-            <Text style={{ color: '#ffd93d', fontSize: 13, fontWeight: '500' }}>Offline — showing cached data</Text>
+            <Text style={{ color: '#ffd93d', fontSize: 13, fontWeight: '500' }}>{t('dash_offline')}</Text>
           </View>
         )}
 
@@ -129,7 +131,7 @@ export default function WaterScreen() {
               <View style={styles.gaugeContent}>
                 <Ionicons name={status.icon as any} size={32} color={status.color} />
                 <Text style={styles.gaugeAmount}>{((waterData?.total_ml || 0) / 1000).toFixed(1)}L</Text>
-                <Text style={styles.gaugeGoal}>of {((waterData?.goal_ml || 2500) / 1000).toFixed(1)}L</Text>
+                <Text style={styles.gaugeGoal}>{t('common_of')} {((waterData?.goal_ml || 2500) / 1000).toFixed(1)}L</Text>
               </View>
             </View>
             <View style={styles.statusBadge}>
@@ -148,9 +150,9 @@ export default function WaterScreen() {
 
         {/* Quick Add Buttons */}
         <View style={styles.quickAddSection}>
-          <Text style={styles.sectionTitle}>Quick Add</Text>
+          <Text style={styles.sectionTitle}>{t('water_quick_add')}</Text>
           <View style={styles.quickAddGrid}>
-            {[{ amount: 250, label: '1 Glass', icon: 'water' }, { amount: 500, label: '2 Glasses', icon: 'water' }, { amount: 750, label: 'Bottle', icon: 'water' }, { amount: 1000, label: 'Large', icon: 'water' }].map((item) => (
+            {[{ amount: 250, label: t('water_glass_1'), icon: 'water' }, { amount: 500, label: t('water_glass_2'), icon: 'water' }, { amount: 750, label: t('water_bottle'), icon: 'water' }, { amount: 1000, label: t('water_large'), icon: 'water' }].map((item) => (
               <TouchableOpacity
                 key={item.amount}
                 style={[styles.quickAddBtn, adding && styles.quickAddBtnDisabled]}
@@ -170,9 +172,9 @@ export default function WaterScreen() {
           <View style={styles.smartGoalCard}>
             <View style={styles.smartGoalHeader}>
               <Ionicons name="sparkles" size={18} color="#ffd93d" />
-              <Text style={styles.smartGoalTitle}>Smart Hydration Goal</Text>
+              <Text style={styles.smartGoalTitle}>{t('water_smart_title')}</Text>
             </View>
-            <Text style={styles.smartGoalValue}>{(smartGoal.recommended_ml / 1000).toFixed(1)}L recommended</Text>
+            <Text style={styles.smartGoalValue}>{(smartGoal.recommended_ml / 1000).toFixed(1)}L {t('water_recommended')}</Text>
             <View style={styles.smartGoalFactors}>
               <View style={styles.factor}>
                 <Ionicons name="body" size={14} color="#888" />
@@ -188,7 +190,7 @@ export default function WaterScreen() {
 
         {/* Today's Logs */}
         <View style={styles.logsSection}>
-          <Text style={styles.sectionTitle}>Today's Log ({waterData?.logs?.length || 0} entries)</Text>
+          <Text style={styles.sectionTitle}>{t('water_today_log')} ({waterData?.logs?.length || 0} {t('water_entries')})</Text>
           {waterData?.logs && waterData.logs.length > 0 ? (
             waterData.logs.slice().reverse().slice(0, 8).map((log, index) => (
               <View key={log.id || index} style={styles.logItem}>
@@ -204,14 +206,14 @@ export default function WaterScreen() {
           ) : (
             <View style={styles.emptyLogs}>
               <Ionicons name="water-outline" size={40} color="#444" />
-              <Text style={styles.emptyText}>No water logged yet today</Text>
+              <Text style={styles.emptyText}>{t('water_no_logs')}</Text>
             </View>
           )}
         </View>
 
         {/* Weekly History */}
         <View style={styles.historySection}>
-          <Text style={styles.sectionTitle}>Last 7 Days</Text>
+          <Text style={styles.sectionTitle}>{t('water_last_7')}</Text>
           <View style={styles.historyChart}>
             {history.map((day, index) => {
               const goal = waterData?.goal_ml || 2500;
@@ -230,8 +232,8 @@ export default function WaterScreen() {
 
         {/* Tips */}
         <View style={styles.tipsCard}>
-          <Text style={styles.sectionTitle}>Hydration Tips</Text>
-          {['Drink a glass of water first thing in the morning', 'Set reminders every 2 hours', 'Eat water-rich foods like cucumbers and watermelon', 'Drink before you feel thirsty'].map((tip, i) => (
+          <Text style={styles.sectionTitle}>{t('water_tips')}</Text>
+          {[t('water_tip_1'), t('water_tip_2'), t('water_tip_3'), t('water_tip_4')].map((tip, i) => (
             <View key={i} style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={16} color="#4ecdc4" />
               <Text style={styles.tipText}>{tip}</Text>

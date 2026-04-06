@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../_layout';
+import { useLanguage } from '../../src/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
@@ -83,13 +84,14 @@ function ElementCard({ symbol, amount, color, effects }: { symbol: string; amoun
 
 // ─── Health Score ─────────────────────────────────────
 function HealthScore({ score }: { score: number }) {
+  const { t } = useLanguage();
   const getGrade = () => {
-    if (score >= 90) return { grade: 'A+', color: '#00ff88', msg: 'Outstanding!' };
-    if (score >= 80) return { grade: 'A', color: '#00d4ff', msg: 'Excellent' };
-    if (score >= 70) return { grade: 'B+', color: '#4ecdc4', msg: 'Great work' };
-    if (score >= 60) return { grade: 'B', color: '#ffd93d', msg: 'Good progress' };
-    if (score >= 40) return { grade: 'C', color: '#ff9f43', msg: 'Keep going' };
-    return { grade: 'D', color: '#ff6b6b', msg: 'Start tracking!' };
+    if (score >= 90) return { grade: 'A+', color: '#00ff88', msg: t('dash_outstanding') };
+    if (score >= 80) return { grade: 'A', color: '#00d4ff', msg: t('dash_excellent') };
+    if (score >= 70) return { grade: 'B+', color: '#4ecdc4', msg: t('dash_great') };
+    if (score >= 60) return { grade: 'B', color: '#ffd93d', msg: t('dash_good_progress') };
+    if (score >= 40) return { grade: 'C', color: '#ff9f43', msg: t('dash_keep_going') };
+    return { grade: 'D', color: '#ff6b6b', msg: t('dash_start_tracking') };
   };
   const { grade, color, msg } = getGrade();
   const pulseAnim = useRef(new Animated.Value(0.8)).current;
@@ -106,7 +108,7 @@ function HealthScore({ score }: { score: number }) {
     <View style={styles.scoreContainer}>
       <Animated.View style={[styles.scoreGlow, { backgroundColor: color + '20', opacity: pulseAnim }]} />
       <ProgressRing size={130} strokeWidth={8} progress={score} colors={[color, color + 'aa']} label="" value={grade} unit={msg} icon="shield-checkmark" />
-      <Text style={[styles.scoreLabel, { color }]}>Daily Score</Text>
+      <Text style={[styles.scoreLabel, { color }]}>{t('dash_score')}</Text>
     </View>
   );
 }
@@ -115,6 +117,7 @@ function HealthScore({ score }: { score: number }) {
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [dashboard, setDashboard] = useState<any>(null);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -270,7 +273,7 @@ export default function DashboardScreen() {
           clearCacheForKey(CacheKeys.mealsToday),
         ]);
         fetchDashboard();
-        Alert.alert('Logged!', `${foodName} (${grams}${portionUnit}, ${cookingMethod}) added to ${getAutoMealType()}`);
+        Alert.alert(t('dash_logged'), `${foodName} (${grams}${portionUnit}, ${cookingMethod}) ${t('dash_added_to')} ${getAutoMealType()}`);
       } else {
         const errData = await mealRes.json().catch(() => ({}));
         Alert.alert('Error', errData.detail || 'Failed to save meal. Please try again.');
@@ -302,9 +305,9 @@ export default function DashboardScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dash_greeting_morning');
+    if (hour < 17) return t('dash_greeting_afternoon');
+    return t('dash_greeting_evening');
   };
 
   const getNutrientGaps = () => {
@@ -376,7 +379,7 @@ export default function DashboardScreen() {
           {isOffline && (
             <View style={styles.offlineBanner}>
               <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
-              <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
+              <Text style={styles.offlineBannerText}>{t('dash_offline')}</Text>
             </View>
           )}
 
@@ -408,11 +411,11 @@ export default function DashboardScreen() {
                 color={paymentStatus.trial_days_remaining <= 3 ? '#ff6b6b' : '#ffd93d'} />
               <Text style={[styles.trialBadgeText, paymentStatus.trial_days_remaining <= 3 && { color: '#ff6b6b' }]}>
                 {paymentStatus.trial_days_remaining > 0
-                  ? `${paymentStatus.trial_days_remaining} days left in trial`
-                  : 'Trial expired'}
+                  ? `${paymentStatus.trial_days_remaining} ${t('dash_trial_days')}`
+                  : t('dash_trial_expired')}
               </Text>
               <View style={styles.trialBadgeBtn}>
-                <Text style={styles.trialBadgeBtnText}>Subscribe</Text>
+                <Text style={styles.trialBadgeBtnText}>{t('dash_subscribe')}</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -431,15 +434,15 @@ export default function DashboardScreen() {
             <HealthScore score={calculateScore()} />
             <View style={styles.mainRings}>
               <ProgressRing size={90} strokeWidth={6} progress={dashboard?.nutrition?.calories?.percentage || 0}
-                colors={['#ff6b6b', '#ff9f43']} label="Calories" icon="flame"
+                colors={['#ff6b6b', '#ff9f43']} label={t('dash_calories')} icon="flame"
                 value={`${Math.round(dashboard?.nutrition?.calories?.current || 0)}`}
                 unit={`/${dashboard?.nutrition?.calories?.goal || 2000}`} />
               <ProgressRing size={90} strokeWidth={6} progress={dashboard?.hydration?.percentage || 0}
-                colors={['#00d4ff', '#0099ff']} label="Water" icon="water"
+                colors={['#00d4ff', '#0099ff']} label={t('dash_water')} icon="water"
                 value={`${((dashboard?.hydration?.current_ml || 0) / 1000).toFixed(1)}`}
                 unit={`/${((dashboard?.hydration?.goal_ml || 2500) / 1000).toFixed(1)}L`} />
               <ProgressRing size={90} strokeWidth={6} progress={dashboard?.nutrition?.protein?.percentage || 0}
-                colors={['#00ff88', '#4ecdc4']} label="Protein" icon="barbell"
+                colors={['#00ff88', '#4ecdc4']} label={t('dash_protein')} icon="barbell"
                 value={`${Math.round(dashboard?.nutrition?.protein?.current || 0)}`}
                 unit={`/${dashboard?.nutrition?.protein?.goal || 50}g`} />
             </View>
@@ -463,13 +466,13 @@ export default function DashboardScreen() {
               <View style={[styles.quickBtnGlow, { backgroundColor: 'rgba(255, 107, 107, 0.15)' }]}>
                 <Ionicons name="add-circle" size={22} color="#ff6b6b" />
               </View>
-              <Text style={styles.quickBtnLabel}>Log Meal</Text>
+              <Text style={styles.quickBtnLabel}>{t('dash_log_meal')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickMealBtn} onPress={() => router.push('/scanner')}>
               <View style={[styles.quickBtnGlow, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
                 <Ionicons name="barcode" size={22} color="#ffd93d" />
               </View>
-              <Text style={styles.quickBtnLabel}>Scan</Text>
+              <Text style={styles.quickBtnLabel}>{t('dash_scan')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -477,13 +480,13 @@ export default function DashboardScreen() {
           {getNutrientGaps().length > 0 && (
             <View style={styles.alertsSection}>
               <Text style={styles.sectionTitle}>
-                <Ionicons name="warning" size={16} color="#ffd93d" /> Nutrient Gaps
+                <Ionicons name="warning" size={16} color="#ffd93d" /> {t('dash_nutrient_gaps')}
               </Text>
               {getNutrientGaps().map((gap, i) => (
                 <View key={i} style={[styles.alertCard, { borderLeftColor: gap.color }]}>
                   <Ionicons name={gap.icon as any} size={20} color={gap.color} />
                   <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>Low {gap.name}</Text>
+                    <Text style={styles.alertTitle}>{t('dash_low')} {gap.name}</Text>
                     <Text style={styles.alertTip}>{gap.tip}</Text>
                   </View>
                 </View>
@@ -495,10 +498,10 @@ export default function DashboardScreen() {
           <View style={styles.elementsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                <Ionicons name="flask" size={16} color="#00d4ff" /> Elemental Intake
+                <Ionicons name="flask" size={16} color="#00d4ff" /> {t('dash_elemental')}
               </Text>
               <TouchableOpacity onPress={() => router.push('/progress')}>
-                <Text style={styles.seeAll}>See Charts</Text>
+                <Text style={styles.seeAll}>{t('dash_see_charts')}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.elementsScroll}>
@@ -515,23 +518,23 @@ export default function DashboardScreen() {
               <View style={styles.streakFireGlow} />
               <Ionicons name="flame" size={32} color="#ff6b6b" />
               <Text style={styles.streakCount}>{dashboard?.routines?.streak_days || 0}</Text>
-              <Text style={styles.streakLabel}>Day Streak</Text>
+              <Text style={styles.streakLabel}>{t('dash_day_streak')}</Text>
             </View>
             <View style={styles.streakCard}>
               <Ionicons name="restaurant" size={32} color="#4ecdc4" />
               <Text style={styles.streakCount}>{dashboard?.nutrition?.meals_count || 0}</Text>
-              <Text style={styles.streakLabel}>Meals Today</Text>
+              <Text style={styles.streakLabel}>{t('dash_meals_today')}</Text>
             </View>
             <View style={styles.streakCard}>
               <Ionicons name="checkmark-done" size={32} color="#a29bfe" />
               <Text style={styles.streakCount}>{dashboard?.routines?.completed || 0}/{dashboard?.routines?.total || 0}</Text>
-              <Text style={styles.streakLabel}>Routines</Text>
+              <Text style={styles.streakLabel}>{t('dash_routines')}</Text>
             </View>
           </View>
 
           {/* ── Macros Breakdown ── */}
           <View style={styles.macrosCard}>
-            <Text style={styles.sectionTitle}>Macro Breakdown</Text>
+            <Text style={styles.sectionTitle}>{t('dash_macro_breakdown')}</Text>
             <View style={styles.macroRow}>
               {[
                 { label: 'Carbs', val: dashboard?.nutrition?.carbs?.current || 0, color: '#ffd93d', icon: 'leaf' },
@@ -553,9 +556,9 @@ export default function DashboardScreen() {
           {(dashboard?.recent_meals || []).length > 0 && (
             <View style={styles.recentSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Meals</Text>
+                <Text style={styles.sectionTitle}>{t('dash_recent_meals')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/track')}>
-                  <Text style={styles.seeAll}>View All</Text>
+                  <Text style={styles.seeAll}>{t('dash_view_all')}</Text>
                 </TouchableOpacity>
               </View>
               {dashboard.recent_meals.slice(0, 3).map((meal: any, i: number) => (
@@ -577,7 +580,7 @@ export default function DashboardScreen() {
           {(dashboard?.insights || []).length > 0 && (
             <View style={styles.insightsSection}>
               <Text style={styles.sectionTitle}>
-                <Ionicons name="sparkles" size={16} color="#a29bfe" /> AI Insights
+                <Ionicons name="sparkles" size={16} color="#a29bfe" /> {t('dash_ai_insights')}
               </Text>
               {dashboard.insights.slice(0, 3).map((ins: any, i: number) => (
                 <View key={i} style={styles.insightCard}>
@@ -594,10 +597,10 @@ export default function DashboardScreen() {
           {/* ── Quick Nav Grid ── */}
           <View style={styles.navGrid}>
             {[
-              { label: 'Molecular', icon: 'flask', color: '#00ff88', route: '/molecular-engine' },
-              { label: 'Sequence', icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
-              { label: 'Recipes', icon: 'restaurant', color: '#4ecdc4', route: '/recipes' },
-              { label: 'AI Coach', icon: 'sparkles', color: '#fd79a8', route: '/ai-home' },
+              { label: t('dash_molecular'), icon: 'flask', color: '#00ff88', route: '/molecular-engine' },
+              { label: t('dash_sequence'), icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
+              { label: t('dash_recipes'), icon: 'restaurant', color: '#4ecdc4', route: '/recipes' },
+              { label: t('dash_ai_coach'), icon: 'sparkles', color: '#fd79a8', route: '/ai-home' },
             ].map((item) => (
               <TouchableOpacity key={item.label} style={styles.navItem} onPress={() => router.push(item.route as any)}>
                 <View style={[styles.navIcon, { backgroundColor: item.color + '15' }]}>
@@ -611,27 +614,27 @@ export default function DashboardScreen() {
           {/* ── Share & Social ── */}
           <View style={styles.shareSection}>
             <Text style={styles.sectionTitle}>
-              <Ionicons name="share-social" size={16} color="#a29bfe" /> Share Progress
+              <Ionicons name="share-social" size={16} color="#a29bfe" /> {t('dash_share_progress')}
             </Text>
             <View style={styles.shareRow}>
               <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareDailyReport}>
                 <View style={[styles.shareIconBg, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
                   <Ionicons name="today" size={22} color="#00d4ff" />
                 </View>
-                <Text style={styles.shareCardLabel}>Daily Report</Text>
-                <Text style={styles.shareCardSub}>Share today's nutrition</Text>
+                <Text style={styles.shareCardLabel}>{t('dash_daily_report')}</Text>
+                <Text style={styles.shareCardSub}>{t('dash_share_today_desc')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareWeeklyReport}>
                 <View style={[styles.shareIconBg, { backgroundColor: 'rgba(162, 155, 254, 0.15)' }]}>
                   <Ionicons name="calendar" size={22} color="#a29bfe" />
                 </View>
-                <Text style={styles.shareCardLabel}>Weekly Report</Text>
-                <Text style={styles.shareCardSub}>Share your weekly stats</Text>
+                <Text style={styles.shareCardLabel}>{t('dash_weekly_report')}</Text>
+                <Text style={styles.shareCardSub}>{t('dash_share_weekly_desc')}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.shareBadgesBtn} onPress={() => router.push('/badges')}>
               <Ionicons name="trophy" size={20} color="#ffd93d" />
-              <Text style={styles.shareBadgesText}>View & Share Badges</Text>
+              <Text style={styles.shareBadgesText}>{t('dash_view_badges')}</Text>
               <Ionicons name="arrow-forward" size={16} color="#666" />
             </TouchableOpacity>
           </View>
@@ -645,7 +648,7 @@ export default function DashboardScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {selectedFood ? 'Customize Meal' : 'Quick Add Meal'}
+                {selectedFood ? t('dash_customize_meal') : t('dash_quick_add_meal')}
               </Text>
               <TouchableOpacity onPress={() => {
                 if (selectedFood) { setSelectedFood(null); }
@@ -659,7 +662,7 @@ export default function DashboardScreen() {
               <>
                 <View style={styles.searchRow}>
                   <TextInput style={styles.searchInput} value={quickSearch} onChangeText={setQuickSearch}
-                    placeholder="Search food... (e.g. chicken)" placeholderTextColor="#666"
+                    placeholder={t('dash_search_food')} placeholderTextColor="#666"
                     onSubmitEditing={quickSearchFoods} returnKeyType="search" autoFocus />
                   <TouchableOpacity style={styles.searchBtn} onPress={quickSearchFoods}>
                     <Ionicons name="search" size={20} color="#fff" />
@@ -688,7 +691,7 @@ export default function DashboardScreen() {
                 </View>
 
                 {/* Portion Amount + Unit */}
-                <Text style={styles.mealFormLabel}>Portion</Text>
+                <Text style={styles.mealFormLabel}>{t('nutr_portion_label')}</Text>
                 <View style={styles.portionRow}>
                   <TextInput
                     style={styles.portionInput}
@@ -710,15 +713,15 @@ export default function DashboardScreen() {
                 </View>
 
                 {/* Cooking Method */}
-                <Text style={styles.mealFormLabel}>Cooking Method</Text>
+                <Text style={styles.mealFormLabel}>{t('nutr_cooking')}</Text>
                 <View style={styles.cookingGrid}>
                   {[
-                    { id: 'raw', label: 'Raw', icon: 'leaf' },
-                    { id: 'boiling', label: 'Boiled', icon: 'water' },
-                    { id: 'steaming', label: 'Steamed', icon: 'cloud' },
-                    { id: 'frying', label: 'Fried', icon: 'flame' },
-                    { id: 'baking', label: 'Baked', icon: 'pizza' },
-                    { id: 'grilling', label: 'Grilled', icon: 'bonfire' },
+                    { id: 'raw', label: t('nutr_raw'), icon: 'leaf' },
+                    { id: 'boiling', label: t('nutr_boiled'), icon: 'water' },
+                    { id: 'steaming', label: t('nutr_steamed'), icon: 'cloud' },
+                    { id: 'frying', label: t('nutr_fried'), icon: 'flame' },
+                    { id: 'baking', label: t('nutr_baked'), icon: 'pizza' },
+                    { id: 'grilling', label: t('nutr_grilled'), icon: 'bonfire' },
                   ].map((m) => (
                     <TouchableOpacity key={m.id}
                       style={[styles.cookingOption, cookingMethod === m.id && styles.cookingOptionActive]}
@@ -733,7 +736,7 @@ export default function DashboardScreen() {
                 </View>
 
                 {/* Meal Type (auto-detected) */}
-                <Text style={styles.mealFormLabel}>Meal Type: <Text style={{ color: '#00d4ff' }}>{getAutoMealType()}</Text></Text>
+                <Text style={styles.mealFormLabel}>{t('dash_meal_type')}: <Text style={{ color: '#00d4ff' }}>{getAutoMealType()}</Text></Text>
 
                 {/* Confirm Button */}
                 <TouchableOpacity

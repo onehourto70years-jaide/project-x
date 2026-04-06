@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearCacheForKey, CacheKeys } from '../src/cache';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -37,6 +38,7 @@ const QUICK_PROMPTS = [
 
 export default function AIChatScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -218,9 +220,9 @@ export default function AIChatScreen() {
             <Ionicons name="flask" size={20} color="#00d4ff" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>NutriOS Coach</Text>
+            <Text style={styles.headerTitle}>{t('ai_coach')}</Text>
             <Text style={styles.headerStatus}>
-              {loading ? 'Thinking...' : 'AI-powered nutrition advisor'}
+              {loading ? t('ai_thinking') : t('ai_status')}
             </Text>
           </View>
         </View>
@@ -251,7 +253,7 @@ export default function AIChatScreen() {
             {/* Quick Prompts (only when no conversation yet) */}
             {messages.length <= 1 && !loading && (
               <View style={styles.quickPromptsSection}>
-                <Text style={styles.quickPromptsTitle}>Try asking:</Text>
+                <Text style={styles.quickPromptsTitle}>{t('ai_try_asking')}</Text>
                 {QUICK_PROMPTS.map((p, i) => (
                   <TouchableOpacity key={i} style={styles.quickPromptCard} onPress={() => sendMessage(p.text)}>
                     <Ionicons name={p.icon as any} size={18} color="#00d4ff" />
@@ -268,7 +270,7 @@ export default function AIChatScreen() {
         <View style={styles.inputArea}>
           <View style={styles.inputContainer}>
             <TextInput style={styles.input} value={input} onChangeText={setInput}
-              placeholder="Ask about nutrition, foods, goals..."
+              placeholder={t('ai_placeholder')}
               placeholderTextColor="#555" multiline maxLength={500}
               onSubmitEditing={() => sendMessage()} returnKeyType="send" />
             <TouchableOpacity style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}

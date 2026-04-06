@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -34,6 +35,7 @@ const ROUTINE_TYPES = [
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export default function RoutinesScreen() {
+  const { t } = useLanguage();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [todayRoutines, setTodayRoutines] = useState<Routine[]>([]);
   const [streak, setStreak] = useState(0);
@@ -162,7 +164,7 @@ export default function RoutinesScreen() {
     }));
   };
 
-  const getRoutineType = (typeId: string) => ROUTINE_TYPES.find(t => t.id === typeId) || ROUTINE_TYPES[4];
+  const getRoutineType = (typeId: string) => ROUTINE_TYPES.find(rt => rt.id === typeId) || ROUTINE_TYPES[4];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -173,8 +175,8 @@ export default function RoutinesScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Routine OS</Text>
-            <Text style={styles.subtitle}>Your daily operating system</Text>
+            <Text style={styles.title}>{t('rout_title')}</Text>
+            <Text style={styles.subtitle}>{t('rout_subtitle')}</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setShowCreateModal(true)}>
             <Ionicons name="add" size={24} color="#fff" />
@@ -187,14 +189,14 @@ export default function RoutinesScreen() {
             <Ionicons name="flame" size={28} color="#ff6b6b" />
           </View>
           <View style={styles.streakInfo}>
-            <Text style={styles.streakValue}>{streak} Day Streak</Text>
-            <Text style={styles.streakLabel}>Keep your momentum going!</Text>
+            <Text style={styles.streakValue}>{streak} {t('rout_streak')}</Text>
+            <Text style={styles.streakLabel}>{t('rout_keep_going')}</Text>
           </View>
         </View>
 
         {/* Today's Routines */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Schedule</Text>
+          <Text style={styles.sectionTitle}>{t('rout_today_schedule')}</Text>
           {todayRoutines.length > 0 ? (
             todayRoutines.map((routine) => {
               const type = getRoutineType(routine.type);
@@ -241,9 +243,9 @@ export default function RoutinesScreen() {
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="calendar-outline" size={48} color="#444" />
-              <Text style={styles.emptyText}>No routines for today</Text>
+              <Text style={styles.emptyText}>{t('rout_no_routines')}</Text>
               <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateModal(true)}>
-                <Text style={styles.createBtnText}>Create Your First Routine</Text>
+                <Text style={styles.createBtnText}>{t('rout_create_first')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -252,7 +254,7 @@ export default function RoutinesScreen() {
         {/* All Routines */}
         {routines.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>All Routines ({routines.length})</Text>
+            <Text style={styles.sectionTitle}>{t('rout_all')} ({routines.length})</Text>
             {routines.map((routine) => {
               const type = getRoutineType(routine.type);
               return (
@@ -264,7 +266,7 @@ export default function RoutinesScreen() {
                     <Text style={styles.routineItemName}>{routine.name}</Text>
                     <Text style={styles.routineItemDays}>{routine.days.map(d => d.charAt(0).toUpperCase()).join(' ')}</Text>
                   </View>
-                  <Text style={styles.routineItemTasks}>{routine.tasks.length} tasks</Text>
+                  <Text style={styles.routineItemTasks}>{routine.tasks.length} {t('rout_tasks')}</Text>
                 </View>
               );
             })}
@@ -277,7 +279,7 @@ export default function RoutinesScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create Routine</Text>
+              <Text style={styles.modalTitle}>{t('rout_create')}</Text>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
                 <Ionicons name="close" size={24} color="#fff" />
               </TouchableOpacity>

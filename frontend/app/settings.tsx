@@ -225,7 +225,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('set_title')}</Text>
         <TouchableOpacity onPress={saveAll} disabled={saving} style={[styles.saveHeaderBtn, { backgroundColor: theme.accent }]}>
           <Text style={styles.saveHeaderText}>{saving ? '...' : 'Save'}</Text>
         </TouchableOpacity>
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Appearance Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Appearance</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_appearance')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           <View style={styles.switchRow}>
             <View style={styles.switchLeft}>
@@ -269,7 +269,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Profile Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Profile</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_profile')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {/* Weight & Height in row */}
           <View style={styles.profileRow}>
@@ -365,7 +365,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Daily Goals Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Daily Goals</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_daily_goals')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {[
             { key: 'daily_calorie_goal', label: 'Calorie Goal', unit: 'kcal', icon: 'flame', color: '#ff6b6b' },
@@ -391,7 +391,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Notifications Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Notifications</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_notifications')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {/* Master Toggle */}
           <View style={styles.switchRow}>
@@ -401,7 +401,7 @@ export default function SettingsScreen() {
               </View>
               <View>
                 <Text style={[styles.switchLabel, { color: theme.text }]}>All Notifications</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Master toggle for all alerts</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_notif_master')}</Text>
               </View>
             </View>
             <Switch value={settings.notifications_enabled}
@@ -417,8 +417,8 @@ export default function SettingsScreen() {
                 <Ionicons name="water" size={18} color="#00d4ff" />
               </View>
               <View>
-                <Text style={[styles.switchLabel, { color: theme.text }]}>Water Reminders</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Every 2 hours, 8am–8pm</Text>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_water_reminders')}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_water_every_2h')}</Text>
               </View>
             </View>
             <Switch value={settings.water_reminder_enabled && settings.notifications_enabled}
@@ -435,8 +435,8 @@ export default function SettingsScreen() {
                 <Ionicons name="restaurant" size={18} color="#ff6b6b" />
               </View>
               <View>
-                <Text style={[styles.switchLabel, { color: theme.text }]}>Meal Reminders</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Breakfast, Lunch, Dinner</Text>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_meal_reminders')}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_meal_times')}</Text>
               </View>
             </View>
             <Switch value={settings.meal_reminder_enabled && settings.notifications_enabled}
@@ -453,8 +453,8 @@ export default function SettingsScreen() {
                 <Ionicons name="time" size={18} color="#a29bfe" />
               </View>
               <View>
-                <Text style={[styles.switchLabel, { color: theme.text }]}>Routine Reminders</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>Morning & evening routines</Text>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_routine_reminders')}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_routine_times')}</Text>
               </View>
             </View>
             <Switch value={settings.routine_reminder_enabled && settings.notifications_enabled}
@@ -485,12 +485,12 @@ export default function SettingsScreen() {
             }}
           >
             <Ionicons name="send" size={16} color={theme.accent} />
-            <Text style={[styles.testNotifText, { color: theme.accent }]}>Send Test Notification</Text>
+            <Text style={[styles.testNotifText, { color: theme.accent }]}>{t('set_test_notif')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Subscription Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Subscription</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_subscription')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {paymentStatus?.is_premium ? (
             <>
@@ -585,7 +585,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Account Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Account</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_account')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           <View style={styles.accountInfo}>
             <View style={[styles.avatar, { backgroundColor: theme.accent }]}>
@@ -606,11 +606,11 @@ export default function SettingsScreen() {
           ]);
         }}>
           <Ionicons name="log-out" size={20} color={theme.danger} />
-          <Text style={[styles.logoutText, { color: theme.danger }]}>Sign Out</Text>
+          <Text style={[styles.logoutText, { color: theme.danger }]}>{t('set_logout')}</Text>
         </TouchableOpacity>
 
         {/* Danger Zone */}
-        <Text style={[styles.sectionTitle, { color: '#ff6b6b', marginTop: 24 }]}>Danger Zone</Text>
+        <Text style={[styles.sectionTitle, { color: '#ff6b6b', marginTop: 24 }]}>{t('set_danger_zone')}</Text>
         <View style={[styles.card, { backgroundColor: 'rgba(255, 59, 48, 0.06)', borderColor: 'rgba(255, 59, 48, 0.2)' }]}>
           <View style={styles.dangerInfo}>
             <Ionicons name="warning" size={20} color="#ff3b30" />
@@ -625,7 +625,7 @@ export default function SettingsScreen() {
           >
             <Ionicons name="trash" size={18} color="#fff" />
             <Text style={styles.deleteAccountText}>
-              {deleting ? 'Deleting...' : 'Delete Account'}
+              {deleting ? t('set_deleting') : t('set_delete_account')}
             </Text>
           </TouchableOpacity>
         </View>

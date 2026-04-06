@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const handleGoogleLogin = async () => {
     try {
@@ -44,26 +46,26 @@ export default function LoginScreen() {
             <Ionicons name="flask" size={60} color="#00d4ff" />
           </View>
           <Text style={styles.title}>NutriOS</Text>
-          <Text style={styles.subtitle}>Your Personal Nutrition Operating System</Text>
+          <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
         </View>
 
         {/* Features */}
         <View style={styles.featuresSection}>
           <View style={styles.featureItem}>
             <Ionicons name="analytics" size={24} color="#00d4ff" />
-            <Text style={styles.featureText}>Track elemental composition</Text>
+            <Text style={styles.featureText}>{t('login_feature_1')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="nutrition" size={24} color="#00ff88" />
-            <Text style={styles.featureText}>Analyze vitamins & minerals</Text>
+            <Text style={styles.featureText}>{t('login_feature_2')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="flame" size={24} color="#ff6b6b" />
-            <Text style={styles.featureText}>Optimize cooking methods</Text>
+            <Text style={styles.featureText}>{t('login_feature_3')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="bulb" size={24} color="#ffd93d" />
-            <Text style={styles.featureText}>AI-powered recommendations</Text>
+            <Text style={styles.featureText}>{t('login_feature_4')}</Text>
           </View>
         </View>
 
@@ -71,12 +73,11 @@ export default function LoginScreen() {
         <View style={styles.loginSection}>
           <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
             <Ionicons name="logo-google" size={24} color="#fff" />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            <Text style={styles.googleButtonText}>{t('login_google')}</Text>
           </TouchableOpacity>
           
           <Text style={styles.disclaimer}>
-            By continuing, you agree to our Terms of Service and Privacy Policy.
-            This app provides nutritional information only and is not medical advice.
+            {t('login_disclaimer')}
           </Text>
         </View>
       </View>

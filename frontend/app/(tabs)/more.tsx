@@ -3,54 +3,56 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ale
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
+import { useLanguage } from '../../src/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const MENU_SECTIONS = [
-  {
-    title: 'Tracking',
-    items: [
-      { id: 'track', label: 'Nutrition Log', icon: 'analytics', color: '#00d4ff', route: '/(tabs)/track' },
-      { id: 'favorites', label: 'Food Favorites', icon: 'heart', color: '#ff6b6b', route: '/favorites' },
-      { id: 'scanner', label: 'Barcode Scanner', icon: 'barcode', color: '#ffd93d', route: '/scanner' },
-      { id: 'progress', label: 'Progress Charts', icon: 'stats-chart', color: '#4ecdc4', route: '/progress' },
-    ]
-  },
-  {
-    title: 'Planning',
-    items: [
-      { id: 'recipes', label: 'Recipe Builder', icon: 'restaurant', color: '#a29bfe', route: '/recipes' },
-      { id: 'mealplan', label: 'Meal Planner', icon: 'calendar', color: '#fd79a8', route: '/meal-plan' },
-    ]
-  },
-  {
-    title: 'AI & Insights',
-    items: [
-      { id: 'coach', label: 'AI Nutrition Coach', icon: 'sparkles', color: '#00d4ff', route: '/ai-home' },
-      { id: 'sequence', label: 'Sequence Optimizer', icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
-      { id: 'ai', label: 'AI Recommendations', icon: 'bulb', color: '#ffd93d', route: '/(tabs)/ai' },
-    ]
-  },
-  {
-    title: 'Social & Achievements',
-    items: [
-      { id: 'badges', label: 'Badges & Achievements', icon: 'trophy', color: '#ffd93d', route: '/badges' },
-      { id: 'share', label: 'Share Daily Report', icon: 'share-social', color: '#00d4ff', route: 'share' },
-    ]
-  },
-  {
-    title: 'Account',
-    items: [
-      { id: 'settings', label: 'Settings', icon: 'settings', color: '#888', route: '/settings' },
-      { id: 'profile', label: 'Profile', icon: 'person', color: '#a29bfe', route: '/(tabs)/profile' },
-    ]
-  }
-];
-
 export default function MoreScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
+
+  const MENU_SECTIONS = [
+    {
+      title: t('more_tracking'),
+      items: [
+        { id: 'track', label: t('more_nutrition_log'), icon: 'analytics', color: '#00d4ff', route: '/(tabs)/track' },
+        { id: 'favorites', label: t('more_food_favorites'), icon: 'heart', color: '#ff6b6b', route: '/favorites' },
+        { id: 'scanner', label: t('more_barcode_scanner'), icon: 'barcode', color: '#ffd93d', route: '/scanner' },
+        { id: 'progress', label: t('more_progress_charts'), icon: 'stats-chart', color: '#4ecdc4', route: '/progress' },
+      ]
+    },
+    {
+      title: t('more_planning'),
+      items: [
+        { id: 'recipes', label: t('more_recipe_builder'), icon: 'restaurant', color: '#a29bfe', route: '/recipes' },
+        { id: 'mealplan', label: t('more_meal_planner'), icon: 'calendar', color: '#fd79a8', route: '/meal-plan' },
+      ]
+    },
+    {
+      title: t('more_ai_insights'),
+      items: [
+        { id: 'coach', label: t('more_ai_coach'), icon: 'sparkles', color: '#00d4ff', route: '/ai-home' },
+        { id: 'sequence', label: t('more_sequence_optimizer'), icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
+        { id: 'ai', label: t('more_ai_recommendations'), icon: 'bulb', color: '#ffd93d', route: '/(tabs)/ai' },
+      ]
+    },
+    {
+      title: t('more_social'),
+      items: [
+        { id: 'badges', label: t('more_badges'), icon: 'trophy', color: '#ffd93d', route: '/badges' },
+        { id: 'share', label: t('more_share_report'), icon: 'share-social', color: '#00d4ff', route: 'share' },
+      ]
+    },
+    {
+      title: t('more_account'),
+      items: [
+        { id: 'settings', label: t('more_settings'), icon: 'settings', color: '#888', route: '/settings' },
+        { id: 'profile', label: t('more_profile'), icon: 'person', color: '#a29bfe', route: '/(tabs)/profile' },
+      ]
+    }
+  ];
 
   const handleItemPress = async (item: any) => {
     if (item.route === 'share') {
@@ -123,7 +125,7 @@ export default function MoreScreen() {
         {/* Sign Out */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out" size={20} color="#ff6b6b" />
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Text style={styles.logoutText}>{t('set_logout')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.version}>NutriOS v3.0.0</Text>
