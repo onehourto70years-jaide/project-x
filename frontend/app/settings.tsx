@@ -456,6 +456,31 @@ export default function SettingsScreen() {
               disabled={!settings.notifications_enabled}
               trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
           </View>
+          {/* Test Notification */}
+          <TouchableOpacity
+            style={[styles.testNotifBtn, { backgroundColor: theme.bgInput }]}
+            onPress={async () => {
+              try {
+                const token = await AsyncStorage.getItem('session_token');
+                if (!token) return;
+                const res = await fetch(`${BACKEND_URL}/api/notifications/test`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                  Alert.alert('Sent!', 'A test notification has been sent to your device.');
+                } else {
+                  const err = await res.json();
+                  Alert.alert('Info', err.detail || 'Could not send test notification. Make sure notifications are enabled on your device.');
+                }
+              } catch (e) {
+                Alert.alert('Note', 'Push notifications work on physical devices only. They do not work in the web preview.');
+              }
+            }}
+          >
+            <Ionicons name="send" size={16} color={theme.accent} />
+            <Text style={[styles.testNotifText, { color: theme.accent }]}>Send Test Notification</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Subscription Section */}
@@ -674,4 +699,6 @@ const styles = StyleSheet.create({
   disclaimer: { fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16 },
   tosLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 24, paddingVertical: 8 },
   tosText: { fontSize: 13, fontWeight: '500', marginLeft: 6, textDecorationLine: 'underline' },
+  testNotifBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, marginTop: 12 },
+  testNotifText: { fontSize: 13, fontWeight: '600', marginLeft: 8 },
 });

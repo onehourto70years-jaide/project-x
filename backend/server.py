@@ -14,6 +14,7 @@ import json
 import asyncio
 import stripe
 import resend
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1860,9 +1861,340 @@ async def suggest_food_combinations(request: Request, user: User = Depends(requi
 
     return result
 
+# ================== PUSH NOTIFICATIONS ==================
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+async def send_expo_push(tokens: list, title: str, body: str, data: dict = None):
+    """Send push notifications via Expo Push API (non-blocking)."""
+    messages = []
+    for token in tokens:
+        if not token or not token.startswith("ExponentPushToken"):
+            continue
+        msg = {"to": token, "sound": "default", "title": title, "body": body}
+        if data:
+            msg["data"] = data
+        messages.append(msg)
+
+    if not messages:
+        return
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client_http:
+            resp = await client_http.post(EXPO_PUSH_URL, json=messages)
+            if resp.status_code == 200:
+                logger.info(f"Push notifications sent to {len(messages)} device(s)")
+            else:
+                logger.error(f"Expo push error: {resp.status_code} - {resp.text}")
+    except Exception as e:
+        logger.error(f"Push notification error: {e}")
+
+
+@api_router.post("/notifications/register-token")
+async def register_push_token(request: Request, user: User = Depends(require_user)):
+    """Register an Expo push token for the authenticated user."""
+    body = await request.json()
+    push_token = body.get("push_token")
+    if not push_token:
+        raise HTTPException(status_code=400, detail="push_token required")
+
+    await db.push_tokens.update_one(
+        {"user_id": user.user_id},
+        {"$set": {
+            "user_id": user.user_id,
+            "push_token": push_token,
+            "platform": body.get("platform", "unknown"),
+            "updated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True
+    )
+    logger.info(f"Push token registered for user {user.user_id}")
+    return {"status": "registered"}
+
+
+@api_router.delete("/notifications/unregister-token")
+async def unregister_push_token(user: User = Depends(require_user)):
+    """Remove push token when user logs out."""
+    await db.push_tokens.delete_many({"user_id": user.user_id})
+    return {"status": "unregistered"}
+
+
+@api_router.post("/notifications/test")
+async def send_test_notification(user: User = Depends(require_user)):
+    """Send a test push notification to the current user."""
+    token_doc = await db.push_tokens.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not token_doc or not token_doc.get("push_token"):
+        raise HTTPException(status_code=404, detail="No push token registered. Enable notifications on your device.")
+
+    await send_expo_push(
+        [token_doc["push_token"]],
+        "🧬 NutriOS Test",
+        "Push notifications are working! You'll receive water & meal reminders.",
+        {"type": "test"}
+    )
+    return {"status": "sent", "message": "Test notification sent to your device"}
+
+
+@api_router.get("/notifications/status")
+async def get_notification_status(user: User = Depends(require_user)):
+    """Check if user has a push token registered and their notification preferences."""
+    token_doc = await db.push_tokens.find_one({"user_id": user.user_id}, {"_id": 0})
+    settings = await db.user_settings.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+
+    return {
+        "push_token_registered": bool(token_doc and token_doc.get("push_token")),
+        "notifications_enabled": settings.get("notifications_enabled", True),
+        "water_reminder_enabled": settings.get("water_reminder_enabled", True),
+        "meal_reminder_enabled": settings.get("meal_reminder_enabled", True),
+        "routine_reminder_enabled": settings.get("routine_reminder_enabled", True),
+    }
+
+
+# ─── Scheduled Push Notification Jobs ───
+
+async def send_scheduled_notifications(notification_type: str, title: str, body: str):
+    """Send push notifications to all users who have the given notification type enabled."""
+    try:
+        # Get all registered tokens
+        all_tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(10000)
+        if not all_tokens:
+            return
+
+        for token_doc in all_tokens:
+            user_id = token_doc.get("user_id")
+            push_token = token_doc.get("push_token")
+            if not push_token:
+                continue
+
+            # Check user's notification settings
+            settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+            if not settings.get("notifications_enabled", True):
+                continue
+
+            # Check specific notification type
+            if notification_type == "water" and not settings.get("water_reminder_enabled", True):
+                continue
+            elif notification_type == "meal" and not settings.get("meal_reminder_enabled", True):
+                continue
+            elif notification_type == "routine" and not settings.get("routine_reminder_enabled", True):
+                continue
+
+            await send_expo_push([push_token], title, body, {"type": notification_type})
+
+    except Exception as e:
+        logger.error(f"Scheduled notification error ({notification_type}): {e}")
+
+
+# ─── APScheduler Setup ───
+
+scheduler = AsyncIOScheduler(timezone="UTC")
+
+# Water reminders: every 2 hours from 6am-8pm UTC
+for hour in range(6, 21, 2):
+    scheduler.add_job(
+        send_scheduled_notifications,
+        'cron', hour=hour, minute=0,
+        args=["water", "💧 Stay Hydrated!", "Time to drink water. Your body needs it for optimal nutrient absorption!"],
+        id=f"water_reminder_{hour}",
+        replace_existing=True
+    )
+
+# Meal reminders: breakfast 7am, lunch 12pm, dinner 6pm UTC
+meal_reminders = [
+    (7, 0, "🍳 Breakfast Time", "Start your day with a nutrient-rich breakfast!"),
+    (12, 0, "🥗 Lunch Time", "Don't forget to log your lunch for accurate tracking!"),
+    (18, 0, "🍽️ Dinner Time", "Plan a balanced dinner to hit your daily goals!"),
+]
+for hour, minute, title, body_text in meal_reminders:
+    scheduler.add_job(
+        send_scheduled_notifications,
+        'cron', hour=hour, minute=minute,
+        args=["meal", title, body_text],
+        id=f"meal_reminder_{hour}",
+        replace_existing=True
+    )
+
+# Routine reminders: morning 6:30am, evening 9pm UTC
+routine_reminders = [
+    (6, 30, "🌅 Morning Routine", "Time to start your morning routine!"),
+    (21, 0, "🌙 Evening Routine", "Wind down with your evening routine."),
+]
+for hour, minute, title, body_text in routine_reminders:
+    scheduler.add_job(
+        send_scheduled_notifications,
+        'cron', hour=hour, minute=minute,
+        args=["routine", title, body_text],
+        id=f"routine_reminder_{hour}_{minute}",
+        replace_existing=True
+    )
+
+# Daily insight notification at 8pm UTC
+async def send_daily_summary_notification():
+    """Send a daily summary push to all users at end of day."""
+    try:
+        all_tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(10000)
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        for token_doc in all_tokens:
+            user_id = token_doc.get("user_id")
+            push_token = token_doc.get("push_token")
+            if not push_token:
+                continue
+
+            settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+            if not settings.get("notifications_enabled", True):
+                continue
+
+            # Get today's meal count for this user
+            meals_count = await db.meals.count_documents({
+                "user_id": user_id,
+                "date": today
+            })
+
+            if meals_count > 0:
+                await send_expo_push(
+                    [push_token],
+                    "📊 Daily Summary Ready",
+                    f"You logged {meals_count} meal(s) today. Check your elemental report!",
+                    {"type": "summary", "screen": "badges"}
+                )
+    except Exception as e:
+        logger.error(f"Daily summary notification error: {e}")
+
+scheduler.add_job(
+    send_daily_summary_notification,
+    'cron', hour=20, minute=0,
+    id="daily_summary",
+    replace_existing=True
+)
+
+# Badge achievement notification helper
+async def notify_badge_earned(user_id: str, badge_name: str):
+    """Send a push when a user earns a new badge."""
+    token_doc = await db.push_tokens.find_one({"user_id": user_id}, {"_id": 0})
+    if not token_doc or not token_doc.get("push_token"):
+        return
+    settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    if not settings.get("notifications_enabled", True):
+        return
+    await send_expo_push(
+        [token_doc["push_token"]],
+        "🏆 New Badge Earned!",
+        f"Congratulations! You've earned the '{badge_name}' badge!",
+        {"type": "badge", "screen": "badges"}
+    )
+
+
+# ================== ENHANCED SOCIAL SHARING ==================
+
+@api_router.post("/share/badge")
+async def share_badge(request: Request, user: User = Depends(require_user)):
+    """Generate shareable text for a specific badge achievement."""
+    body = await request.json()
+    badge_id = body.get("badge_id")
+
+    if not badge_id:
+        raise HTTPException(status_code=400, detail="badge_id required")
+
+    # Find the badge definition
+    badge_def = next((b for b in BADGE_DEFINITIONS if b["id"] == badge_id), None)
+    if not badge_def:
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    # Check if user earned it
+    earned = await db.badges.find_one({"user_id": user.user_id, "badge_id": badge_id}, {"_id": 0})
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    name = user_doc.get("name", "Someone")
+
+    if earned:
+        share_text = f"🏆 {name} earned the '{badge_def['name']}' badge on NutriOS!\n\n"
+        share_text += f"📝 {badge_def['description']}\n\n"
+        share_text += "🧬 Track your nutrition at the elemental level with NutriOS!"
+    else:
+        share_text = f"🎯 {name} is working towards the '{badge_def['name']}' badge on NutriOS!\n\n"
+        share_text += f"📝 {badge_def['description']}\n\n"
+        share_text += "🧬 Join me on NutriOS - Your Nutrition Operating System!"
+
+    return {"text": share_text, "badge": badge_def, "earned": bool(earned)}
+
+
+@api_router.post("/share/weekly-report")
+async def share_weekly_report(user: User = Depends(require_user)):
+    """Generate a shareable weekly nutrition report."""
+    today = datetime.now(timezone.utc)
+    week_ago = today - timedelta(days=7)
+
+    # Gather weekly data
+    meals = await db.meals.find({
+        "user_id": user.user_id,
+        "created_at": {"$gte": week_ago}
+    }, {"_id": 0}).to_list(1000)
+
+    water_logs = await db.water_logs.find({
+        "user_id": user.user_id,
+        "created_at": {"$gte": week_ago}
+    }, {"_id": 0}).to_list(1000)
+
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    name = user_doc.get("name", "User")
+
+    total_meals = len(meals)
+    total_calories = sum(m.get("nutrients", {}).get("energy_kcal", 0) for m in meals)
+    total_protein = sum(m.get("nutrients", {}).get("protein_g", 0) for m in meals)
+    total_water = sum(w.get("amount_ml", 0) for w in water_logs)
+    unique_foods = len(set(m.get("food_name", "") for m in meals))
+
+    # Aggregate elements
+    weekly_elements = {}
+    for meal in meals:
+        for el, val in meal.get("elements", {}).items():
+            weekly_elements[el] = weekly_elements.get(el, 0) + val
+
+    # Get badges earned
+    badges_earned = await db.badges.count_documents({"user_id": user.user_id})
+
+    share_text = f"📊 {name}'s NutriOS Weekly Report\n"
+    share_text += f"{'─' * 30}\n\n"
+    share_text += f"🍽️ Meals logged: {total_meals}\n"
+    share_text += f"🔥 Calories: {int(total_calories)} kcal\n"
+    share_text += f"💪 Protein: {int(total_protein)}g\n"
+    share_text += f"💧 Water: {total_water}ml ({total_water / 1000:.1f}L)\n"
+    share_text += f"🧪 Unique foods: {unique_foods}\n"
+    share_text += f"🏆 Badges earned: {badges_earned}\n\n"
+
+    if weekly_elements:
+        share_text += "⚛️ Elemental Intake:\n"
+        for el in ['C', 'H', 'O', 'N', 'S', 'Ca', 'Fe']:
+            val = weekly_elements.get(el, 0)
+            if val > 0:
+                share_text += f"  {el}: {val:.1f}g\n"
+        share_text += "\n"
+
+    share_text += "🧬 Tracked with NutriOS - Your Nutrition Operating System"
+
+    return {
+        "text": share_text,
+        "data": {
+            "total_meals": total_meals,
+            "total_calories": int(total_calories),
+            "total_protein": int(total_protein),
+            "total_water": total_water,
+            "unique_foods": unique_foods,
+            "badges_earned": badges_earned,
+            "elements": weekly_elements,
+        }
+    }
+
+
 app.include_router(api_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.on_event("startup")
+async def startup_event():
+    scheduler.start()
+    logger.info("Push notification scheduler started with water/meal/routine reminders")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    scheduler.shutdown()
     client.close()

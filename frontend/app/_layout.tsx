@@ -94,6 +94,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = userData.session_token || sessionId;
       await AsyncStorage.setItem('session_token', token);
       setUser(userData);
+
+      // Register push token after successful login
+      registerPushToken(token);
     } catch (error) {
       console.error('Sign in error:', error);
       throw error;
@@ -102,10 +105,40 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const registerPushToken = async (authToken: string) => {
+    try {
+      if (Platform.OS === 'web') return; // Push not supported on web
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') return;
+
+      const pushToken = await Notifications.getExpoPushTokenAsync();
+      if (pushToken?.data) {
+        await fetch(`${BACKEND_URL}/api/notifications/register-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ push_token: pushToken.data, platform: Platform.OS })
+        });
+        console.log('Push token registered:', pushToken.data);
+      }
+    } catch (e) {
+      console.log('Push token registration skipped:', e);
+    }
+  };
+
   const signOut = async () => {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (token) {
+        // Unregister push token
+        await fetch(`${BACKEND_URL}/api/notifications/unregister-token`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => {});
         await fetch(`${BACKEND_URL}/api/auth/logout`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }

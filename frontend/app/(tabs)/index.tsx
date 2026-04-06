@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated, Dimensions, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated, Dimensions, Modal, TextInput, Alert, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../_layout';
@@ -266,6 +266,39 @@ export default function DashboardScreen() {
     return gaps;
   };
 
+  const handleShareDailyReport = async () => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/share/daily-summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await Share.share({ message: data.text, title: 'My NutriOS Daily Report' });
+      } else {
+        Alert.alert('No Data', 'Start tracking meals to share your progress!');
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleShareWeeklyReport = async () => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/share/weekly-report`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await Share.share({ message: data.text, title: 'My NutriOS Weekly Report' });
+      } else {
+        Alert.alert('No Data', 'Start tracking to generate a weekly report!');
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const ELEMENT_COLORS: Record<string, string> = { C: '#00d4ff', H: '#00ff88', O: '#ff6b6b', N: '#a29bfe', S: '#ffd93d', Ca: '#4ecdc4', Fe: '#ff9f43', Mg: '#fd79a8', K: '#6c5ce7', Zn: '#e17055' };
   const ELEMENT_EFFECTS: Record<string, string[]> = { C: ['Energy metabolism'], H: ['Cell hydration'], O: ['Cellular respiration'], N: ['Protein synthesis'], S: ['Protein structure'], Ca: ['Bone health'], Fe: ['Oxygen transport'], Mg: ['Enzyme activation'], K: ['Heart rhythm'], Zn: ['Immune function'] };
 
@@ -504,6 +537,34 @@ export default function DashboardScreen() {
                 <Text style={styles.navLabel}>{item.label}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* ── Share & Social ── */}
+          <View style={styles.shareSection}>
+            <Text style={styles.sectionTitle}>
+              <Ionicons name="share-social" size={16} color="#a29bfe" /> Share Progress
+            </Text>
+            <View style={styles.shareRow}>
+              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareDailyReport}>
+                <View style={[styles.shareIconBg, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
+                  <Ionicons name="today" size={22} color="#00d4ff" />
+                </View>
+                <Text style={styles.shareCardLabel}>Daily Report</Text>
+                <Text style={styles.shareCardSub}>Share today's nutrition</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareWeeklyReport}>
+                <View style={[styles.shareIconBg, { backgroundColor: 'rgba(162, 155, 254, 0.15)' }]}>
+                  <Ionicons name="calendar" size={22} color="#a29bfe" />
+                </View>
+                <Text style={styles.shareCardLabel}>Weekly Report</Text>
+                <Text style={styles.shareCardSub}>Share your weekly stats</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.shareBadgesBtn} onPress={() => router.push('/badges')}>
+              <Ionicons name="trophy" size={20} color="#ffd93d" />
+              <Text style={styles.shareBadgesText}>View & Share Badges</Text>
+              <Ionicons name="arrow-forward" size={16} color="#666" />
+            </TouchableOpacity>
           </View>
 
         </Animated.View>
@@ -778,4 +839,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#00d4ff', borderRadius: 14, paddingVertical: 16, marginTop: 16, marginBottom: 8,
   },
   confirmLogText: { color: '#fff', fontSize: 16, fontWeight: '700', marginLeft: 8 },
+  // Share Section
+  shareSection: { paddingHorizontal: 20, marginBottom: 24 },
+  shareRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  shareCardBtn: {
+    flex: 1, backgroundColor: '#0d0d22', borderRadius: 16, padding: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)',
+  },
+  shareIconBg: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  shareCardLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  shareCardSub: { color: '#666', fontSize: 11, marginTop: 4, textAlign: 'center' },
+  shareBadgesBtn: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 217, 61, 0.06)',
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(255, 217, 61, 0.12)',
+  },
+  shareBadgesText: { flex: 1, color: '#ffd93d', fontSize: 14, fontWeight: '600', marginLeft: 10 },
 });

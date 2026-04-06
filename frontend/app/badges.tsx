@@ -71,6 +71,37 @@ export default function BadgesScreen() {
     } catch (e) { console.error(e); }
   };
 
+  const handleShareBadge = async (badge: Badge) => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/share/badge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ badge_id: badge.id })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await Share.share({ message: data.text, title: `NutriOS Badge: ${badge.name}` });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleShareWeekly = async () => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/share/weekly-report`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        await Share.share({ message: data.text, title: 'My NutriOS Weekly Report' });
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const earnedCount = badges.filter(b => b.earned).length;
   const totalBadges = badges.length;
   const progressPct = totalBadges > 0 ? (earnedCount / totalBadges) * 100 : 0;
@@ -123,12 +154,12 @@ export default function BadgesScreen() {
           </View>
 
           {/* Share Button */}
-          <TouchableOpacity style={styles.shareCard} onPress={handleShare}>
+          <TouchableOpacity style={styles.shareCard} onPress={handleShareWeekly}>
             <LinearGradient colors={['rgba(0, 212, 255, 0.15)', 'rgba(162, 155, 254, 0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.shareGradient}>
               <Ionicons name="share-social" size={24} color="#00d4ff" />
               <View style={styles.shareInfo}>
-                <Text style={styles.shareTitle}>Share Daily Report</Text>
-                <Text style={styles.shareSubtitle}>Share your elemental intake with friends</Text>
+                <Text style={styles.shareTitle}>Share Weekly Report</Text>
+                <Text style={styles.shareSubtitle}>Share your weekly nutrition stats</Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color="#666" />
             </LinearGradient>
@@ -155,9 +186,14 @@ export default function BadgesScreen() {
                 <Text style={[styles.badgeName, badge.earned && { color: '#fff' }]}>{badge.name}</Text>
                 <Text style={styles.badgeDesc}>{badge.description}</Text>
                 {badge.earned && (
-                  <View style={[styles.earnedTag, { backgroundColor: badge.color + '20' }]}>
-                    <Ionicons name="checkmark" size={12} color={badge.color} />
-                    <Text style={[styles.earnedText, { color: badge.color }]}>Earned</Text>
+                  <View style={styles.badgeActions}>
+                    <View style={[styles.earnedTag, { backgroundColor: badge.color + '20' }]}>
+                      <Ionicons name="checkmark" size={12} color={badge.color} />
+                      <Text style={[styles.earnedText, { color: badge.color }]}>Earned</Text>
+                    </View>
+                    <TouchableOpacity style={styles.badgeShareBtn} onPress={() => handleShareBadge(badge)}>
+                      <Ionicons name="share-outline" size={14} color="#00d4ff" />
+                    </TouchableOpacity>
                   </View>
                 )}
                 {!badge.earned && (
@@ -239,8 +275,10 @@ const styles = StyleSheet.create({
   badgeIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1a1a3e', justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
   badgeName: { fontSize: 14, fontWeight: '600', color: '#888', textAlign: 'center' },
   badgeDesc: { fontSize: 11, color: '#555', textAlign: 'center', marginTop: 4 },
-  earnedTag: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  earnedTag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   earnedText: { fontSize: 11, fontWeight: '600', marginLeft: 4 },
+  badgeActions: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
+  badgeShareBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0, 212, 255, 0.1)', justifyContent: 'center', alignItems: 'center' },
   lockedTag: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: '#1a1a3e' },
   lockedText: { fontSize: 11, color: '#444', marginLeft: 4 },
   newTag: { position: 'absolute', top: 8, right: 8, backgroundColor: '#ffd93d', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
