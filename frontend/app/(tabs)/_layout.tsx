@@ -3,9 +3,11 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useTheme } from '../../src/ThemeContext';
+import { useLanguage } from '../../src/LanguageContext';
 
 export default function TabsLayout() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   return (
     <Tabs
       screenOptions={{
@@ -22,11 +24,11 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Dashboard', tabBarIcon: ({ color, size }) => <Ionicons name="grid" size={size} color={color} /> }} />
-      <Tabs.Screen name="nutrition" options={{ title: 'Nutrition', tabBarIcon: ({ color, size }) => <Ionicons name="nutrition" size={size} color={color} /> }} />
-      <Tabs.Screen name="water" options={{ title: 'Water', tabBarIcon: ({ color, size }) => <Ionicons name="water" size={size} color={color} /> }} />
-      <Tabs.Screen name="routines" options={{ title: 'Routines', tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} /> }} />
-      <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: ({ color, size }) => <Ionicons name="menu" size={size} color={color} /> }} />
+      <Tabs.Screen name="index" options={{ title: t('tab_home'), tabBarIcon: ({ color, size }) => <Ionicons name="grid" size={size} color={color} /> }} />
+      <Tabs.Screen name="nutrition" options={{ title: t('tab_nutrition'), tabBarIcon: ({ color, size }) => <Ionicons name="nutrition" size={size} color={color} /> }} />
+      <Tabs.Screen name="water" options={{ title: t('tab_water'), tabBarIcon: ({ color, size }) => <Ionicons name="water" size={size} color={color} /> }} />
+      <Tabs.Screen name="routines" options={{ title: t('tab_routines'), tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} /> }} />
+      <Tabs.Screen name="more" options={{ title: t('tab_more'), tabBarIcon: ({ color, size }) => <Ionicons name="menu" size={size} color={color} /> }} />
       {/* Hidden tab screens */}
       <Tabs.Screen name="ai" options={{ href: null }} />
       <Tabs.Screen name="search" options={{ href: null }} />

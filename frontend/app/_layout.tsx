@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
+import { LanguageProvider } from '../src/LanguageContext';
 import { clearCache } from '../src/cache';
 import * as Notifications from 'expo-notifications';
 
@@ -168,7 +169,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const inPaymentFlow = segments[0] === 'upgrade' || segments[0] === 'payment-success';
 
     if (!user && !inAuthGroup && !atRoot) {
-      router.replace('/(auth)/login');
+      const isPublicScreen = segments[0] === 'onboarding';
+      if (!isPublicScreen) {
+        router.replace('/(auth)/login');
+      }
     } else if (user && inAuthGroup) {
       router.replace('/(tabs)');
     }
@@ -183,11 +187,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RootContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RootContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }
 

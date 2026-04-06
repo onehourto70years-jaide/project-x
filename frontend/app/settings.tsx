@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from './_layout';
 import { useTheme } from '../src/ThemeContext';
+import { useLanguage } from '../src/LanguageContext';
+import { SUPPORTED_LOCALES, Locale } from '../src/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
@@ -89,6 +91,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
+  const { locale, setLocale, t } = useLanguage();
+  const [showLangModal, setShowLangModal] = useState(false);
   const [profile, setProfile] = useState({
     weight_kg: 70, height_cm: 170, age: 30, sex: 'male',
     activity_level: 'moderate', weight_goal: 'maintain', health_goals: [] as string[]
@@ -243,6 +247,25 @@ export default function SettingsScreen() {
             </View>
             <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: theme.accent }} thumbColor="#fff" />
           </View>
+        </View>
+
+        {/* Language Section */}
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_language')}</Text>
+        <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
+          <TouchableOpacity style={styles.switchRow} onPress={() => setShowLangModal(true)}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(0,212,255,0.15)' }]}>
+                <Ionicons name="language" size={20} color="#00d4ff" />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_language')}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
+                  {SUPPORTED_LOCALES.find(l => l.code === locale)?.flag} {SUPPORTED_LOCALES.find(l => l.code === locale)?.nativeName}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
         </View>
 
         {/* Profile Section */}
@@ -615,6 +638,41 @@ export default function SettingsScreen() {
           <Text style={[styles.tosText, { color: theme.accent }]}>Terms of Service</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <Modal visible={showLangModal} transparent animationType="fade" onRequestClose={() => setShowLangModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: theme.bgCard || '#1a1a2e', borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: theme.border || 'rgba(255,255,255,0.08)' }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <Ionicons name="language" size={36} color="#00d4ff" />
+              <Text style={{ color: theme.text || '#fff', fontSize: 20, fontWeight: '700', marginTop: 8 }}>{t('set_language')}</Text>
+            </View>
+            {SUPPORTED_LOCALES.map((lang) => {
+              const isActive = locale === lang.code;
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 6, backgroundColor: isActive ? 'rgba(0,212,255,0.1)' : 'transparent', borderWidth: isActive ? 1 : 0, borderColor: '#00d4ff', gap: 12 }}
+                  onPress={() => { setLocale(lang.code); setShowLangModal(false); }}
+                >
+                  <Text style={{ fontSize: 28 }}>{lang.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: isActive ? '#00d4ff' : (theme.text || '#fff'), fontSize: 16, fontWeight: '600' }}>{lang.nativeName}</Text>
+                    <Text style={{ color: theme.textMuted || '#888', fontSize: 12 }}>{lang.label}</Text>
+                  </View>
+                  {isActive && <Ionicons name="checkmark-circle" size={22} color="#00d4ff" />}
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={{ marginTop: 12, paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center' }}
+              onPress={() => setShowLangModal(false)}
+            >
+              <Text style={{ color: theme.text || '#fff', fontSize: 15, fontWeight: '600' }}>{t('common_done')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Delete Account Confirmation Modal */}
       <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={() => setShowDeleteModal(false)}>
