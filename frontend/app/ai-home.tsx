@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Scro
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearCacheForKey, CacheKeys } from '../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -11,15 +12,27 @@ interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  actions?: ActionResult[];
+}
+
+interface ActionResult {
+  type: string;
+  success: boolean;
+  food_name?: string;
+  portion_grams?: number;
+  meal_type?: string;
+  amount_ml?: number;
+  updated?: Record<string, any>;
+  error?: string;
 }
 
 const QUICK_PROMPTS = [
+  { text: "Log 2 boiled eggs for breakfast", icon: "restaurant" },
+  { text: "Log 500ml of water", icon: "water" },
+  { text: "I just had a banana as a snack", icon: "nutrition" },
+  { text: "Set my water goal to 3 liters", icon: "settings" },
   { text: "What should I eat for dinner?", icon: "restaurant" },
-  { text: "I'm low on iron, what do you suggest?", icon: "fitness" },
-  { text: "Best post-workout meal?", icon: "barbell" },
-  { text: "How can I improve my sleep with food?", icon: "moon" },
   { text: "What foods boost immunity?", icon: "shield-checkmark" },
-  { text: "Suggest a high-protein snack", icon: "nutrition" },
 ];
 
 export default function AIChatScreen() {
@@ -98,11 +111,25 @@ export default function AIChatScreen() {
 
       if (res.ok) {
         const data = await res.json();
+        const actionsExecuted: ActionResult[] = data.actions || [];
+
+        // Invalidate caches if actions were performed
+        if (actionsExecuted.length > 0) {
+          const keysToInvalidate: string[] = [CacheKeys.dashboard];
+          for (const action of actionsExecuted) {
+            if (action.type === 'log_meal') keysToInvalidate.push(CacheKeys.mealsToday);
+            if (action.type === 'log_water') keysToInvalidate.push(CacheKeys.waterToday);
+            if (action.type === 'update_settings') keysToInvalidate.push(CacheKeys.userSettings);
+          }
+          await Promise.all(keysToInvalidate.map(k => clearCacheForKey(k)));
+        }
+
         const aiMsg: Message = {
           id: `ai-${Date.now()}`,
           role: 'assistant',
           content: data.response || "I couldn't process that. Please try again.",
-          timestamp: new Date()
+          timestamp: new Date(),
+          actions: actionsExecuted,
         };
         setMessages(prev => [...prev, aiMsg]);
       } else {
@@ -126,6 +153,36 @@ export default function AIChatScreen() {
     }
   };
 
+  const renderActionCard = (action: ActionResult, index: number) => {
+    if (!action.success) return null;
+    let icon = 'checkmark-circle';
+    let color = '#00d4ff';
+    let label = '';
+
+    if (action.type === 'log_meal') {
+      icon = 'restaurant';
+      color = '#6c5ce7';
+      label = `Logged: ${action.food_name} (${action.portion_grams}g, ${action.meal_type})`;
+    } else if (action.type === 'log_water') {
+      icon = 'water';
+      color = '#00b4d8';
+      label = `Logged: ${action.amount_ml}ml water`;
+    } else if (action.type === 'update_settings') {
+      icon = 'settings';
+      color = '#00cec9';
+      const keys = Object.keys(action.updated || {});
+      label = `Updated: ${keys.map(k => k.replace(/_/g, ' ')).join(', ')}`;
+    }
+
+    return (
+      <View key={`action-${index}`} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,212,255,0.08)', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, marginTop: 8, gap: 8, borderLeftWidth: 3, borderLeftColor: color }}>
+        <Ionicons name={icon as any} size={18} color={color} />
+        <Text style={{ color: '#ccc', fontSize: 13, flex: 1 }}>{label}</Text>
+        <Ionicons name="checkmark-circle" size={16} color="#2ecc71" />
+      </View>
+    );
+  };
+
   const renderMessage = (msg: Message) => {
     const isUser = msg.role === 'user';
     return (
@@ -135,8 +192,15 @@ export default function AIChatScreen() {
             <Ionicons name="flask" size={16} color="#00d4ff" />
           </View>
         )}
-        <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAi]}>
-          <Text style={[styles.msgText, isUser && styles.msgTextUser]}>{msg.content}</Text>
+        <View style={{ flex: 1, maxWidth: '80%' }}>
+          <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAi]}>
+            <Text style={[styles.msgText, isUser && styles.msgTextUser]}>{msg.content}</Text>
+          </View>
+          {!isUser && msg.actions && msg.actions.length > 0 && (
+            <View style={{ marginLeft: 4 }}>
+              {msg.actions.map((a, i) => renderActionCard(a, i))}
+            </View>
+          )}
         </View>
       </View>
     );

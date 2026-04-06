@@ -74,25 +74,158 @@ async def get_predictive_recommendations(user: User = Depends(require_user)):
 async def ai_chat(request: AIChatRequest, user: Optional[User] = Depends(get_current_user_optional)):
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     try:
-        system_prompt = """You are NutriOS Coach \u2014 a friendly, expert AI nutrition advisor integrated into a molecular nutrition app. 
-You specialize in:
-- Food recommendations based on elemental composition (C, H, O, N, S and minerals)
-- Nutrient synergies and food combinations
-- Cooking method optimization for nutrient retention
-- Personalized advice based on user's current intake data
-Keep responses concise (2-4 paragraphs max), warm, and actionable. Use occasional emojis.
-When relevant, mention specific elements (Carbon, Nitrogen, etc.) and how they relate to health.
-If the user shares their nutrition context, reference their actual numbers."""
+        system_prompt = """You are NutriOS Coach — a friendly, expert AI nutrition advisor integrated into a molecular nutrition app.
+You specialize in food recommendations, nutrient synergies, cooking optimization, and personalized advice.
+Keep text responses concise (2-4 paragraphs), warm, and actionable. Use occasional emojis.
+
+IMPORTANT — ACTION CAPABILITIES:
+You can perform actions for the user. When the user asks you to log food, log water, or adjust their goals/settings, you MUST include an `actions` array in your response.
+
+You MUST respond with ONLY a valid JSON object (no markdown, no code fences) in this exact format:
+{"message": "Your friendly text response here", "actions": []}
+
+Action types you can include in the actions array:
+1. Log a meal: {"type": "log_meal", "food_name": "Banana", "portion_grams": 120, "meal_type": "snack", "cooking_method": "raw"}
+   - meal_type must be one of: breakfast, lunch, dinner, snack
+   - cooking_method must be one of: raw, boiled, steamed, grilled, fried, baked, roasted, sauteed, microwaved
+   - Estimate reasonable portion_grams if not specified (e.g., 1 banana = 120g, 1 egg = 50g, 1 chicken breast = 170g, 1 apple = 180g, bowl of rice = 200g, glass of milk = 250g)
+2. Log water: {"type": "log_water", "amount_ml": 500}
+   - Convert cups/glasses to ml (1 glass ≈ 250ml, 1 cup ≈ 240ml, 1 liter = 1000ml)
+3. Update settings: {"type": "update_settings", "settings": {"daily_water_goal_ml": 3000}}
+   - Supported settings: daily_water_goal_ml, daily_calorie_goal, daily_protein_goal
+
+EXAMPLES:
+User: "I just had 2 boiled eggs for breakfast"
+{"message": "Great start to your morning! 🥚 Two boiled eggs give you about 12g of protein and important minerals like Selenium and Zinc. Boiling is excellent for preserving nutrients. Consider pairing with whole-grain toast for sustained energy!", "actions": [{"type": "log_meal", "food_name": "Egg, whole, boiled", "portion_grams": 100, "meal_type": "breakfast", "cooking_method": "boiled"}]}
+
+User: "Log 500ml of water"
+{"message": "Done! 💧 500ml of water logged. Keep it up — hydration helps with nutrient absorption and energy levels!", "actions": [{"type": "log_water", "amount_ml": 500}]}
+
+User: "Set my water goal to 3 liters"
+{"message": "Updated! 🎯 Your daily water goal is now 3,000ml. That's a great target for active individuals!", "actions": [{"type": "update_settings", "settings": {"daily_water_goal_ml": 3000}}]}
+
+User: "What foods are high in iron?" (no action needed)
+{"message": "Here are some excellent iron-rich foods: ...", "actions": []}
+
+ALWAYS respond with valid JSON. Never use markdown code fences. The message field should contain your friendly response text."""
+
         full_prompt = request.message
         if request.nutrition_context:
-            full_prompt = f"{request.nutrition_context}\n\nUser question: {request.message}"
+            full_prompt = f"{request.nutrition_context}\n\nUser message: {request.message}"
         if request.conversation_history:
             full_prompt = f"Previous conversation:\n{request.conversation_history}\n\nNew message: {full_prompt}"
+
         chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"chat_{uuid.uuid4().hex[:8]}", system_message=system_prompt).with_model("gemini", "gemini-3-flash-preview")
-        response = await chat.send_message(UserMessage(text=full_prompt))
+        raw_response = await chat.send_message(UserMessage(text=full_prompt))
+
+        # Parse the AI response for actions
+        ai_text = ""
+        actions_executed = []
+
+        try:
+            # Clean up response - remove code fences if present
+            cleaned = raw_response.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("```")[1]
+                if cleaned.startswith("json"):
+                    cleaned = cleaned[4:]
+                cleaned = cleaned.strip()
+            parsed = json.loads(cleaned)
+            ai_text = parsed.get("message", raw_response)
+            actions = parsed.get("actions", [])
+        except (json.JSONDecodeError, Exception):
+            # If JSON parsing fails, treat entire response as text (no actions)
+            ai_text = raw_response
+            actions = []
+
+        # Execute actions if user is authenticated
+        if user and actions:
+            for action in actions:
+                try:
+                    action_type = action.get("type")
+
+                    if action_type == "log_meal":
+                        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                        meal_doc = {
+                            "id": str(uuid.uuid4()),
+                            "user_id": user.user_id,
+                            "date": today,
+                            "food_name": action.get("food_name", "Unknown food"),
+                            "portion_grams": action.get("portion_grams", 100),
+                            "meal_type": action.get("meal_type", "snack"),
+                            "cooking_method": action.get("cooking_method", "raw"),
+                            "nutrients": action.get("nutrients", {}),
+                            "elements": {},
+                            "allergens": [],
+                            "logged_at": datetime.now(timezone.utc),
+                            "source": "ai_coach"
+                        }
+
+                        # Try to enrich with USDA data
+                        try:
+                            from services import search_usda_foods, get_usda_food_details, extract_nutrients, apply_cooking_retention, calculate_elemental_composition, detect_allergens
+                            search_results = await search_usda_foods(action.get("food_name", ""), 1)
+                            if search_results:
+                                fdc_id = search_results[0].get("fdcId")
+                                food_data = await get_usda_food_details(fdc_id) if fdc_id else None
+                                if food_data:
+                                    raw_nutrients = extract_nutrients(food_data, action.get("portion_grams", 100))
+                                    cooking = action.get("cooking_method", "raw")
+                                    cooked_nutrients = apply_cooking_retention(raw_nutrients, cooking)
+                                    elements = calculate_elemental_composition(cooked_nutrients)
+                                    meal_doc["fdc_id"] = fdc_id
+                                    meal_doc["nutrients"] = cooked_nutrients if cooking != "raw" else raw_nutrients
+                                    meal_doc["elements"] = elements.get("mass_grams", {})
+                                    meal_doc["allergens"] = detect_allergens(action.get("food_name", ""), food_data.get("ingredients", ""))
+                        except Exception as enrich_err:
+                            logger.warning(f"AI meal enrichment failed: {enrich_err}")
+
+                        await db.meals.insert_one(meal_doc)
+                        actions_executed.append({"type": "log_meal", "success": True, "food_name": meal_doc["food_name"], "portion_grams": meal_doc["portion_grams"], "meal_type": meal_doc["meal_type"]})
+                        logger.info(f"AI Coach logged meal '{meal_doc['food_name']}' for {user.user_id}")
+
+                    elif action_type == "log_water":
+                        amount_ml = action.get("amount_ml", 250)
+                        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                        await db.water_logs.insert_one({
+                            "id": str(uuid.uuid4()),
+                            "user_id": user.user_id,
+                            "date": today,
+                            "amount_ml": amount_ml,
+                            "logged_at": datetime.now(timezone.utc),
+                            "source": "ai_coach"
+                        })
+                        actions_executed.append({"type": "log_water", "success": True, "amount_ml": amount_ml})
+                        logger.info(f"AI Coach logged {amount_ml}ml water for {user.user_id}")
+
+                    elif action_type == "update_settings":
+                        settings_update = action.get("settings", {})
+                        allowed_keys = {"daily_water_goal_ml", "daily_calorie_goal", "daily_protein_goal"}
+                        safe_update = {k: v for k, v in settings_update.items() if k in allowed_keys}
+                        if safe_update:
+                            await db.user_settings.update_one(
+                                {"user_id": user.user_id},
+                                {"$set": safe_update},
+                                upsert=True
+                            )
+                            actions_executed.append({"type": "update_settings", "success": True, "updated": safe_update})
+                            logger.info(f"AI Coach updated settings {safe_update} for {user.user_id}")
+
+                except Exception as action_err:
+                    logger.error(f"AI action execution error: {action_err}")
+                    actions_executed.append({"type": action.get("type"), "success": False, "error": str(action_err)})
+
+        # Save chat history
         if user:
-            await db.chat_history.insert_one({"user_id": user.user_id, "user_message": request.message, "ai_response": response, "timestamp": datetime.now(timezone.utc)})
-        return {"response": response}
+            await db.chat_history.insert_one({
+                "user_id": user.user_id,
+                "user_message": request.message,
+                "ai_response": ai_text,
+                "actions_executed": actions_executed,
+                "timestamp": datetime.now(timezone.utc)
+            })
+
+        return {"response": ai_text, "actions": actions_executed}
     except Exception as e:
         logger.error(f"AI Chat error: {e}")
-        return {"response": "I'm having trouble connecting right now. Please try again in a moment! In the meantime, remember to stay hydrated \U0001f4a7"}
+        return {"response": "I'm having trouble connecting right now. Please try again in a moment! In the meantime, remember to stay hydrated 💧", "actions": []}
