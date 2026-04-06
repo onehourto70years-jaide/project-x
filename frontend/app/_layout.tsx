@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
+import { clearCache } from '../src/cache';
 import * as Notifications from 'expo-notifications';
 
 // Configure notification handler
@@ -148,6 +149,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       await AsyncStorage.removeItem('session_token');
+      await clearCache();
       setUser(null);
     }
   };

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -45,16 +46,29 @@ export default function RoutinesScreen() {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
 
-      const [routinesRes, todayRes, streakRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/routines`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/routines/today`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/routines/streak`, { headers: { 'Authorization': `Bearer ${token}` } })
+      const [routinesResult, todayResult, streakResult] = await Promise.all([
+        cachedFetch(CacheKeys.routines, async () => {
+          const res = await fetch(`${BACKEND_URL}/api/routines`, { headers: authHeaders });
+          if (!res.ok) throw new Error('routines failed');
+          return res.json();
+        }, CacheTTL.MEDIUM),
+        cachedFetch(CacheKeys.routinesToday, async () => {
+          const res = await fetch(`${BACKEND_URL}/api/routines/today`, { headers: authHeaders });
+          if (!res.ok) throw new Error('routines today failed');
+          return res.json();
+        }, CacheTTL.SHORT),
+        cachedFetch('routines_streak', async () => {
+          const res = await fetch(`${BACKEND_URL}/api/routines/streak`, { headers: authHeaders });
+          if (!res.ok) throw new Error('streak failed');
+          return res.json();
+        }, CacheTTL.SHORT),
       ]);
 
-      if (routinesRes.ok) setRoutines((await routinesRes.json()).routines || []);
-      if (todayRes.ok) setTodayRoutines((await todayRes.json()).routines || []);
-      if (streakRes.ok) setStreak((await streakRes.json()).streak_days || 0);
+      setRoutines(routinesResult.data?.routines || []);
+      setTodayRoutines(todayResult.data?.routines || []);
+      setStreak(streakResult.data?.streak_days || 0);
     } catch (error) {
       console.error('Error fetching routines:', error);
     } finally {
@@ -74,7 +88,12 @@ export default function RoutinesScreen() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      // Update local state
+      // Update local state and invalidate cache
+      await Promise.all([
+        clearCacheForKey(CacheKeys.routinesToday),
+        clearCacheForKey('routines_streak'),
+        clearCacheForKey(CacheKeys.dashboard),
+      ]);
       setTodayRoutines(prev => prev.map(r => {
         if (r.id === routineId) {
           return {
@@ -108,6 +127,10 @@ export default function RoutinesScreen() {
       if (response.ok) {
         setShowCreateModal(false);
         setNewRoutine({ name: '', type: 'morning', time_start: '07:00', time_end: '08:00', days: [...DAYS], tasks: [] });
+        await Promise.all([
+          clearCacheForKey(CacheKeys.routines),
+          clearCacheForKey(CacheKeys.routinesToday),
+        ]);
         fetchRoutines();
       }
     } catch (error) {

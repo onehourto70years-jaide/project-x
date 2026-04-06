@@ -33,14 +33,8 @@ export default function AuthCallback() {
 
         if (sessionId) {
           await signIn(sessionId);
-          
-          // Check if onboarding was completed
-          const onboardingDone = await AsyncStorage.getItem('onboarding_completed');
-          if (onboardingDone === 'true') {
-            router.replace('/(tabs)');
-          } else {
-            router.replace('/onboarding');
-          }
+          // Let index.tsx handle all routing logic (onboarding, payment, etc.)
+          router.replace('/');
         } else {
           console.error('No session_id found');
           router.replace('/(auth)/login');

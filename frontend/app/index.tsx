@@ -9,6 +9,7 @@ const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 export default function Index() {
   const { user, isLoading } = useAuth();
   const [policyAccepted, setPolicyAccepted] = useState<boolean | null>(null);
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [splashDone, setSplashDone] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -30,8 +31,12 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
-    AsyncStorage.getItem('privacy_policy_accepted').then((val) => {
-      setPolicyAccepted(val === 'true');
+    Promise.all([
+      AsyncStorage.getItem('privacy_policy_accepted'),
+      AsyncStorage.getItem('onboarding_completed'),
+    ]).then(([policyVal, onboardingVal]) => {
+      setPolicyAccepted(policyVal === 'true');
+      setOnboardingDone(onboardingVal === 'true');
     });
   }, []);
 
@@ -77,7 +82,7 @@ export default function Index() {
   }
 
   // Still checking
-  if (policyAccepted === null || isLoading) {
+  if (policyAccepted === null || onboardingDone === null || isLoading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#00d4ff" />
@@ -91,6 +96,11 @@ export default function Index() {
 
   if (!user) {
     return <Redirect href="/(auth)/login" />;
+  }
+
+  // Onboarding check — after auth, before payment gate
+  if (!onboardingDone) {
+    return <Redirect href="/onboarding" />;
   }
 
   if (hasAccess === null) {

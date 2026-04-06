@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../_layout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -127,23 +128,41 @@ export default function DashboardScreen() {
   const [logging, setLogging] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchDashboard = async () => {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
-      const [dashRes, payRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/payments/status`, { headers: { 'Authorization': `Bearer ${token}` } }),
-      ]);
-      if (dashRes.ok) {
-        const data = await dashRes.json();
-        setDashboard(data);
-        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-      }
-      if (payRes.ok) {
-        setPaymentStatus(await payRes.json());
-      }
+
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
+
+      // Dashboard data — cached
+      const dashResult = await cachedFetch(
+        CacheKeys.dashboard,
+        async () => {
+          const res = await fetch(`${BACKEND_URL}/api/dashboard`, { headers: authHeaders });
+          if (!res.ok) throw new Error('dashboard fetch failed');
+          return res.json();
+        },
+        CacheTTL.SHORT,
+      );
+
+      setDashboard(dashResult.data);
+      setIsOffline(dashResult.fromCache);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+
+      // Payment status — cached (longer TTL, changes rarely)
+      const payResult = await cachedFetch(
+        'payment_status',
+        async () => {
+          const res = await fetch(`${BACKEND_URL}/api/payments/status`, { headers: authHeaders });
+          if (!res.ok) throw new Error('payment status fetch failed');
+          return res.json();
+        },
+        CacheTTL.MEDIUM,
+      );
+      setPaymentStatus(payResult.data);
     } catch (e) { console.error('Dashboard fetch error:', e); }
     finally { setRefreshing(false); }
   };
@@ -159,6 +178,11 @@ export default function DashboardScreen() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ amount_ml: ml })
       });
+      // Invalidate caches so fresh data is fetched
+      await Promise.all([
+        clearCacheForKey(CacheKeys.dashboard),
+        clearCacheForKey(CacheKeys.waterToday),
+      ]);
       fetchDashboard();
     } catch (e) { console.error(e); }
   };
@@ -211,6 +235,10 @@ export default function DashboardScreen() {
           })
         });
         setShowQuickMeal(false); setQuickSearch(''); setSearchResults([]); setSelectedFood(null);
+        await Promise.all([
+          clearCacheForKey(CacheKeys.dashboard),
+          clearCacheForKey(CacheKeys.mealsToday),
+        ]);
         fetchDashboard();
         Alert.alert('Logged!', `${selectedFood.description} (${grams}${portionUnit}, ${cookingMethod}) added to ${getAutoMealType()}`);
       }
@@ -311,6 +339,14 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}>
 
         <Animated.View style={{ opacity: fadeAnim }}>
+          {/* ── Offline Banner ── */}
+          {isOffline && (
+            <View style={styles.offlineBanner}>
+              <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
+              <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
+            </View>
+          )}
+
           {/* ── Header ── */}
           <View style={styles.header}>
             <View>
@@ -693,6 +729,9 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#080818' },
   scrollContent: { paddingBottom: 100 },
+  // Offline banner
+  offlineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,217,61,0.12)', paddingVertical: 8, marginHorizontal: 16, marginTop: 8, borderRadius: 10, gap: 8 },
+  offlineBannerText: { color: '#ffd93d', fontSize: 13, fontWeight: '500' },
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   greeting: { fontSize: 14, color: '#666' },

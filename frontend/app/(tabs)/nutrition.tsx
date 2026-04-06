@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cachedFetch, CacheKeys, CacheTTL } from '../../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -46,23 +47,25 @@ export default function NutritionScreen() {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
 
-      const response = await fetch(`${BACKEND_URL}/api/meals/today`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMeals(data.meals || []);
-        
-        // Calculate totals
-        const newTotals: Record<string, number> = {};
-        (data.meals || []).forEach((meal: Meal) => {
-          Object.entries(meal.nutrients || {}).forEach(([key, value]) => {
-            newTotals[key] = (newTotals[key] || 0) + (value as number);
-          });
+      const result = await cachedFetch(CacheKeys.mealsToday, async () => {
+        const response = await fetch(`${BACKEND_URL}/api/meals/today`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        setTotals(newTotals);
-      }
+        if (!response.ok) throw new Error('meals fetch failed');
+        return response.json();
+      }, CacheTTL.SHORT);
+
+      const data = result.data;
+      setMeals(data.meals || []);
+      
+      // Calculate totals
+      const newTotals: Record<string, number> = {};
+      (data.meals || []).forEach((meal: Meal) => {
+        Object.entries(meal.nutrients || {}).forEach(([key, value]) => {
+          newTotals[key] = (newTotals[key] || 0) + (value as number);
+        });
+      });
+      setTotals(newTotals);
     } catch (error) {
       console.error('Error fetching meals:', error);
     } finally {

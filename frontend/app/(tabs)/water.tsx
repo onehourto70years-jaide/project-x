@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -24,21 +25,36 @@ export default function WaterScreen() {
   const [smartGoal, setSmartGoal] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchWaterData = async () => {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
 
-      const [todayRes, historyRes, smartRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/api/water/today`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/water/history?days=7`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${BACKEND_URL}/api/water/smart-goal`, { headers: { 'Authorization': `Bearer ${token}` } })
+      const [todayResult, historyResult, smartResult] = await Promise.all([
+        cachedFetch(CacheKeys.waterToday, async () => {
+          const res = await fetch(`${BACKEND_URL}/api/water/today`, { headers: authHeaders });
+          if (!res.ok) throw new Error('water today failed');
+          return res.json();
+        }, CacheTTL.SHORT),
+        cachedFetch('water_history_7', async () => {
+          const res = await fetch(`${BACKEND_URL}/api/water/history?days=7`, { headers: authHeaders });
+          if (!res.ok) throw new Error('water history failed');
+          return res.json();
+        }, CacheTTL.SHORT),
+        cachedFetch('water_smart_goal', async () => {
+          const res = await fetch(`${BACKEND_URL}/api/water/smart-goal`, { headers: authHeaders });
+          if (!res.ok) throw new Error('smart goal failed');
+          return res.json();
+        }, CacheTTL.MEDIUM),
       ]);
 
-      if (todayRes.ok) setWaterData(await todayRes.json());
-      if (historyRes.ok) setHistory((await historyRes.json()).history || []);
-      if (smartRes.ok) setSmartGoal(await smartRes.json());
+      setWaterData(todayResult.data);
+      setHistory(historyResult.data?.history || []);
+      setSmartGoal(smartResult.data);
+      setIsOffline(todayResult.fromCache || historyResult.fromCache);
     } catch (error) {
       console.error('Error fetching water data:', error);
     } finally {
@@ -61,6 +77,11 @@ export default function WaterScreen() {
       });
 
       if (response.ok) {
+        await Promise.all([
+          clearCacheForKey(CacheKeys.waterToday),
+          clearCacheForKey('water_history_7'),
+          clearCacheForKey(CacheKeys.dashboard),
+        ]);
         fetchWaterData();
       }
     } catch (error) {
@@ -92,6 +113,13 @@ export default function WaterScreen() {
           <Text style={styles.title}>Water Tracking</Text>
           <Text style={styles.subtitle}>Stay hydrated, stay healthy</Text>
         </View>
+
+        {isOffline && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,217,61,0.12)', paddingVertical: 8, marginHorizontal: 16, marginBottom: 12, borderRadius: 10, gap: 8 }}>
+            <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
+            <Text style={{ color: '#ffd93d', fontSize: 13, fontWeight: '500' }}>Offline — showing cached data</Text>
+          </View>
+        )}
 
         {/* Main Gauge */}
         <View style={styles.gaugeCard}>
