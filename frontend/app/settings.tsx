@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Switch, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Switch, Alert, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from './_layout';
@@ -602,6 +602,10 @@ export default function SettingsScreen() {
         <Text style={[styles.disclaimer, { color: theme.textDim }]}>
           NutriOS v3.0 • Nutritional information only. Not medical advice.
         </Text>
+        <TouchableOpacity style={styles.tosLink} onPress={() => Linking.openURL('https://sites.google.com/view/nutrios-terms-of-service/home-page')}>
+          <Ionicons name="document-text-outline" size={14} color={theme.accent} />
+          <Text style={[styles.tosText, { color: theme.accent }]}>Terms of Service</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -668,4 +672,6 @@ const styles = StyleSheet.create({
   upgradeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffd93d', paddingVertical: 14, borderRadius: 12 },
   upgradeBtnText: { color: '#000', fontSize: 15, fontWeight: '700', marginLeft: 8 },
   disclaimer: { fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16 },
+  tosLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 24, paddingVertical: 8 },
+  tosText: { fontSize: 13, fontWeight: '500', marginLeft: 6, textDecorationLine: 'underline' },
 });

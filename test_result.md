@@ -332,3 +332,5 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: "Frontend UI testing completed successfully. All screens accessible without authentication are working correctly. The app demonstrates proper routing, responsive design, consistent dark theming, and smooth user experience. Google OAuth integration cannot be tested via automation but the UI elements are properly implemented. Ready for production use."
+  - agent: "main"
+    message: "New changes: 1) Replaced placeholder cancellation email with real Resend integration (async, non-blocking). The function send_cancellation_email now uses resend.Emails.send via asyncio.to_thread. Email logs are stored in 'email_logs' collection. 2) Added RESEND_API_KEY and SENDER_EMAIL to backend .env. 3) Fixed missing ToS link styles in settings.tsx. Please test: POST /api/payments/cancel-subscription endpoint (indirectly tests email). Also test /api/ health check and /api/payments/status. Note: The cancel-subscription endpoint requires a real Stripe subscription, so test what you can without triggering actual cancellation."

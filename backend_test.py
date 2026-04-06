@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
 """
-NutriOS Payment System Backend Testing
-Tests all payment endpoints and related functionality
+NutriOS Backend API Testing
+Tests core backend endpoints including health check, dashboard, user settings, payment status, and Resend email integration
 """
 
 import requests
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import pymongo
+import uuid
+import resend
+import os
 
-# Configuration
-BASE_URL = "http://localhost:8001"
+# Configuration - Use production URL from frontend .env
+BASE_URL = "https://meal-sync-test.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 # MongoDB connection for test setup
 MONGO_URL = "mongodb://localhost:27017"
 DB_NAME = "nutrient_mapper"
 
-# Test user credentials from MongoDB
-USER_ID = "user_0de05ad0fec8"
-SESSION_TOKEN = "dIBgVnFBWv0OAJfRsOcXzWZtJJ46C_ocIKJ7c_VbZWw"
+# Test user credentials - will be created dynamically
+USER_ID = f"test_user_{uuid.uuid4().hex[:8]}"
+SESSION_TOKEN = f"test_token_{uuid.uuid4().hex[:16]}"
 
-# Headers for authenticated requests
+# Headers for authenticated requests (will be updated after user creation)
 AUTH_HEADERS = {
     "Authorization": f"Bearer {SESSION_TOKEN}",
     "Content-Type": "application/json"
@@ -37,6 +40,70 @@ def log_test(test_name, status, details=""):
     if details:
         print(f"    {details}")
     print()
+
+def setup_test_user():
+    """Create test user and session in MongoDB for authenticated tests"""
+    try:
+        client = pymongo.MongoClient(MONGO_URL)
+        db = client[DB_NAME]
+        
+        # Create test user
+        test_user = {
+            "user_id": USER_ID,
+            "email": "test@example.com",
+            "name": "Test User",
+            "created_at": datetime.now(timezone.utc),
+            "weight_kg": 70.0,
+            "activity_level": "moderate",
+            "health_goals": []
+        }
+        
+        # Remove existing test user if exists
+        db.users.delete_many({"user_id": USER_ID})
+        db.user_sessions.delete_many({"user_id": USER_ID})
+        
+        # Insert new test user
+        db.users.insert_one(test_user)
+        
+        # Create test session with future expiry
+        expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+        test_session = {
+            "session_token": SESSION_TOKEN,
+            "user_id": USER_ID,
+            "expires_at": expires_at,
+            "created_at": datetime.now(timezone.utc)
+        }
+        db.user_sessions.insert_one(test_session)
+        
+        log_test("Test User Setup", "PASS", f"Created user {USER_ID} with session token")
+        return True
+        
+    except Exception as e:
+        log_test("Test User Setup", "FAIL", f"Error: {str(e)}")
+        return False
+
+def cleanup_test_user():
+    """Remove test user and session from MongoDB"""
+    try:
+        client = pymongo.MongoClient(MONGO_URL)
+        db = client[DB_NAME]
+        
+        # Remove test user and all related data
+        collections_to_clean = [
+            "users", "user_settings", "user_sessions", "meals", "water_logs",
+            "favorites", "recipes", "meal_plans", "routines", "user_badges",
+            "ai_conversations", "daily_summaries"
+        ]
+        
+        for collection_name in collections_to_clean:
+            db[collection_name].delete_many({"user_id": USER_ID})
+        
+        log_test("Test User Cleanup", "PASS", f"Cleaned up test user {USER_ID}")
+        return True
+        
+    except Exception as e:
+        log_test("Test User Cleanup", "FAIL", f"Error: {str(e)}")
+        return False
 
 def test_health_check():
     """Test basic health check endpoint"""

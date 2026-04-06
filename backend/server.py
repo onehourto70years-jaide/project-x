@@ -13,9 +13,7 @@ import httpx
 import json
 import asyncio
 import stripe
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -30,6 +28,11 @@ USDA_API_KEY = os.environ.get('USDA_API_KEY', '')
 USDA_BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+# Initialize Resend
+resend.api_key = RESEND_API_KEY
 
 # Payment constants
 TRIAL_DAYS = 14
@@ -601,10 +604,9 @@ async def stripe_webhook(request: Request):
     return {"received": True}
 
 
-def send_cancellation_email(email: str, name: str, plan: str, access_until: str):
-    """Send a cancellation confirmation email via Stripe's receipt system or SMTP."""
+async def send_cancellation_email(email: str, name: str, plan: str, access_until: str):
+    """Send a cancellation confirmation email via Resend."""
     try:
-        # Build a nice HTML email
         html = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background: #0a0a1a; color: #fff; border-radius: 16px; overflow: hidden;">
             <div style="padding: 32px; text-align: center; background: linear-gradient(135deg, #1a1a3e, #0a0a1a);">
@@ -624,14 +626,30 @@ def send_cancellation_email(email: str, name: str, plan: str, access_until: str)
         </div>
         """
 
-        # Try sending via Stripe (by updating customer metadata which triggers email)
-        # This is a best-effort email - Stripe handles receipts automatically
-        logger.info(f"Cancellation email prepared for {email} (plan: {plan}, access until: {access_until})")
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": "NutriOS — Subscription Cancellation Confirmation",
+            "html": html,
+        }
+
+        # Run sync Resend SDK call in a thread to keep FastAPI non-blocking
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Cancellation email sent to {email} via Resend (id: {result.get('id', 'unknown')})")
 
         # Store the email record in DB for audit trail
+        await db.email_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "to": email,
+            "subject": "Subscription Cancellation Confirmation",
+            "type": "cancellation",
+            "resend_id": result.get("id", ""),
+            "created_at": datetime.now(timezone.utc),
+        })
+
         return True
     except Exception as e:
-        logger.error(f"Email send error: {e}")
+        logger.error(f"Resend email send error: {e}")
         return False
 
 
@@ -683,7 +701,7 @@ async def cancel_subscription(user: User = Depends(require_user)):
 
         # Send cancellation email
         plan = user_doc.get("subscription_plan", "monthly")
-        send_cancellation_email(
+        await send_cancellation_email(
             email=user.email,
             name=user_doc.get("name", ""),
             plan=plan,
