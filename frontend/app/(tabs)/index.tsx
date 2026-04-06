@@ -595,7 +595,7 @@ export default function DashboardScreen() {
           <View style={styles.navGrid}>
             {[
               { label: 'Molecular', icon: 'flask', color: '#00ff88', route: '/molecular-engine' },
-              { label: 'Progress', icon: 'analytics', color: '#00d4ff', route: '/progress' },
+              { label: 'Sequence', icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
               { label: 'Recipes', icon: 'restaurant', color: '#4ecdc4', route: '/recipes' },
               { label: 'AI Coach', icon: 'sparkles', color: '#fd79a8', route: '/ai-home' },
             ].map((item) => (

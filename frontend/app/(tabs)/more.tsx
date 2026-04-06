@@ -28,6 +28,7 @@ const MENU_SECTIONS = [
     title: 'AI & Insights',
     items: [
       { id: 'coach', label: 'AI Nutrition Coach', icon: 'sparkles', color: '#00d4ff', route: '/ai-home' },
+      { id: 'sequence', label: 'Sequence Optimizer', icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
       { id: 'ai', label: 'AI Recommendations', icon: 'bulb', color: '#ffd93d', route: '/(tabs)/ai' },
     ]
   },

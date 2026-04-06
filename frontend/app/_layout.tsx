@@ -214,6 +214,7 @@ function RootContent() {
         <Stack.Screen name="recipes" options={{ presentation: 'card' }} />
         <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
         <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
+        <Stack.Screen name="sequence-optimizer" options={{ presentation: 'card' }} />
       </Stack>
     </>
   );
