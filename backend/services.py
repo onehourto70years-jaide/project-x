@@ -1,0 +1,247 @@
+"""NutriOS Service Helpers — food analysis, email, push notifications."""
+import asyncio
+import uuid
+import httpx
+import resend
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timezone
+from config import (
+    logger, USDA_API_KEY, USDA_BASE_URL, RESEND_API_KEY, SENDER_EMAIL,
+    ELEMENTAL_FRACTIONS, ATOMIC_WEIGHTS, RETENTION_FACTORS, ALLERGENS,
+    BIOLOGICAL_EFFECTS, DAILY_RECOMMENDED, IDEAL_ELEMENTAL_BALANCE, GOAL_PROFILES,
+)
+from database import db
+
+# Initialize Resend
+resend.api_key = RESEND_API_KEY
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+# ── USDA Food Functions ──
+
+async def search_usda_foods(query: str, page_size: int = 10) -> List[Dict]:
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client_http:
+                response = await client_http.get(
+                    f"{USDA_BASE_URL}/foods/search",
+                    params={"api_key": USDA_API_KEY, "query": query, "pageSize": page_size,
+                            "dataType": ["Foundation", "SR Legacy", "Survey (FNDDS)"]}
+                )
+                if response.status_code == 200:
+                    return [{"fdc_id": f.get("fdcId"), "description": f.get("description"),
+                             "brand_owner": f.get("brandOwner"), "data_type": f.get("dataType")}
+                            for f in response.json().get("foods", [])]
+                elif response.status_code == 400:
+                    response = await client_http.get(
+                        f"{USDA_BASE_URL}/foods/search",
+                        params={"api_key": USDA_API_KEY, "query": query, "pageSize": page_size}
+                    )
+                    if response.status_code == 200:
+                        return [{"fdc_id": f.get("fdcId"), "description": f.get("description"),
+                                 "brand_owner": f.get("brandOwner"), "data_type": f.get("dataType")}
+                                for f in response.json().get("foods", [])]
+                logger.warning(f"USDA search attempt {attempt+1} failed: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"USDA search attempt {attempt+1} error: {e}")
+            if attempt < 2:
+                await asyncio.sleep(1)
+    return []
+
+
+async def get_usda_food_details(fdc_id: int) -> Optional[Dict]:
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client_http:
+                response = await client_http.get(
+                    f"{USDA_BASE_URL}/food/{fdc_id}",
+                    params={"api_key": USDA_API_KEY}
+                )
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 404:
+                    return None
+                logger.warning(f"USDA detail attempt {attempt+1} for {fdc_id}: {response.status_code}")
+        except Exception as e:
+            logger.warning(f"USDA detail attempt {attempt+1} error: {e}")
+            if attempt < 2:
+                await asyncio.sleep(1)
+    return None
+
+
+def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str, float]:
+    nutrients = {}
+    portion_factor = portion_grams / 100.0
+    nutrient_mapping = {1008: "energy_kcal", 1003: "protein_g", 1004: "fat_g", 1005: "carbohydrate_g", 1079: "fiber_g", 1087: "calcium_mg", 1089: "iron_mg", 1090: "magnesium_mg", 1092: "potassium_mg", 1093: "sodium_mg", 1095: "zinc_mg", 1162: "vitamin_c_mg", 1106: "vitamin_a_mcg", 1114: "vitamin_d_mcg", 1178: "vitamin_b12_mcg"}
+    for fn in food_data.get("foodNutrients", []):
+        nutrient_id = fn.get("nutrient", {}).get("id") or fn.get("nutrientId")
+        amount = fn.get("amount", 0) or 0
+        if nutrient_id in nutrient_mapping:
+            nutrients[nutrient_mapping[nutrient_id]] = round(amount * portion_factor, 3)
+    return nutrients
+
+
+def calculate_elemental_composition(nutrients: Dict[str, float]) -> Dict[str, Any]:
+    elements = {"C": 0.0, "H": 0.0, "O": 0.0, "N": 0.0, "S": 0.0, "Ca": 0.0, "Fe": 0.0, "Mg": 0.0, "P": 0.0, "K": 0.0, "Na": 0.0, "Zn": 0.0}
+    for macro, fractions in [("protein_g", ELEMENTAL_FRACTIONS["protein"]), ("carbohydrate_g", ELEMENTAL_FRACTIONS["carbohydrate"]), ("fat_g", ELEMENTAL_FRACTIONS["fat"])]:
+        for el, frac in fractions.items():
+            elements[el] += nutrients.get(macro, 0) * frac
+    for nutrient_key, element in {"calcium_mg": "Ca", "iron_mg": "Fe", "magnesium_mg": "Mg", "potassium_mg": "K", "sodium_mg": "Na", "zinc_mg": "Zn"}.items():
+        if nutrient_key in nutrients:
+            elements[element] = nutrients[nutrient_key] / 1000
+    elements = {k: round(v, 6) for k, v in elements.items()}
+    millimoles = {el: round((mass / ATOMIC_WEIGHTS.get(el, 1)) * 1000, 4) for el, mass in elements.items() if mass > 0 and el in ATOMIC_WEIGHTS}
+    return {"mass_grams": elements, "millimoles": millimoles, "confidence": "high" if nutrients.get("protein_g", 0) > 0 else "estimated"}
+
+
+def apply_cooking_retention(nutrients: Dict[str, float], cooking_method: str) -> Dict[str, float]:
+    factors = RETENTION_FACTORS.get(cooking_method, RETENTION_FACTORS["raw"])
+    cooked = nutrients.copy()
+    for nk, fk in {"vitamin_a_mcg": "vitamin_a", "vitamin_c_mg": "vitamin_c", "iron_mg": "iron", "magnesium_mg": "magnesium", "potassium_mg": "potassium", "zinc_mg": "zinc", "calcium_mg": "calcium", "protein_g": "protein"}.items():
+        if nk in cooked and fk in factors:
+            cooked[nk] = round(cooked[nk] * factors[fk], 3)
+    return cooked
+
+
+def detect_allergens(food_name: str, ingredients: Optional[str] = None) -> List[str]:
+    text = food_name.lower() + (" " + ingredients.lower() if ingredients else "")
+    detected = []
+    categories = {"peanut": "peanuts", "milk": "dairy", "dairy": "dairy", "egg": "eggs", "wheat": "wheat/gluten", "gluten": "wheat/gluten", "soy": "soy", "fish": "fish", "shellfish": "shellfish", "sesame": "sesame"}
+    for allergen in ALLERGENS:
+        if allergen in text:
+            cat = categories.get(allergen, allergen)
+            if cat not in detected:
+                detected.append(cat)
+    return detected
+
+
+def calculate_elemental_balance(elements_grams: Dict[str, float]) -> Dict:
+    total = sum(elements_grams.values()) or 1
+    scores = {}
+    total_score = 0
+    element_count = 0
+    for el, ideal in IDEAL_ELEMENTAL_BALANCE.items():
+        actual_pct = (elements_grams.get(el, 0) / total) * 100
+        min_pct, max_pct, ideal_pct = ideal["min_pct"], ideal["max_pct"], ideal["ideal_pct"]
+        if min_pct <= actual_pct <= max_pct:
+            deviation = abs(actual_pct - ideal_pct) / ideal_pct
+            score = max(0, 100 - (deviation * 100))
+        elif actual_pct < min_pct:
+            score = max(0, (actual_pct / min_pct) * 60)
+        else:
+            score = max(0, 60 - ((actual_pct - max_pct) / max_pct) * 60)
+        status = "optimal" if abs(actual_pct - ideal_pct) < 2 else ("low" if actual_pct < min_pct else ("high" if actual_pct > max_pct else "acceptable"))
+        scores[el] = {"actual_pct": round(actual_pct, 2), "ideal_pct": ideal_pct, "score": round(score), "status": status, "role": ideal["role"]}
+        total_score += score
+        element_count += 1
+    return {"overall_score": round(total_score / max(element_count, 1)), "elements": scores, "total_mass_g": round(total, 2)}
+
+
+def score_food_for_goal(nutrients: Dict, elements: Dict, goal_key: str) -> float:
+    profile = GOAL_PROFILES.get(goal_key)
+    if not profile:
+        return 0
+    score = 0
+    weight_sum = 0
+    for nutrient, multiplier in profile.get("priority_nutrients", {}).items():
+        value = nutrients.get(nutrient, 0)
+        recommended = DAILY_RECOMMENDED.get(nutrient, 1)
+        contribution = min((value / recommended) * 100, 150)
+        score += contribution * multiplier
+        weight_sum += multiplier
+    for element, multiplier in profile.get("priority_elements", {}).items():
+        value = elements.get(element, 0)
+        if value > 0:
+            score += 20 * multiplier
+            weight_sum += multiplier
+    return round(score / max(weight_sum, 1), 1)
+
+
+# ── Email ──
+
+async def send_cancellation_email(email: str, name: str, plan: str, access_until: str):
+    """Send a cancellation confirmation email via Resend."""
+    try:
+        html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; background: #0a0a1a; color: #fff; border-radius: 16px; overflow: hidden;">
+            <div style="padding: 32px; text-align: center; background: linear-gradient(135deg, #1a1a3e, #0a0a1a);">
+                <h1 style="color: #ffd93d; margin: 0; font-size: 24px;">NutriOS</h1>
+                <p style="color: #888; margin: 8px 0 0;">Subscription Cancellation Confirmation</p>
+            </div>
+            <div style="padding: 24px;">
+                <p style="color: #ccc; line-height: 1.6;">Hi {name or 'there'},</p>
+                <p style="color: #ccc; line-height: 1.6;">We're sorry to see you go. Your <strong style="color: #ffd93d;">{plan.title()}</strong> subscription has been cancelled.</p>
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin: 20px 0; border-left: 3px solid #00d4ff;">
+                    <p style="color: #00d4ff; margin: 0 0 4px; font-weight: 600;">Important:</p>
+                    <p style="color: #ccc; margin: 0;">You will continue to have full access to NutriOS Pro until <strong style="color: #fff;">{access_until}</strong>.</p>
+                </div>
+                <p style="color: #ccc; line-height: 1.6;">You can resubscribe anytime from the app to regain Pro features.</p>
+                <p style="color: #888; margin-top: 24px; font-size: 13px;">Thank you for being a NutriOS user.</p>
+            </div>
+        </div>
+        """
+        params = {"from": SENDER_EMAIL, "to": [email], "subject": "NutriOS \u2014 Subscription Cancellation Confirmation", "html": html}
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Cancellation email sent to {email} via Resend (id: {result.get('id', 'unknown')})")
+        await db.email_logs.insert_one({"id": str(uuid.uuid4()), "to": email, "subject": "Subscription Cancellation Confirmation", "type": "cancellation", "resend_id": result.get("id", ""), "created_at": datetime.now(timezone.utc)})
+        return True
+    except Exception as e:
+        logger.error(f"Resend email send error: {e}")
+        return False
+
+
+# ── Push Notifications ──
+
+async def send_expo_push(tokens: list, title: str, body: str, data: dict = None):
+    messages = []
+    for token in tokens:
+        if not token or not token.startswith("ExponentPushToken"):
+            continue
+        msg = {"to": token, "sound": "default", "title": title, "body": body}
+        if data:
+            msg["data"] = data
+        messages.append(msg)
+    if not messages:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=15) as client_http:
+            resp = await client_http.post(EXPO_PUSH_URL, json=messages)
+            if resp.status_code == 200:
+                logger.info(f"Push notifications sent to {len(messages)} device(s)")
+            else:
+                logger.error(f"Expo push error: {resp.status_code} - {resp.text}")
+    except Exception as e:
+        logger.error(f"Push notification error: {e}")
+
+
+async def notify_badge_earned(user_id: str, badge_name: str):
+    token_doc = await db.push_tokens.find_one({"user_id": user_id}, {"_id": 0})
+    if not token_doc or not token_doc.get("push_token"):
+        return
+    settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    if not settings.get("notifications_enabled", True):
+        return
+    await send_expo_push([token_doc["push_token"]], "\U0001f3c6 New Badge Earned!", f"Congratulations! You've earned the '{badge_name}' badge!", {"type": "badge", "screen": "badges"})
+
+
+# ── Daily Summary Helper ──
+
+async def update_daily_summary(user_id: str, date: str):
+    meals = await db.meals.find({"user_id": user_id, "date": date}, {"_id": 0}).to_list(100)
+    total_nutrients, total_elements = {}, {}
+    for meal in meals:
+        for k, v in meal.get("nutrients", {}).items():
+            total_nutrients[k] = total_nutrients.get(k, 0) + v
+        for k, v in meal.get("elements", {}).items():
+            total_elements[k] = total_elements.get(k, 0) + v
+    water_logs = await db.water_logs.find({"user_id": user_id, "date": date}, {"_id": 0}).to_list(100)
+    total_water = sum(log["amount_ml"] for log in water_logs)
+    from datetime import datetime as dt
+    day_of_week = dt.strptime(date, "%Y-%m-%d").strftime("%a").lower()
+    routines = await db.routines.find({"user_id": user_id, "is_active": True, "days": day_of_week}, {"_id": 0}).to_list(20)
+    completions = await db.task_completions.find({"user_id": user_id, "date": date}, {"_id": 0}).to_list(200)
+    total_tasks = sum(len(r.get("tasks", [])) for r in routines)
+    deficiencies = [n for n, rec in DAILY_RECOMMENDED.items() if total_nutrients.get(n, 0) < rec * 0.5]
+    summary = {"user_id": user_id, "date": date, "total_calories": total_nutrients.get("energy_kcal", 0), "total_protein": total_nutrients.get("protein_g", 0), "total_carbs": total_nutrients.get("carbohydrate_g", 0), "total_fat": total_nutrients.get("fat_g", 0), "total_water_ml": total_water, "meals_count": len(meals), "nutrients": total_nutrients, "elements": total_elements, "deficiencies": deficiencies, "routines_completed": len(completions), "routines_total": total_tasks}
+    await db.daily_summaries.update_one({"user_id": user_id, "date": date}, {"$set": summary}, upsert=True)
+    return summary
