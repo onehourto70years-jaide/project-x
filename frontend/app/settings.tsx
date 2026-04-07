@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from './_layout';
 import { useTheme } from '../src/ThemeContext';
 import { useLanguage } from '../src/LanguageContext';
+import { useMatrix } from '../src/MatrixContext';
 import { SUPPORTED_LOCALES, Locale } from '../src/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
@@ -85,7 +86,9 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useLanguage();
+  const { matrixEnabled, setMatrixEnabled, matrixIntensity, setMatrixIntensity, adaptiveColor, setAdaptiveColor } = useMatrix();
   const [showLangModal, setShowLangModal] = useState(false);
+  const [showMatrixColorModal, setShowMatrixColorModal] = useState(false);
   const [profile, setProfile] = useState({
     weight_kg: 70, height_cm: 170, age: 30, sex: 'male',
     activity_level: 'moderate', weight_goal: 'maintain', health_goals: [] as string[]
@@ -241,6 +244,65 @@ export default function SettingsScreen() {
             </View>
             <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: theme.accent }} thumbColor="#fff" />
           </View>
+
+          {/* Chemical Matrix Mode */}
+          <View style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: theme.border }]}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: matrixEnabled ? 'rgba(0, 255, 65, 0.15)' : 'rgba(0, 255, 65, 0.06)' }]}>
+                <Ionicons name="code-slash" size={20} color={matrixEnabled ? '#00ff41' : '#555'} />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_mode')}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_matrix_desc')}</Text>
+              </View>
+            </View>
+            <Switch value={matrixEnabled} onValueChange={setMatrixEnabled} trackColor={{ false: '#333', true: '#00ff41' }} thumbColor="#fff" />
+          </View>
+
+          {/* Matrix sub-options (only show when enabled) */}
+          {matrixEnabled && (
+            <>
+              {/* Color theme */}
+              <TouchableOpacity
+                style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: theme.border }]}
+                onPress={() => setShowMatrixColorModal(true)}
+              >
+                <View style={styles.switchLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 255, 65, 0.08)' }]}>
+                    <Ionicons name="color-palette" size={20} color="#00ff41" />
+                  </View>
+                  <View>
+                    <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_color')}</Text>
+                    <Text style={[styles.switchDesc, { color: adaptiveColor === 'green' ? '#00ff41' : adaptiveColor === 'cyan' ? '#00f5ff' : adaptiveColor === 'amber' ? '#ffb300' : '#00ff41' }]}>
+                      {adaptiveColor === 'green' ? t('set_matrix_green') : adaptiveColor === 'cyan' ? t('set_matrix_cyan') : adaptiveColor === 'amber' ? t('set_matrix_amber') : t('set_matrix_auto')}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              {/* Intensity */}
+              <View style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: theme.border }]}>
+                <View style={styles.switchLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 255, 65, 0.08)' }]}>
+                    <Ionicons name={matrixIntensity === 'full' ? 'speedometer' : 'speedometer-outline'} size={20} color="#00ff41" />
+                  </View>
+                  <View>
+                    <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_intensity')}</Text>
+                    <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
+                      {matrixIntensity === 'full' ? t('set_matrix_full') : t('set_matrix_reduced')}
+                    </Text>
+                  </View>
+                </View>
+                <Switch
+                  value={matrixIntensity === 'full'}
+                  onValueChange={(val) => setMatrixIntensity(val ? 'full' : 'reduced')}
+                  trackColor={{ false: '#333', true: '#00ff41' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </>
+          )}
         </View>
 
         {/* Language Section */}
@@ -730,6 +792,40 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Matrix Color Selection Modal */}
+      <Modal visible={showMatrixColorModal} transparent animationType="fade" onRequestClose={() => setShowMatrixColorModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: '100%', maxWidth: 340, backgroundColor: '#080810', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(0,255,65,0.15)' }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#00ff41', marginBottom: 6, textAlign: 'center' }}>{t('set_matrix_color')}</Text>
+            <Text style={{ fontSize: 13, color: '#666', marginBottom: 20, textAlign: 'center' }}>{t('set_matrix_color_desc')}</Text>
+            {([
+              { key: 'green', color: '#00ff41', label: t('set_matrix_green'), icon: 'leaf' },
+              { key: 'cyan', color: '#00f5ff', label: t('set_matrix_cyan'), icon: 'water' },
+              { key: 'amber', color: '#ffb300', label: t('set_matrix_amber'), icon: 'flame' },
+              { key: 'auto', color: '#00ff41', label: t('set_matrix_auto'), icon: 'sync' },
+            ] as const).map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => { setAdaptiveColor(opt.key); setShowMatrixColorModal(false); }}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 8,
+                  backgroundColor: adaptiveColor === opt.key ? opt.color + '12' : 'rgba(255,255,255,0.03)',
+                  borderWidth: 1, borderColor: adaptiveColor === opt.key ? opt.color + '40' : 'transparent',
+                }}
+              >
+                <Ionicons name={opt.icon as any} size={22} color={opt.color} />
+                <Text style={{ color: adaptiveColor === opt.key ? opt.color : '#ccc', fontSize: 15, fontWeight: '600', marginLeft: 14, flex: 1 }}>{opt.label}</Text>
+                {adaptiveColor === opt.key && <Ionicons name="checkmark-circle" size={22} color={opt.color} />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setShowMatrixColorModal(false)} style={{ marginTop: 12, alignItems: 'center', padding: 14 }}>
+              <Text style={{ color: '#666', fontSize: 14, fontWeight: '600' }}>{t('set_cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

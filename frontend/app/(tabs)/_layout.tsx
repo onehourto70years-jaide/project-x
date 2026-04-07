@@ -4,24 +4,28 @@ import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useTheme } from '../../src/ThemeContext';
 import { useLanguage } from '../../src/LanguageContext';
+import { useMatrix } from '../../src/MatrixContext';
 
 export default function TabsLayout() {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { matrixEnabled } = useMatrix();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.tabBar,
-          borderTopColor: theme.tabBarBorder,
+          backgroundColor: matrixEnabled ? 'rgba(0, 0, 0, 0.85)' : theme.tabBar,
+          borderTopColor: matrixEnabled ? 'rgba(0, 255, 65, 0.1)' : theme.tabBarBorder,
           height: Platform.OS === 'ios' ? 85 : 65,
           paddingBottom: Platform.OS === 'ios' ? 25 : 10,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: theme.accent,
-        tabBarInactiveTintColor: theme.textMuted,
+        tabBarActiveTintColor: matrixEnabled ? '#00ff41' : theme.accent,
+        tabBarInactiveTintColor: matrixEnabled ? '#004d14' : theme.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
+        sceneStyle: matrixEnabled ? { backgroundColor: 'transparent' } : undefined,
       }}
     >
       <Tabs.Screen name="index" options={{ title: t('tab_home'), tabBarIcon: ({ color, size }) => <Ionicons name="grid" size={size} color={color} /> }} />

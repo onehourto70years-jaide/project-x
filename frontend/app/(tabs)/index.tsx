@@ -9,6 +9,7 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import AnimatedElements from '../../src/components/AnimatedElements';
 import StreakSection from '../../src/components/StreakSection';
+import { useMatrix } from '../../src/MatrixContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -98,6 +99,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { matrixEnabled, setPriorityElements, setAdaptiveColor, adaptiveColor } = useMatrix();
   const [refreshing, setRefreshing] = useState(false);
   const [dashboard, setDashboard] = useState<any>(null);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -134,6 +136,29 @@ export default function DashboardScreen() {
       setDashboard(dashResult.data);
       setIsOffline(dashResult.fromCache);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+
+      // ── Matrix Element Intelligence ──
+      // Compute deficiency weights from element data to make the rain adaptive
+      if (matrixEnabled && dashResult.data?.elements) {
+        const elData = dashResult.data.elements;
+        const dailyTargets: Record<string, number> = { C: 300, H: 40, O: 200, N: 16, S: 1, Ca: 1, Fe: 0.018, Mg: 0.4, K: 4.7, Zn: 0.011 };
+        const weights: Record<string, number> = {};
+        Object.entries(dailyTargets).forEach(([el, target]) => {
+          const current = elData[el] || 0;
+          const pct = target > 0 ? current / target : 0;
+          // Higher weight = more deficient = appears more in rain
+          weights[el] = pct < 0.3 ? 1.0 : pct < 0.6 ? 0.5 : 0;
+        });
+        setPriorityElements(weights);
+
+        // Auto-adaptive color based on nutrition status
+        if (adaptiveColor === 'auto') {
+          const waterPct = (dashResult.data.water?.current || 0) / (dashResult.data.water?.goal || 2500);
+          const proteinHeavy = (elData['N'] || 0) > 10;
+          if (waterPct > 0.8) setAdaptiveColor('auto'); // stays auto - will render as cyan-ish internally
+          else if (proteinHeavy) setAdaptiveColor('auto'); // amber-ish
+        }
+      }
 
       // Payment status — cached (longer TTL, changes rarely)
       const payResult = await cachedFetch(
