@@ -161,13 +161,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ── Notification Deep-Linking ──
   useEffect(() => {
-    // Handle notification taps (when app is in foreground or background)
+    if (Platform.OS === 'web') return; // Notifications not supported on web
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
       const screen = data?.screen as string;
       if (screen && user) {
         try {
-          // Navigate to the screen specified in the notification data
           router.push(screen as any);
         } catch (e) {
           console.log('Notification deep-link navigation error:', e);
@@ -176,7 +175,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      Notifications.removeNotificationSubscription(responseListener);
+      responseListener.remove();
     };
   }, [user, router]);
 
