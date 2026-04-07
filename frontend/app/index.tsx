@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Image, Animated, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, Animated, TouchableOpacity, Dimensions } from 'react-native';
 import { Redirect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,123 @@ import { useLanguage } from '../src/LanguageContext';
 import { SUPPORTED_LOCALES, Locale } from '../src/i18n';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const { width: SW, height: SH } = Dimensions.get('window');
+
+// ── Molecular Splash Elements ──
+const SPLASH_ELEMENTS = [
+  { symbol: 'H', x: 0.15, y: 0.25, size: 28, delay: 200 },
+  { symbol: 'C', x: 0.75, y: 0.2, size: 24, delay: 400 },
+  { symbol: 'O', x: 0.85, y: 0.55, size: 26, delay: 300 },
+  { symbol: 'N', x: 0.1, y: 0.6, size: 22, delay: 500 },
+  { symbol: 'Fe', x: 0.25, y: 0.78, size: 20, delay: 600 },
+  { symbol: 'Ca', x: 0.7, y: 0.75, size: 20, delay: 700 },
+  { symbol: 'Mg', x: 0.5, y: 0.18, size: 18, delay: 800 },
+  { symbol: 'K', x: 0.9, y: 0.35, size: 18, delay: 450 },
+  { symbol: 'Zn', x: 0.08, y: 0.42, size: 16, delay: 550 },
+  { symbol: 'Na', x: 0.6, y: 0.82, size: 16, delay: 650 },
+  { symbol: 'P', x: 0.38, y: 0.88, size: 17, delay: 350 },
+  { symbol: 'S', x: 0.82, y: 0.12, size: 17, delay: 750 },
+];
+
+function SplashElement({ symbol, x, y, size, delay }: { symbol: string; x: number; y: number; size: number; delay: number }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0.25, duration: 600, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
+      ]),
+    ]).start(() => {
+      // Gentle float animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 0.12, duration: 2000, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.3, duration: 2000, useNativeDriver: true }),
+        ])
+      ).start();
+    });
+  }, []);
+
+  return (
+    <Animated.Text style={{
+      position: 'absolute',
+      left: x * SW,
+      top: y * SH,
+      fontSize: size,
+      fontWeight: '700',
+      color: '#00d4ff',
+      opacity,
+      transform: [{ scale }],
+      fontFamily: 'monospace',
+    }}>
+      {symbol}
+    </Animated.Text>
+  );
+}
+
+function NutriOSSplash({ onFinish }: { onFinish: () => void }) {
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.6)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const lineWidth = useRef(new Animated.Value(0)).current;
+  const exitOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Staggered entrance: elements → logo → tagline → line → exit
+    Animated.sequence([
+      Animated.delay(400),
+      Animated.parallel([
+        Animated.timing(logoOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.spring(logoScale, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
+      ]),
+      Animated.delay(200),
+      Animated.timing(taglineOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(lineWidth, { toValue: 1, duration: 600, useNativeDriver: false }),
+      Animated.delay(800),
+      Animated.timing(exitOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start(() => onFinish());
+  }, []);
+
+  return (
+    <Animated.View style={[styles.splashContainer, { opacity: exitOpacity }]}>
+      {/* Floating elements */}
+      {SPLASH_ELEMENTS.map((el, i) => (
+        <SplashElement key={i} {...el} />
+      ))}
+
+      {/* Center content */}
+      <View style={styles.splashCenter}>
+        {/* Logo icon */}
+        <Animated.View style={[styles.splashLogoCircle, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
+          <Ionicons name="flask" size={48} color="#00d4ff" />
+        </Animated.View>
+
+        {/* App name */}
+        <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
+          <Text style={styles.splashTitle}>Nutri<Text style={styles.splashTitleAccent}>OS</Text></Text>
+        </Animated.View>
+
+        {/* Tagline */}
+        <Animated.Text style={[styles.splashTagline, { opacity: taglineOpacity }]}>
+          Your Nutrition Operating System
+        </Animated.Text>
+
+        {/* Animated line */}
+        <View style={styles.splashLineTrack}>
+          <Animated.View style={[styles.splashLineFill, {
+            width: lineWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+          }]} />
+        </View>
+      </View>
+
+      {/* Version */}
+      <Animated.Text style={[styles.splashVersion, { opacity: taglineOpacity }]}>v1.0</Animated.Text>
+    </Animated.View>
+  );
+}
 
 export default function Index() {
   const { user, isLoading } = useAuth();
@@ -18,23 +135,6 @@ export default function Index() {
   const [selectedLang, setSelectedLang] = useState<Locale>(locale);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [splashDone, setSplashDone] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
-  const scaleAnim = useState(new Animated.Value(0.8))[0];
-
-  // Show splash for 2.5 seconds
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
-    ]).start();
-
-    const timer = setTimeout(() => {
-      Animated.timing(fadeAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
-        setSplashDone(true);
-      });
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -82,17 +182,7 @@ export default function Index() {
 
   // Show splash screen first
   if (!splashDone) {
-    return (
-      <View style={styles.splashContainer}>
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-          <Image
-            source={require('../assets/jaide-logo.png')}
-            style={styles.splashLogo}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </View>
-    );
+    return <NutriOSSplash onFinish={() => setSplashDone(true)} />;
   }
 
   // Still checking
@@ -194,11 +284,58 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#080818',
+    backgroundColor: '#040410',
   },
-  splashLogo: {
-    width: 220,
-    height: 220,
+  splashCenter: {
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  splashLogoCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  splashTitle: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 2,
+  },
+  splashTitleAccent: {
+    color: '#00d4ff',
+  },
+  splashTagline: {
+    fontSize: 14,
+    color: '#556',
+    marginTop: 8,
+    letterSpacing: 1,
+    fontWeight: '500',
+  },
+  splashLineTrack: {
+    width: 120,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 1,
+    marginTop: 20,
+    overflow: 'hidden',
+  },
+  splashLineFill: {
+    height: '100%',
+    backgroundColor: '#00d4ff',
+    borderRadius: 1,
+  },
+  splashVersion: {
+    position: 'absolute',
+    bottom: 40,
+    color: '#333',
+    fontSize: 12,
+    fontWeight: '500',
   },
   // Language selection
   langContainer: {

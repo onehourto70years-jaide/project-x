@@ -9,6 +9,8 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import AnimatedElements from '../../src/components/AnimatedElements';
 import StreakSection from '../../src/components/StreakSection';
+import EmptyState from '../../src/components/EmptyState';
+import NutrientGapAlerts from '../../src/components/NutrientGapAlerts';
 import { useMatrix } from '../../src/MatrixContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -315,25 +317,7 @@ export default function DashboardScreen() {
     return t('dash_greeting_evening');
   };
 
-  const getNutrientGaps = () => {
-    if (!dashboard) return [];
-    const gaps: { name: string; pct: number; tip: string; color: string; icon: string }[] = [];
-    const def = dashboard.nutrition?.deficiencies || [];
-    const defMap: Record<string, { name: string; tip: string; color: string; icon: string }> = {
-      vitamin_c_mg: { name: 'Vitamin C', tip: 'Try adding an orange or bell pepper', color: '#ffd93d', icon: 'sunny' },
-      iron_mg: { name: 'Iron', tip: 'Try adding spinach or red meat', color: '#ff6b6b', icon: 'fitness' },
-      calcium_mg: { name: 'Calcium', tip: 'Try adding milk or yogurt', color: '#00d4ff', icon: 'body' },
-      magnesium_mg: { name: 'Magnesium', tip: 'Try adding almonds or dark chocolate', color: '#4ecdc4', icon: 'leaf' },
-      potassium_mg: { name: 'Potassium', tip: 'Try adding a banana or avocado', color: '#a29bfe', icon: 'nutrition' },
-      protein_g: { name: 'Protein', tip: 'Try adding chicken breast or eggs', color: '#00ff88', icon: 'barbell' },
-      fiber_g: { name: 'Fiber', tip: 'Try adding oats or broccoli', color: '#ff9f43', icon: 'leaf' },
-    };
-    for (const d of def.slice(0, 3)) {
-      const info = defMap[d];
-      if (info) gaps.push({ ...info, pct: 50 });
-    }
-    return gaps;
-  };
+  // Old getNutrientGaps replaced by NutrientGapAlerts component
 
   const handleShareDailyReport = async () => {
     try {
@@ -481,23 +465,15 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ── Nutrient Gap Alerts ── */}
-          {getNutrientGaps().length > 0 && (
-            <View style={styles.alertsSection}>
+          {/* ── Nutrient Gap Alerts (Enhanced) ── */}
+          <View style={styles.alertsSection}>
+            <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                <Ionicons name="warning" size={16} color="#ffd93d" /> {t('dash_nutrient_gaps')}
+                <Ionicons name="pulse" size={16} color="#ffd93d" /> {t('dash_nutrient_gaps')}
               </Text>
-              {getNutrientGaps().map((gap, i) => (
-                <View key={i} style={[styles.alertCard, { borderLeftColor: gap.color }]}>
-                  <Ionicons name={gap.icon as any} size={20} color={gap.color} />
-                  <View style={styles.alertContent}>
-                    <Text style={styles.alertTitle}>{t('dash_low')} {gap.name}</Text>
-                    <Text style={styles.alertTip}>{gap.tip}</Text>
-                  </View>
-                </View>
-              ))}
             </View>
-          )}
+            <NutrientGapAlerts nutrients={dashboard?.nutrition?.nutrients || {}} />
+          </View>
 
           {/* ── Elemental Composition (Enhanced) ── */}
           <View style={styles.elementsSection}>

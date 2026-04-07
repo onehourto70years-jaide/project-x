@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
 import { useTheme } from '../../src/ThemeContext';
+import EmptyState from '../../src/components/EmptyState';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 

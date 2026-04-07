@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
+import EmptyState from '../../src/components/EmptyState';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -256,7 +257,7 @@ export default function RoutinesScreen() {
         </View>
 
         {/* All Routines */}
-        {routines.length > 0 && (
+        {routines.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('rout_all')} ({routines.length})</Text>
             {routines.map((routine) => {
@@ -275,6 +276,15 @@ export default function RoutinesScreen() {
               );
             })}
           </View>
+        ) : (
+          <EmptyState
+            icon="list"
+            iconColor="#a29bfe"
+            title={t('rout_empty_title')}
+            subtitle={t('rout_empty_subtitle')}
+            ctaLabel={t('rout_create')}
+            onCta={() => setShowCreateModal(true)}
+          />
         )}
       </ScrollView>
 
