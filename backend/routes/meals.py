@@ -46,6 +46,44 @@ async def delete_meal(meal_id: str, user: User = Depends(require_user)):
     return {"message": "Meal deleted"}
 
 
+@router.put("/meals/{meal_id}")
+async def update_meal(meal_id: str, user: User = Depends(require_user), request_data: dict = {}):
+    """Update a logged meal — supports changing portion, meal_type, cooking_method.
+    If portion_grams changes, nutrients are recalculated proportionally."""
+    meal = await db.meals.find_one({"id": meal_id, "user_id": user.user_id})
+    if not meal:
+        return {"message": "Meal not found"}
+
+    update_fields = {}
+    old_portion = meal.get("portion_grams", 100)
+
+    if "meal_type" in request_data:
+        update_fields["meal_type"] = request_data["meal_type"]
+    if "cooking_method" in request_data:
+        update_fields["cooking_method"] = request_data["cooking_method"]
+    if "portion_grams" in request_data:
+        new_portion = request_data["portion_grams"]
+        update_fields["portion_grams"] = new_portion
+        # Recalculate nutrients proportionally
+        if old_portion > 0 and new_portion != old_portion:
+            ratio = new_portion / old_portion
+            old_nutrients = meal.get("nutrients", {})
+            new_nutrients = {k: round(v * ratio, 3) for k, v in old_nutrients.items() if isinstance(v, (int, float))}
+            update_fields["nutrients"] = new_nutrients
+            old_elements = meal.get("elements", {})
+            if old_elements:
+                new_elements = {k: round(v * ratio, 3) for k, v in old_elements.items() if isinstance(v, (int, float))}
+                update_fields["elements"] = new_elements
+
+    if update_fields:
+        update_fields["updated_at"] = datetime.now(timezone.utc)
+        await db.meals.update_one({"id": meal_id}, {"$set": update_fields})
+        await update_daily_summary(user.user_id, meal["date"])
+
+    updated = await db.meals.find_one({"id": meal_id}, {"_id": 0})
+    return {"message": "Meal updated", "meal": updated}
+
+
 # Water tracking
 @router.post("/water")
 async def add_water(water: WaterLogCreate, user: User = Depends(require_user)):

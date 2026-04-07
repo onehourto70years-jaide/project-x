@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
+import { useTheme } from '../../src/ThemeContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -32,9 +33,12 @@ const MEAL_TYPES = [
   { id: 'snack', label: 'Snack', icon: 'cafe', color: '#ff6b6b' },
 ];
 
+const COOKING_METHODS = ['raw', 'steaming', 'boiling', 'baking', 'frying'];
+
 export default function NutritionScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [refreshing, setRefreshing] = useState(false);
@@ -43,6 +47,13 @@ export default function NutritionScreen() {
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
+
+  // Edit meal state
+  const [editMeal, setEditMeal] = useState<Meal | null>(null);
+  const [editPortion, setEditPortion] = useState('');
+  const [editMealType, setEditMealType] = useState('');
+  const [editCookingMethod, setEditCookingMethod] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchMeals = async () => {
     try {
@@ -105,6 +116,97 @@ export default function NutritionScreen() {
     });
   };
 
+  const openEditModal = (meal: Meal) => {
+    setEditMeal(meal);
+    setEditPortion(String(meal.portion_grams));
+    setEditMealType(meal.meal_type);
+    setEditCookingMethod(meal.cooking_method || 'raw');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editMeal) return;
+    setSavingEdit(true);
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+
+      const updates: Record<string, any> = {};
+      const newPortion = parseInt(editPortion) || editMeal.portion_grams;
+      if (newPortion !== editMeal.portion_grams) updates.portion_grams = newPortion;
+      if (editMealType !== editMeal.meal_type) updates.meal_type = editMealType;
+      if (editCookingMethod !== (editMeal.cooking_method || 'raw')) updates.cooking_method = editCookingMethod;
+
+      if (Object.keys(updates).length === 0) {
+        setEditMeal(null);
+        return;
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/meals/${editMeal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        setEditMeal(null);
+        // Force refresh
+        setRefreshing(true);
+        const freshRes = await fetch(`${BACKEND_URL}/api/meals/today`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (freshRes.ok) {
+          const data = await freshRes.json();
+          setMeals(data.meals || []);
+          const newTotals: Record<string, number> = {};
+          (data.meals || []).forEach((m: Meal) => {
+            Object.entries(m.nutrients || {}).forEach(([key, value]) => {
+              newTotals[key] = (newTotals[key] || 0) + (value as number);
+            });
+          });
+          setTotals(newTotals);
+        }
+        setRefreshing(false);
+      } else {
+        Alert.alert('Error', 'Failed to update meal');
+      }
+    } catch (error) {
+      console.error('Edit error:', error);
+      Alert.alert('Error', 'Failed to update meal');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteMeal = async () => {
+    if (!editMeal) return;
+    Alert.alert(
+      t('common_delete') || 'Delete',
+      `${t('common_confirm_delete') || 'Delete'} "${editMeal.food_name}"?`,
+      [
+        { text: t('common_cancel') || 'Cancel', style: 'cancel' },
+        {
+          text: t('common_delete') || 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('session_token');
+              if (!token) return;
+              await fetch(`${BACKEND_URL}/api/meals/${editMeal.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              setEditMeal(null);
+              setRefreshing(true);
+              fetchMeals();
+            } catch (error) {
+              console.error('Delete error:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatNumber = (num: number | undefined) => {
     if (num === undefined || num === null) return '0';
     return num < 1 ? num.toFixed(2) : num.toFixed(0);
@@ -113,6 +215,14 @@ export default function NutritionScreen() {
   const getMealTypeInfo = (type: string) => MEAL_TYPES.find(mt => mt.id === type) || MEAL_TYPES[0];
 
   const getMealsByType = (type: string) => meals.filter(m => m.meal_type === type);
+
+  // Calculate preview nutrients for edit modal
+  const getEditPreviewCalories = () => {
+    if (!editMeal) return 0;
+    const newPortion = parseInt(editPortion) || editMeal.portion_grams;
+    const ratio = newPortion / (editMeal.portion_grams || 100);
+    return Math.round((editMeal.nutrients?.energy_kcal || 0) * ratio);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -199,12 +309,12 @@ export default function NutritionScreen() {
         {MEAL_TYPES.map((mealType) => {
           const typeMeals = getMealsByType(mealType.id);
           return (
-            <View key={mealType.id} style={styles.mealSection}>
+            <View key={mealType.id} style={[styles.mealSection, { backgroundColor: theme.bgCard }]}>
               <View style={styles.mealSectionHeader}>
                 <View style={[styles.mealTypeIcon, { backgroundColor: mealType.color + '20' }]}>
                   <Ionicons name={mealType.icon as any} size={18} color={mealType.color} />
                 </View>
-                <Text style={styles.mealTypeLabel}>{mealType.label}</Text>
+                <Text style={[styles.mealTypeLabel, { color: theme.text }]}>{mealType.label}</Text>
                 <TouchableOpacity
                   style={styles.addMealBtn}
                   onPress={() => { setSelectedMealType(mealType.id); setShowSearchModal(true); }}
@@ -214,13 +324,19 @@ export default function NutritionScreen() {
               </View>
               {typeMeals.length > 0 ? (
                 typeMeals.map((meal) => (
-                  <View key={meal.id} style={styles.mealItem}>
+                  <TouchableOpacity
+                    key={meal.id}
+                    style={[styles.mealItem, { borderTopColor: theme.border }]}
+                    onPress={() => openEditModal(meal)}
+                    activeOpacity={0.6}
+                  >
                     <View style={styles.mealInfo}>
-                      <Text style={styles.mealName} numberOfLines={1}>{meal.food_name}</Text>
+                      <Text style={[styles.mealName, { color: theme.text }]} numberOfLines={1}>{meal.food_name}</Text>
                       <Text style={styles.mealMeta}>{meal.portion_grams}g • {meal.cooking_method}</Text>
                     </View>
                     <Text style={styles.mealCalories}>{formatNumber(meal.nutrients?.energy_kcal)} kcal</Text>
-                  </View>
+                    <Ionicons name="create-outline" size={16} color={theme.textDim} style={{ marginLeft: 8 }} />
+                  </TouchableOpacity>
                 ))
               ) : (
                 <Text style={styles.noMeals}>No {mealType.label.toLowerCase()} logged</Text>
@@ -229,6 +345,137 @@ export default function NutritionScreen() {
           );
         })}
       </ScrollView>
+
+      {/* Edit Meal Modal */}
+      <Modal visible={!!editMeal} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.editModalContent, { backgroundColor: theme.bgCard }]}>
+              {/* Header */}
+              <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>{t('common_edit') || 'Edit Meal'}</Text>
+                  <Text style={[styles.editFoodName, { color: theme.textMuted }]} numberOfLines={1}>{editMeal?.food_name}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setEditMeal(null)} style={styles.closeEditBtn}>
+                  <Ionicons name="close" size={22} color={theme.textDim} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.editScrollContent} showsVerticalScrollIndicator={false}>
+                {/* Portion Size */}
+                <View style={styles.editSection}>
+                  <Text style={[styles.editLabel, { color: theme.textMuted }]}>{t('fd_portion') || 'Portion Size'} (g)</Text>
+                  <View style={styles.portionEditRow}>
+                    <TouchableOpacity
+                      style={[styles.portionAdjustBtn, { backgroundColor: theme.border }]}
+                      onPress={() => {
+                        const val = Math.max(10, (parseInt(editPortion) || 100) - 25);
+                        setEditPortion(String(val));
+                      }}
+                    >
+                      <Ionicons name="remove" size={20} color={theme.text} />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={[styles.portionEditInput, { color: theme.text, borderColor: theme.border }]}
+                      value={editPortion}
+                      onChangeText={(text) => setEditPortion(text.replace(/[^0-9]/g, ''))}
+                      keyboardType="numeric"
+                      selectTextOnFocus
+                    />
+                    <TouchableOpacity
+                      style={[styles.portionAdjustBtn, { backgroundColor: theme.border }]}
+                      onPress={() => {
+                        const val = (parseInt(editPortion) || 100) + 25;
+                        setEditPortion(String(val));
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color={theme.text} />
+                    </TouchableOpacity>
+                  </View>
+                  {/* Quick portion buttons */}
+                  <View style={styles.quickPortionRow}>
+                    {[50, 100, 150, 200, 250, 300].map((g) => (
+                      <TouchableOpacity
+                        key={g}
+                        style={[styles.quickPortionBtn, parseInt(editPortion) === g && { backgroundColor: '#00d4ff', borderColor: '#00d4ff' }, { borderColor: theme.border }]}
+                        onPress={() => setEditPortion(String(g))}
+                      >
+                        <Text style={[styles.quickPortionText, parseInt(editPortion) === g && { color: '#fff' }, { color: theme.textMuted }]}>{g}g</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {/* Calorie preview */}
+                  <View style={[styles.caloriePreview, { backgroundColor: 'rgba(0,212,255,0.08)' }]}>
+                    <Ionicons name="flame" size={16} color="#ff6b6b" />
+                    <Text style={{ color: theme.textMuted, fontSize: 13, marginLeft: 6 }}>
+                      ~{getEditPreviewCalories()} kcal
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Meal Type */}
+                <View style={styles.editSection}>
+                  <Text style={[styles.editLabel, { color: theme.textMuted }]}>{t('fd_meal_type') || 'Meal Type'}</Text>
+                  <View style={styles.editMealTypeRow}>
+                    {MEAL_TYPES.map((type) => (
+                      <TouchableOpacity
+                        key={type.id}
+                        style={[styles.editMealTypeBtn, editMealType === type.id && { backgroundColor: type.color + '25', borderColor: type.color }, { borderColor: theme.border }]}
+                        onPress={() => setEditMealType(type.id)}
+                      >
+                        <Ionicons name={type.icon as any} size={18} color={editMealType === type.id ? type.color : theme.textDim} />
+                        <Text style={[styles.editMealTypeText, editMealType === type.id && { color: type.color }, { color: theme.textDim }]}>{type.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Cooking Method */}
+                <View style={styles.editSection}>
+                  <Text style={[styles.editLabel, { color: theme.textMuted }]}>{t('fd_cooking') || 'Cooking Method'}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={styles.editCookingRow}>
+                      {COOKING_METHODS.map((method) => (
+                        <TouchableOpacity
+                          key={method}
+                          style={[styles.editCookingBtn, editCookingMethod === method && styles.editCookingBtnActive, { borderColor: theme.border }]}
+                          onPress={() => setEditCookingMethod(method)}
+                        >
+                          <Ionicons
+                            name={method === 'raw' ? 'leaf' : method === 'steaming' ? 'water' : method === 'boiling' ? 'water-outline' : method === 'baking' ? 'flame' : 'restaurant'}
+                            size={16}
+                            color={editCookingMethod === method ? '#fff' : theme.textDim}
+                          />
+                          <Text style={[styles.editCookingText, editCookingMethod === method && { color: '#fff' }, { color: theme.textDim }]}>
+                            {method.charAt(0).toUpperCase() + method.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              </ScrollView>
+
+              {/* Action Buttons */}
+              <View style={[styles.editActions, { borderTopColor: theme.border }]}>
+                <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteMeal}>
+                  <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
+                  <Text style={styles.deleteBtnText}>{t('common_delete') || 'Delete'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveEditBtn, savingEdit && { opacity: 0.6 }]}
+                  onPress={handleSaveEdit}
+                  disabled={savingEdit}
+                >
+                  <Ionicons name="checkmark" size={18} color="#fff" />
+                  <Text style={styles.saveEditBtnText}>{t('common_save') || 'Save Changes'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Search Modal */}
       <Modal visible={showSearchModal} animationType="slide" transparent>
@@ -359,4 +606,31 @@ const styles = StyleSheet.create({
   foodResultMeta: { fontSize: 11, color: '#00d4ff', marginTop: 2 },
   emptySearch: { alignItems: 'center', padding: 40 },
   emptySearchText: { color: '#666', marginTop: 12 },
+
+  // Edit Modal
+  editModalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 20 },
+  editFoodName: { fontSize: 13, marginTop: 2 },
+  closeEditBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  editScrollContent: { paddingHorizontal: 20, paddingTop: 8 },
+  editSection: { marginBottom: 20 },
+  editLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  portionEditRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  portionAdjustBtn: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  portionEditInput: { width: 90, height: 48, borderRadius: 12, borderWidth: 1.5, textAlign: 'center', fontSize: 22, fontWeight: '700' },
+  quickPortionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  quickPortionBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  quickPortionText: { fontSize: 12, fontWeight: '500' },
+  caloriePreview: { flexDirection: 'row', alignItems: 'center', marginTop: 12, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  editMealTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  editMealTypeBtn: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12, borderWidth: 1 },
+  editMealTypeText: { fontSize: 12, fontWeight: '500', marginLeft: 6 },
+  editCookingRow: { flexDirection: 'row', gap: 8 },
+  editCookingBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1 },
+  editCookingBtnActive: { backgroundColor: '#00d4ff', borderColor: '#00d4ff' },
+  editCookingText: { fontSize: 12, fontWeight: '500', marginLeft: 6 },
+  editActions: { flexDirection: 'row', paddingHorizontal: 20, paddingTop: 14, borderTopWidth: 1, gap: 12 },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,107,107,0.3)', backgroundColor: 'rgba(255,107,107,0.08)' },
+  deleteBtnText: { color: '#ff6b6b', fontWeight: '600', fontSize: 13, marginLeft: 6 },
+  saveEditBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: '#00d4ff' },
+  saveEditBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, marginLeft: 6 },
 });
