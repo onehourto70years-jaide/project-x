@@ -11,22 +11,15 @@ import * as Notifications from 'expo-notifications';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const ACTIVITY_LEVELS = [
-  { id: 'sedentary', label: 'Sedentary' },
-  { id: 'light', label: 'Light' },
-  { id: 'moderate', label: 'Moderate' },
-  { id: 'active', label: 'Active' },
-  { id: 'very_active', label: 'Very Active' },
-];
-
-const HEALTH_GOALS = [
-  { id: 'muscle_gain', label: 'Muscle Gain', icon: 'barbell' },
-  { id: 'weight_loss', label: 'Weight Loss', icon: 'fitness' },
-  { id: 'energy', label: 'More Energy', icon: 'flash' },
-  { id: 'immune', label: 'Immunity', icon: 'shield-checkmark' },
-  { id: 'brain', label: 'Brain Health', icon: 'bulb' },
-  { id: 'gut_health', label: 'Gut Health', icon: 'leaf' },
-];
+const ACTIVITY_LEVEL_IDS = ['sedentary', 'light', 'moderate', 'active', 'very_active'] as const;
+const HEALTH_GOAL_DEFS = [
+  { id: 'muscle_gain', key: 'set_muscle_gain', icon: 'barbell' },
+  { id: 'weight_loss', key: 'set_weight_loss', icon: 'fitness' },
+  { id: 'energy', key: 'set_energy', icon: 'flash' },
+  { id: 'immune', key: 'set_immunity', icon: 'shield-checkmark' },
+  { id: 'brain', key: 'set_brain', icon: 'bulb' },
+  { id: 'gut_health', key: 'set_gut', icon: 'leaf' },
+] as const;
 
 // Schedule local notifications
 async function scheduleWaterReminders(enabled: boolean) {
@@ -274,17 +267,17 @@ export default function SettingsScreen() {
           {/* Weight & Height in row */}
           <View style={styles.profileRow}>
             <View style={styles.profileField}>
-              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Weight (kg)</Text>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_weight')}</Text>
               <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
                 value={String(profile.weight_kg)}
-                onChangeText={(t) => setProfile(prev => ({ ...prev, weight_kg: parseFloat(t) || 0 }))}
+                onChangeText={(v) => setProfile(prev => ({ ...prev, weight_kg: parseFloat(v) || 0 }))}
                 keyboardType="numeric" placeholderTextColor={theme.textDim} />
             </View>
             <View style={styles.profileField}>
-              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Height (cm)</Text>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_height')}</Text>
               <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
                 value={String(profile.height_cm)}
-                onChangeText={(t) => setProfile(prev => ({ ...prev, height_cm: parseFloat(t) || 0 }))}
+                onChangeText={(v) => setProfile(prev => ({ ...prev, height_cm: parseFloat(v) || 0 }))}
                 keyboardType="numeric" placeholderTextColor={theme.textDim} />
             </View>
           </View>
@@ -292,14 +285,14 @@ export default function SettingsScreen() {
           {/* Age & Sex in row */}
           <View style={styles.profileRow}>
             <View style={styles.profileField}>
-              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Age</Text>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_age')}</Text>
               <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
                 value={String(profile.age)}
-                onChangeText={(t) => setProfile(prev => ({ ...prev, age: parseInt(t) || 0 }))}
+                onChangeText={(v) => setProfile(prev => ({ ...prev, age: parseInt(v) || 0 }))}
                 keyboardType="numeric" placeholderTextColor={theme.textDim} />
             </View>
             <View style={styles.profileField}>
-              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Sex</Text>
+              <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_sex')}</Text>
               <View style={styles.sexToggle}>
                 {[{ id: 'male', icon: 'male' }, { id: 'female', icon: 'female' }].map((s) => (
                   <TouchableOpacity key={s.id}
@@ -316,12 +309,12 @@ export default function SettingsScreen() {
           </View>
 
           {/* Weight Goal */}
-          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Weight Goal</Text>
+          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_weight_goal')}</Text>
           <View style={styles.weightGoalGrid}>
             {[
-              { id: 'lose', label: 'Lose Weight', icon: 'trending-down', color: '#ff6b6b' },
-              { id: 'maintain', label: 'Maintain', icon: 'remove', color: '#00d4ff' },
-              { id: 'gain', label: 'Gain Weight', icon: 'trending-up', color: '#00ff88' },
+              { id: 'lose', label: t('set_lose_weight'), icon: 'trending-down', color: '#ff6b6b' },
+              { id: 'maintain', label: t('set_maintain'), icon: 'remove', color: '#00d4ff' },
+              { id: 'gain', label: t('set_gain_weight'), icon: 'trending-up', color: '#00ff88' },
             ].map((g) => (
               <TouchableOpacity key={g.id}
                 style={[styles.weightGoalOption, { backgroundColor: theme.bgInput },
@@ -336,28 +329,31 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Activity Level</Text>
+          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_activity')}</Text>
           <View style={styles.activityGrid}>
-            {ACTIVITY_LEVELS.map((level) => (
-              <TouchableOpacity key={level.id}
-                style={[styles.activityOption, { backgroundColor: theme.bgInput }, profile.activity_level === level.id && { backgroundColor: theme.accent }]}
-                onPress={() => setProfile(prev => ({ ...prev, activity_level: level.id }))}>
-                <Text style={[styles.activityLabel, { color: theme.textMuted }, profile.activity_level === level.id && { color: '#fff' }]}>
-                  {level.label}
+            {ACTIVITY_LEVEL_IDS.map((levelId) => {
+              const labelKey = `set_${levelId}` as const;
+              return (
+              <TouchableOpacity key={levelId}
+                style={[styles.activityOption, { backgroundColor: theme.bgInput }, profile.activity_level === levelId && { backgroundColor: theme.accent }]}
+                onPress={() => setProfile(prev => ({ ...prev, activity_level: levelId }))}>
+                <Text style={[styles.activityLabel, { color: theme.textMuted }, profile.activity_level === levelId && { color: '#fff' }]}>
+                  {t(labelKey)}
                 </Text>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
 
-          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Health Goals</Text>
+          <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('set_health_goals')}</Text>
           <View style={styles.goalsGrid}>
-            {HEALTH_GOALS.map((goal) => (
+            {HEALTH_GOAL_DEFS.map((goal) => (
               <TouchableOpacity key={goal.id}
                 style={[styles.goalOption, { backgroundColor: theme.bgInput }, profile.health_goals.includes(goal.id) && { backgroundColor: theme.accentGlow, borderColor: theme.accent, borderWidth: 1 }]}
                 onPress={() => toggleGoal(goal.id)}>
                 <Ionicons name={goal.icon as any} size={16} color={profile.health_goals.includes(goal.id) ? theme.accent : theme.textMuted} />
                 <Text style={[styles.goalLabel, { color: theme.textMuted }, profile.health_goals.includes(goal.id) && { color: theme.accent }]}>
-                  {goal.label}
+                  {t(goal.key)}
                 </Text>
               </TouchableOpacity>
             ))}
