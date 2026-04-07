@@ -457,12 +457,15 @@ export default function AIChatScreen() {
                   </View>
                 ) : (
                   historyList.map((convo) => (
-                    <TouchableOpacity
+                    <View
                       key={convo.id}
                       style={[styles.historyItem, { backgroundColor: theme.bg, borderColor: theme.border }, convo.id === conversationId && { borderColor: theme.accent }]}
-                      onPress={() => loadConversationById(convo.id)}
                     >
-                      <View style={styles.historyItemContent}>
+                      <TouchableOpacity
+                        style={styles.historyItemContent}
+                        onPress={() => loadConversationById(convo.id)}
+                        activeOpacity={0.6}
+                      >
                         <View style={styles.historyItemHeader}>
                           <Text style={[styles.historyItemTitle, { color: theme.text }]} numberOfLines={1}>{convo.title}</Text>
                           {convo.id === conversationId && (
@@ -476,14 +479,15 @@ export default function AIChatScreen() {
                           <Text style={[styles.historyItemDate, { color: theme.textDim }]}>{formatRelativeTime(convo.updatedAt)}</Text>
                           <Text style={[styles.historyItemCount, { color: theme.textDim }]}>{convo.messageCount} msgs</Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.deleteConvoBtn}
-                        onPress={(e) => { e.stopPropagation(); handleDeleteConversation(convo.id); }}
+                        onPress={() => handleDeleteConversation(convo.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
-                        <Ionicons name="trash-outline" size={16} color="#ff6b6b" />
+                        <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
                       </TouchableOpacity>
-                    </TouchableOpacity>
+                    </View>
                   ))
                 )}
               </ScrollView>
