@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
 import EmptyState from '../../src/components/EmptyState';
+import { hapticLight, hapticSuccess, hapticMedium } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -82,6 +83,7 @@ export default function RoutinesScreen() {
   useFocusEffect(useCallback(() => { fetchRoutines(); }, []));
 
   const completeTask = async (routineId: string, taskId: string) => {
+    hapticSuccess();
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
@@ -116,6 +118,7 @@ export default function RoutinesScreen() {
       Alert.alert('Error', 'Please enter a routine name');
       return;
     }
+    hapticMedium();
 
     try {
       const token = await AsyncStorage.getItem('session_token');

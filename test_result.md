@@ -55,6 +55,12 @@
 17. `GET /api/water/history?days=7` - Get water history (requires auth)
 18. `GET /api/water/smart-goal` - Get smart water goal (requires auth)
 
+### Weight Tracking (NEW)
+56. `POST /api/weight` - Log weight (requires auth, body: {"weight_kg": 75.5, "note": "Morning weigh-in"})
+57. `GET /api/weight/today` - Get today's weight (requires auth)
+58. `GET /api/weight/history?days=30` - Get weight history (requires auth)
+59. `DELETE /api/weight/{date}` - Delete weight entry by date (requires auth, date format: YYYY-MM-DD)
+
 ### Favorites
 19. `POST /api/favorites` - Add favorite (requires auth, body: {"fdc_id": 171052, "food_name": "Chicken breast", "default_portion_grams": 100})
 20. `GET /api/favorites` - Get favorites (requires auth)
@@ -492,6 +498,109 @@
 
 **Status:** NEW notification system is production-ready and fully functional. All endpoints working correctly with comprehensive smart notification scheduling.
 
+### Backend Weight Tracking API Tests - COMPLETED ✅
+**Test Date:** 2026-04-07 19:42:57  
+**Test Agent:** deep_testing_backend_v2  
+**Test Focus:** NEW Weight Tracking API endpoints  
+**Backend URL:** https://meal-sync-test.preview.emergentagent.com/api
+
+#### Weight Tracking API Tests (9/9 PASSED)
+
+**CRITICAL SUCCESS:** All 9 Weight Tracking endpoints tested with 100% pass rate - NEW Weight Tracking system is fully operational.
+
+**Key Endpoints Tested:**
+
+1. **Log Weight Entry** ✅ PASS
+   - Endpoint: `POST /api/weight`
+   - Status: 200
+   - Body: {"weight_kg": 75.5, "note": "Morning weigh-in"}
+   - Response: {"message": "Weight logged", "weight_kg": 75.5, "date": "2026-04-07"}
+   - Working: Weight logging successful with proper date assignment
+
+2. **Get Today's Weight** ✅ PASS
+   - Endpoint: `GET /api/weight/today`
+   - Status: 200
+   - Response: {"today": {...}, "current_weight": 75.5}
+   - Working: Today's weight retrieval with complete entry details and current weight
+
+3. **Update Today's Weight (Upsert)** ✅ PASS
+   - Endpoint: `POST /api/weight`
+   - Status: 200
+   - Body: {"weight_kg": 76.0, "note": "Updated"}
+   - Response: {"message": "Weight logged", "weight_kg": 76.0, "date": "2026-04-07"}
+   - Working: Weight update (upsert) functionality working correctly - only one entry per day
+
+4. **Get 30-Day Weight History** ✅ PASS
+   - Endpoint: `GET /api/weight/history?days=30`
+   - Status: 200
+   - Response: {"entries": [...], "stats": {"current": 76.0, "first": 76.0, "change": 0.0, "min": 76.0, "max": 76.0, "avg": 76.0, "total_entries": 1}}
+   - Working: Weight history with comprehensive statistics calculation
+
+5. **Get 7-Day Weight History** ✅ PASS
+   - Endpoint: `GET /api/weight/history?days=7`
+   - Status: 200
+   - Response: Complete history with stats for 7-day period
+   - Working: Parameterized history retrieval working correctly
+
+6. **Delete Weight Entry** ✅ PASS
+   - Endpoint: `DELETE /api/weight/2026-04-07`
+   - Status: 200
+   - Response: {"message": "Weight entry deleted", "date": "2026-04-07"}
+   - Working: Weight entry deletion by date working correctly
+
+7. **Delete Non-Existent Entry** ✅ PASS
+   - Endpoint: `DELETE /api/weight/2020-01-01`
+   - Status: 404
+   - Response: {"detail": "Weight entry not found"}
+   - Working: Proper error handling for non-existent entries
+
+8. **Validation: Weight Too Low** ✅ PASS
+   - Endpoint: `POST /api/weight`
+   - Status: 400
+   - Body: {"weight_kg": 10}
+   - Response: {"detail": "Weight must be between 20 and 400 kg"}
+   - Working: Input validation working correctly for minimum weight
+
+9. **Validation: Weight Too High** ✅ PASS
+   - Endpoint: `POST /api/weight`
+   - Status: 400
+   - Body: {"weight_kg": 500}
+   - Response: {"detail": "Weight must be between 20 and 400 kg"}
+   - Working: Input validation working correctly for maximum weight
+
+#### Test Configuration
+- **Base URL:** https://meal-sync-test.preview.emergentagent.com/api
+- **Test User ID:** test_weight_user
+- **Session Token:** test_weight_token_2026
+- **Database:** MongoDB at mongodb://localhost:27017/nutrient_mapper
+- **Authentication:** Bearer token authentication working correctly
+
+#### Weight Tracking System Architecture Validation
+- ✅ **Weight Logging** - POST endpoint with upsert functionality (one entry per day)
+- ✅ **Weight Retrieval** - Today's weight and historical data with statistics
+- ✅ **Weight History** - Parameterized history retrieval with comprehensive stats
+- ✅ **Weight Deletion** - Date-based deletion with proper error handling
+- ✅ **Input Validation** - Weight range validation (20-400 kg)
+- ✅ **User Profile Integration** - Weight updates also update user profile
+- ✅ **Database Operations** - MongoDB weight_logs collection working correctly
+- ✅ **UUID Generation** - Proper UUID-based IDs for weight entries
+- ✅ **Date Handling** - UTC timezone handling and YYYY-MM-DD date format
+
+#### Key Findings
+- ✅ NEW Weight Tracking system fully operational with all endpoints working
+- ✅ Upsert functionality working correctly - only one weight entry per day allowed
+- ✅ Weight history with comprehensive statistics (current, first, change, min, max, avg, total_entries)
+- ✅ Proper input validation with meaningful error messages
+- ✅ Date-based deletion working with appropriate 404 responses for non-existent entries
+- ✅ Authentication system fully functional with Bearer tokens
+- ✅ Database operations functioning correctly (user creation, session management, cleanup)
+- ✅ User profile integration - weight updates also update user's weight_kg field
+- ✅ Proper UTC timezone handling and date formatting
+
+#### Success Rate: 100% (9/9 tests passed)
+
+**Status:** NEW Weight Tracking API system is production-ready and fully functional. All endpoints working correctly with proper validation, error handling, and data persistence.
+
 ## Frontend Test Results
 
 ### Frontend
@@ -592,3 +701,5 @@ agent_communication:
     message: "FOCUSED BACKEND API TESTING COMPLETED ✅ - All 13 specific endpoints from review request tested successfully with 92.9% pass rate (13/14 passed). Key findings: 1) Health check (GET /api/) working correctly with NutriOS branding and version 4.0.0, 2) Auth flow working perfectly - test user creation in MongoDB successful, session authentication with Bearer tokens functional, 3) User settings & profile endpoints working (GET/PUT /api/user/settings, PUT /api/user/profile) - settings retrieval, updates, and profile modifications all successful, 4) Core endpoints fully operational: food search (POST /api/foods/search) returning USDA data for 'apple' query, meal tracking (POST /api/meals, GET /api/meals/today) with proper nutrient and element data, water tracking (POST /api/water, GET /api/water/today) with goal calculations, dashboard (GET /api/dashboard) returning comprehensive user data including nutrition, hydration, routines, and elements, 5) Payment status (GET /api/payments/status) working correctly showing trial status (16 days remaining), 6) Account deletion (DELETE /api/user/account) working perfectly - returns success message and email will fire asynchronously via Resend, account deletion verified by 401 response when accessing user data afterward. All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). Authentication system robust with proper session management. Database operations (user creation, session management, cleanup) functioning correctly. Backend is production-ready for all tested functionality."
   - agent: "testing"
     message: "MOBILE APP FRONTEND TESTING COMPLETED ✅ - NutriOS Expo React Native mobile app tested at https://meal-sync-test.preview.emergentagent.com in iPhone 14 dimensions (390x844). Key findings: 1) App successfully loads with proper mobile viewport and dark theme (#080818), 2) Loading spinner visible indicating React Native app initialization working correctly, 3) Code analysis confirms comprehensive mobile-first implementation with language selection, privacy policy, login, dashboard, and tab navigation, 4) App structure includes: Language selection screen with 4 languages (English, Italian, Spanish, French), Privacy policy screen with scroll-to-enable functionality, Login screen with NutriOS branding and Google OAuth, Dashboard with progress rings, animated elements, enhanced streak section, Tab navigation (Dashboard, Nutrition, Water, Routines, More), Settings and Badges screens with animations, 5) Mobile-responsive design with proper touch targets, safe areas, and immersive mode, 6) Authentication flow properly implemented with session management and route protection, 7) All screens use consistent dark theme with proper contrast ratios. The mobile app demonstrates production-ready quality with smooth animations, proper state management, and comprehensive feature set. Google OAuth integration present but cannot be fully tested via automation. App ready for mobile deployment."
+  - agent: "testing"
+    message: "WEIGHT TRACKING API TESTING COMPLETED ✅ - All 9 NEW Weight Tracking endpoints tested successfully with 100% pass rate. Weight Tracking system is fully operational. Key findings: 1) Weight logging working perfectly (POST /api/weight) with proper upsert functionality - only one entry per day allowed, 2) Today's weight retrieval (GET /api/weight/today) returning complete entry details and current weight, 3) Weight history endpoints (GET /api/weight/history?days=30&7) working with comprehensive statistics (current, first, change, min, max, avg, total_entries), 4) Weight deletion by date (DELETE /api/weight/{date}) working correctly with proper 404 responses for non-existent entries, 5) Input validation working perfectly - weight range 20-400kg with meaningful error messages, 6) User profile integration working - weight updates also update user's weight_kg field, 7) Authentication system working correctly with Bearer tokens, 8) Database operations (MongoDB weight_logs collection) functioning properly with UUID-based IDs, 9) Proper UTC timezone handling and YYYY-MM-DD date formatting. Test user setup/cleanup successful. All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). Backend logs confirm weight logging and updates working correctly. Weight Tracking API system is production-ready."

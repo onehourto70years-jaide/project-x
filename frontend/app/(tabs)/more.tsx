@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../_layout';
 import { useLanguage } from '../../src/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { hapticLight, hapticWarning } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -21,6 +22,7 @@ export default function MoreScreen() {
         { id: 'favorites', label: t('more_food_favorites'), icon: 'heart', color: '#ff6b6b', route: '/favorites' },
         { id: 'scanner', label: t('more_barcode_scanner'), icon: 'barcode', color: '#ffd93d', route: '/scanner' },
         { id: 'progress', label: t('more_progress_charts'), icon: 'stats-chart', color: '#4ecdc4', route: '/progress' },
+        { id: 'weight', label: t('more_weight'), icon: 'scale', color: '#00ff88', route: '/weight' },
       ]
     },
     {
@@ -55,6 +57,7 @@ export default function MoreScreen() {
   ];
 
   const handleItemPress = async (item: any) => {
+    hapticLight();
     if (item.route === 'share') {
       try {
         const token = await AsyncStorage.getItem('session_token');
@@ -76,6 +79,7 @@ export default function MoreScreen() {
   };
 
   const handleLogout = () => {
+    hapticWarning();
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: signOut }

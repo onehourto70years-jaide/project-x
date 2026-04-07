@@ -5,6 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
+import { hapticMedium, hapticSuccess } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -67,6 +68,7 @@ export default function WaterScreen() {
   useFocusEffect(useCallback(() => { fetchWaterData(); }, []));
 
   const addWater = async (amount: number) => {
+    hapticMedium();
     setAdding(true);
     try {
       const token = await AsyncStorage.getItem('session_token');
@@ -79,6 +81,7 @@ export default function WaterScreen() {
       });
 
       if (response.ok) {
+        hapticSuccess();
         await Promise.all([
           clearCacheForKey(CacheKeys.waterToday),
           clearCacheForKey('water_history_7'),

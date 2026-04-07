@@ -7,6 +7,7 @@ import { cachedFetch, CacheKeys, CacheTTL } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
 import { useTheme } from '../../src/ThemeContext';
 import EmptyState from '../../src/components/EmptyState';
+import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -55,6 +56,7 @@ export default function NutritionScreen() {
   const [editMealType, setEditMealType] = useState('');
   const [editCookingMethod, setEditCookingMethod] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [viewMode, setViewMode] = useState<'type' | 'timeline'>('type');
 
   const fetchMeals = async () => {
     try {
@@ -237,7 +239,7 @@ export default function NutritionScreen() {
             <Text style={styles.title}>{t('nutr_title')}</Text>
             <Text style={styles.subtitle}>{t('nutr_subtitle')}</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowSearchModal(true)}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => { hapticMedium(); setShowSearchModal(true); }}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -306,6 +308,83 @@ export default function NutritionScreen() {
           </View>
         </View>
 
+        {/* View Mode Toggle */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.viewToggleBtn, viewMode === 'type' && styles.viewToggleBtnActive]}
+            onPress={() => { hapticLight(); setViewMode('type'); }}
+          >
+            <Ionicons name="grid" size={16} color={viewMode === 'type' ? '#fff' : '#666'} />
+            <Text style={[styles.viewToggleText, viewMode === 'type' && styles.viewToggleTextActive]}>{t('diary_by_type')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.viewToggleBtn, viewMode === 'timeline' && styles.viewToggleBtnActive]}
+            onPress={() => { hapticLight(); setViewMode('timeline'); }}
+          >
+            <Ionicons name="time" size={16} color={viewMode === 'timeline' ? '#fff' : '#666'} />
+            <Text style={[styles.viewToggleText, viewMode === 'timeline' && styles.viewToggleTextActive]}>{t('diary_timeline')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Timeline View */}
+        {viewMode === 'timeline' ? (
+          meals.length === 0 ? (
+            <View style={styles.timelineEmpty}>
+              <Ionicons name="time-outline" size={48} color="#333" />
+              <Text style={styles.timelineEmptyTitle}>{t('diary_empty')}</Text>
+              <Text style={styles.timelineEmptySub}>{t('diary_empty_sub')}</Text>
+            </View>
+          ) : (
+            <View style={styles.timelineContainer}>
+              {[...meals].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((meal, idx) => {
+                const mealInfo = getMealTypeInfo(meal.meal_type);
+                const time = meal.timestamp ? new Date(meal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const isLast = idx === meals.length - 1;
+                return (
+                  <TouchableOpacity
+                    key={meal.id}
+                    style={styles.timelineItem}
+                    onPress={() => { hapticLight(); openEditModal(meal); }}
+                    activeOpacity={0.7}
+                  >
+                    {/* Timeline connector */}
+                    <View style={styles.timelineLeft}>
+                      <View style={[styles.timelineDot, { backgroundColor: mealInfo.color }]} />
+                      {!isLast && <View style={styles.timelineLine} />}
+                    </View>
+
+                    {/* Time label */}
+                    <Text style={styles.timelineTime}>{time}</Text>
+
+                    {/* Meal card */}
+                    <View style={[styles.timelineCard, { borderLeftColor: mealInfo.color }]}>
+                      <View style={styles.timelineCardHeader}>
+                        <View style={[styles.timelineMealIcon, { backgroundColor: mealInfo.color + '20' }]}>
+                          <Ionicons name={mealInfo.icon as any} size={14} color={mealInfo.color} />
+                        </View>
+                        <Text style={styles.timelineMealType}>{mealInfo.label}</Text>
+                        <Text style={styles.timelineCalories}>{formatNumber(meal.nutrients?.energy_kcal)} kcal</Text>
+                      </View>
+                      <Text style={styles.timelineFoodName} numberOfLines={1}>{meal.food_name}</Text>
+                      <View style={styles.timelineMeta}>
+                        <Text style={styles.timelineMetaText}>{meal.portion_grams}g</Text>
+                        <View style={styles.timelineMetaDot} />
+                        <Text style={styles.timelineMetaText}>{meal.cooking_method || 'raw'}</Text>
+                        {meal.nutrients?.protein_g ? (
+                          <>
+                            <View style={styles.timelineMetaDot} />
+                            <Text style={[styles.timelineMetaText, { color: '#00d4ff' }]}>P {formatNumber(meal.nutrients.protein_g)}g</Text>
+                          </>
+                        ) : null}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )
+        ) : (
+        <>
         {/* Meals by Type */}
         {MEAL_TYPES.map((mealType) => {
           const typeMeals = getMealsByType(mealType.id);
@@ -345,6 +424,8 @@ export default function NutritionScreen() {
             </View>
           );
         })}
+        </>
+        )}
       </ScrollView>
 
       {/* Edit Meal Modal */}
@@ -637,4 +718,31 @@ const styles = StyleSheet.create({
   deleteBtnText: { color: '#ff6b6b', fontWeight: '600', fontSize: 13, marginLeft: 6 },
   saveEditBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, backgroundColor: '#00d4ff' },
   saveEditBtnText: { color: '#fff', fontWeight: '700', fontSize: 14, marginLeft: 6 },
+
+  // View Toggle
+  viewToggle: { flexDirection: 'row', marginBottom: 16, backgroundColor: '#1a1a2e', borderRadius: 12, padding: 4 },
+  viewToggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  viewToggleBtnActive: { backgroundColor: '#00d4ff' },
+  viewToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  viewToggleTextActive: { color: '#fff' },
+
+  // Timeline
+  timelineContainer: { paddingLeft: 4 },
+  timelineItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
+  timelineLeft: { width: 20, alignItems: 'center', marginTop: 6 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5 },
+  timelineLine: { width: 2, flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 4, minHeight: 50 },
+  timelineTime: { width: 50, fontSize: 12, fontWeight: '700', color: '#666', marginTop: 4, textAlign: 'center' },
+  timelineCard: { flex: 1, backgroundColor: '#1a1a2e', borderRadius: 14, padding: 14, marginLeft: 8, marginBottom: 8, borderLeftWidth: 3 },
+  timelineCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  timelineMealIcon: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  timelineMealType: { fontSize: 11, fontWeight: '600', color: '#888', textTransform: 'uppercase', letterSpacing: 0.3, marginLeft: 8, flex: 1 },
+  timelineCalories: { fontSize: 14, fontWeight: '800', color: '#4ecdc4' },
+  timelineFoodName: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 6 },
+  timelineMeta: { flexDirection: 'row', alignItems: 'center' },
+  timelineMetaText: { fontSize: 12, color: '#666' },
+  timelineMetaDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#333', marginHorizontal: 6 },
+  timelineEmpty: { alignItems: 'center', paddingVertical: 40 },
+  timelineEmptyTitle: { fontSize: 16, fontWeight: '600', color: '#555', marginTop: 12 },
+  timelineEmptySub: { fontSize: 13, color: '#444', marginTop: 4 },
 });

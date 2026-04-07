@@ -1,0 +1,161 @@
+[
+  {
+    "test_name": "Log Weight Entry",
+    "endpoint": "/weight",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:56.950510",
+    "response_data": {
+      "message": "Weight logged",
+      "weight_kg": 75.5,
+      "date": "2026-04-07"
+    },
+    "error": null
+  },
+  {
+    "test_name": "Get Today's Weight",
+    "endpoint": "/weight/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.003904",
+    "response_data": {
+      "today": {
+        "id": "de64d5c2-dba4-4812-9551-80cc98a5c42a",
+        "user_id": "test_weight_user",
+        "weight_kg": 75.5,
+        "note": "Morning weigh-in",
+        "date": "2026-04-07",
+        "created_at": "2026-04-07T19:42:56.923000"
+      },
+      "current_weight": 75.5
+    },
+    "error": null
+  },
+  {
+    "test_name": "Update Today's Weight",
+    "endpoint": "/weight",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.050708",
+    "response_data": {
+      "message": "Weight logged",
+      "weight_kg": 76.0,
+      "date": "2026-04-07"
+    },
+    "error": null
+  },
+  {
+    "test_name": "Get 30-Day History",
+    "endpoint": "/weight/history",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.100974",
+    "response_data": {
+      "entries": [
+        {
+          "id": "de64d5c2-dba4-4812-9551-80cc98a5c42a",
+          "user_id": "test_weight_user",
+          "weight_kg": 76.0,
+          "note": "Updated",
+          "date": "2026-04-07",
+          "created_at": "2026-04-07T19:42:56.923000",
+          "updated_at": "2026-04-07T19:42:57.034000"
+        }
+      ],
+      "stats": {
+        "current": 76.0,
+        "first": 76.0,
+        "change": 0.0,
+        "min": 76.0,
+        "max": 76.0,
+        "avg": 76.0,
+        "total_entries": 1
+      }
+    },
+    "error": null
+  },
+  {
+    "test_name": "Get 7-Day History",
+    "endpoint": "/weight/history",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.155619",
+    "response_data": {
+      "entries": [
+        {
+          "id": "de64d5c2-dba4-4812-9551-80cc98a5c42a",
+          "user_id": "test_weight_user",
+          "weight_kg": 76.0,
+          "note": "Updated",
+          "date": "2026-04-07",
+          "created_at": "2026-04-07T19:42:56.923000",
+          "updated_at": "2026-04-07T19:42:57.034000"
+        }
+      ],
+      "stats": {
+        "current": 76.0,
+        "first": 76.0,
+        "change": 0.0,
+        "min": 76.0,
+        "max": 76.0,
+        "avg": 76.0,
+        "total_entries": 1
+      }
+    },
+    "error": null
+  },
+  {
+    "test_name": "Delete Today's Weight Entry",
+    "endpoint": "/weight/2026-04-07",
+    "method": "DELETE",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.202774",
+    "response_data": {
+      "message": "Weight entry deleted",
+      "date": "2026-04-07"
+    },
+    "error": null
+  },
+  {
+    "test_name": "Delete Non-Existent Entry",
+    "endpoint": "/weight/2020-01-01",
+    "method": "DELETE",
+    "status": 404,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.251915",
+    "response_data": {
+      "detail": "Weight entry not found"
+    },
+    "error": null
+  },
+  {
+    "test_name": "Validation: Weight Too Low",
+    "endpoint": "/weight",
+    "method": "POST",
+    "status": 400,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.300148",
+    "response_data": {
+      "detail": "Weight must be between 20 and 400 kg"
+    },
+    "error": null
+  },
+  {
+    "test_name": "Validation: Weight Too High",
+    "endpoint": "/weight",
+    "method": "POST",
+    "status": 400,
+    "success": true,
+    "timestamp": "2026-04-07T19:42:57.369726",
+    "response_data": {
+      "detail": "Weight must be between 20 and 400 kg"
+    },
+    "error": null
+  }
+]
