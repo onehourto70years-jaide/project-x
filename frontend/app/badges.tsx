@@ -17,6 +17,74 @@ interface Badge {
   earned: boolean;
 }
 
+// Animated Badge Card with staggered entrance
+function BadgeCardAnimated({ badge, index, isNewlyEarned, onShare, earnedLabel, lockedLabel }: {
+  badge: Badge; index: number; isNewlyEarned: boolean;
+  onShare: (b: Badge) => void; earnedLabel: string; lockedLabel: string;
+}) {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      delay: index * 80,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    if (isNewlyEarned) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+        ])
+      ).start();
+    }
+  }, []);
+
+  return (
+    <Animated.View style={[
+      styles.badgeCard,
+      !badge.earned && styles.badgeCardLocked,
+      isNewlyEarned && styles.badgeCardNew,
+      { transform: [{ scale: scaleAnim }] },
+    ]}>
+      {isNewlyEarned && (
+        <Animated.View style={[styles.badgeNewGlow, { opacity: glowAnim, backgroundColor: badge.color + '15' }]} />
+      )}
+      <View style={[styles.badgeIconCircle, badge.earned ? { backgroundColor: badge.color + '20', borderColor: badge.color + '40' } : {}]}>
+        <Ionicons name={badge.icon as any} size={28} color={badge.earned ? badge.color : '#333'} />
+      </View>
+      <Text style={[styles.badgeName, badge.earned && { color: '#fff' }]}>{badge.name}</Text>
+      <Text style={styles.badgeDesc}>{badge.description}</Text>
+      {badge.earned && (
+        <View style={styles.badgeActions}>
+          <View style={[styles.earnedTag, { backgroundColor: badge.color + '20' }]}>
+            <Ionicons name="checkmark" size={12} color={badge.color} />
+            <Text style={[styles.earnedText, { color: badge.color }]}>{earnedLabel}</Text>
+          </View>
+          <TouchableOpacity style={styles.badgeShareBtn} onPress={() => onShare(badge)}>
+            <Ionicons name="share-outline" size={14} color="#00d4ff" />
+          </TouchableOpacity>
+        </View>
+      )}
+      {!badge.earned && (
+        <View style={styles.lockedTag}>
+          <Ionicons name="lock-closed" size={12} color="#444" />
+          <Text style={styles.lockedText}>{lockedLabel}</Text>
+        </View>
+      )}
+      {isNewlyEarned && (
+        <View style={styles.newTag}>
+          <Text style={styles.newText}>NEW!</Text>
+        </View>
+      )}
+    </Animated.View>
+  );
+}
+
 export default function BadgesScreen() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -180,36 +248,16 @@ export default function BadgesScreen() {
           {/* Badges Grid */}
           <Text style={styles.sectionTitle}>Badges</Text>
           <View style={styles.badgesGrid}>
-            {badges.map((badge) => (
-              <View key={badge.id} style={[styles.badgeCard, !badge.earned && styles.badgeCardLocked]}>
-                <View style={[styles.badgeIconCircle, badge.earned ? { backgroundColor: badge.color + '20', borderColor: badge.color + '40' } : {}]}>
-                  <Ionicons name={badge.icon as any} size={28} color={badge.earned ? badge.color : '#333'} />
-                </View>
-                <Text style={[styles.badgeName, badge.earned && { color: '#fff' }]}>{badge.name}</Text>
-                <Text style={styles.badgeDesc}>{badge.description}</Text>
-                {badge.earned && (
-                  <View style={styles.badgeActions}>
-                    <View style={[styles.earnedTag, { backgroundColor: badge.color + '20' }]}>
-                      <Ionicons name="checkmark" size={12} color={badge.color} />
-                      <Text style={[styles.earnedText, { color: badge.color }]}>{t('badge_earned')}</Text>
-                    </View>
-                    <TouchableOpacity style={styles.badgeShareBtn} onPress={() => handleShareBadge(badge)}>
-                      <Ionicons name="share-outline" size={14} color="#00d4ff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {!badge.earned && (
-                  <View style={styles.lockedTag}>
-                    <Ionicons name="lock-closed" size={12} color="#444" />
-                    <Text style={styles.lockedText}>{t('badge_locked')}</Text>
-                  </View>
-                )}
-                {newlyEarned.includes(badge.id) && (
-                  <View style={styles.newTag}>
-                    <Text style={styles.newText}>NEW!</Text>
-                  </View>
-                )}
-              </View>
+            {badges.map((badge, index) => (
+              <BadgeCardAnimated
+                key={badge.id}
+                badge={badge}
+                index={index}
+                isNewlyEarned={newlyEarned.includes(badge.id)}
+                onShare={handleShareBadge}
+                earnedLabel={t('badge_earned')}
+                lockedLabel={t('badge_locked')}
+              />
             ))}
           </View>
 
@@ -272,8 +320,10 @@ const styles = StyleSheet.create({
   newBadgeText: { color: '#ffd93d', fontSize: 14, fontWeight: '600', marginLeft: 10, flex: 1 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 14 },
   badgesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 },
-  badgeCard: { width: '48%', backgroundColor: '#0d0d22', borderRadius: 16, padding: 18, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)' },
+  badgeCard: { width: '48%', backgroundColor: '#0d0d22', borderRadius: 16, padding: 18, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' },
   badgeCardLocked: { opacity: 0.5 },
+  badgeCardNew: { borderColor: 'rgba(255, 217, 61, 0.3)' },
+  badgeNewGlow: { position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50 },
   badgeIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#1a1a3e', justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
   badgeName: { fontSize: 14, fontWeight: '600', color: '#888', textAlign: 'center' },
   badgeDesc: { fontSize: 11, color: '#555', textAlign: 'center', marginTop: 4 },

@@ -7,6 +7,8 @@ import { useLanguage } from '../../src/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
+import AnimatedElements from '../../src/components/AnimatedElements';
+import StreakSection from '../../src/components/StreakSection';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -58,29 +60,7 @@ function ProgressRing({ size, strokeWidth, progress, colors, label, value, unit,
   );
 }
 
-// ─── Elemental Card ──────────────────────────────────
-function ElementCard({ symbol, amount, color, effects }: { symbol: string; amount: number; color: string; effects: string[] }) {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (amount > 0) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-        ])
-      ).start();
-    }
-  }, [amount]);
-
-  return (
-    <Animated.View style={[styles.elementCard, { borderColor: color + '40', transform: [{ scale: pulseAnim }] }]}>
-      <View style={[styles.elementGlow, { backgroundColor: color + '15' }]} />
-      <Text style={[styles.elementSymbol, { color }]}>{symbol}</Text>
-      <Text style={styles.elementAmount}>{amount < 1 ? amount.toFixed(3) : amount.toFixed(1)}g</Text>
-      <Text style={styles.elementEffect} numberOfLines={1}>{effects[0] || ''}</Text>
-    </Animated.View>
-  );
-}
+// ─── (ElementCard moved to src/components/AnimatedElements.tsx) ──
 
 // ─── Health Score ─────────────────────────────────────
 function HealthScore({ score }: { score: number }) {
@@ -494,7 +474,7 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          {/* ── Elemental Composition ── */}
+          {/* ── Elemental Composition (Enhanced) ── */}
           <View style={styles.elementsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
@@ -504,33 +484,20 @@ export default function DashboardScreen() {
                 <Text style={styles.seeAll}>{t('dash_see_charts')}</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.elementsScroll}>
-              {['C', 'H', 'O', 'N', 'S', 'Ca', 'Fe', 'Mg', 'K', 'Zn'].map((el) => (
-                <ElementCard key={el} symbol={el} amount={elements[el] || 0}
-                  color={ELEMENT_COLORS[el] || '#888'} effects={ELEMENT_EFFECTS[el] || []} />
-              ))}
-            </ScrollView>
+            <AnimatedElements
+              elements={elements}
+              colors={ELEMENT_COLORS}
+              effects={ELEMENT_EFFECTS}
+            />
           </View>
 
-          {/* ── Streak & Routines ── */}
-          <View style={styles.streakSection}>
-            <View style={styles.streakCard}>
-              <View style={styles.streakFireGlow} />
-              <Ionicons name="flame" size={32} color="#ff6b6b" />
-              <Text style={styles.streakCount}>{dashboard?.routines?.streak_days || 0}</Text>
-              <Text style={styles.streakLabel}>{t('dash_day_streak')}</Text>
-            </View>
-            <View style={styles.streakCard}>
-              <Ionicons name="restaurant" size={32} color="#4ecdc4" />
-              <Text style={styles.streakCount}>{dashboard?.nutrition?.meals_count || 0}</Text>
-              <Text style={styles.streakLabel}>{t('dash_meals_today')}</Text>
-            </View>
-            <View style={styles.streakCard}>
-              <Ionicons name="checkmark-done" size={32} color="#a29bfe" />
-              <Text style={styles.streakCount}>{dashboard?.routines?.completed || 0}/{dashboard?.routines?.total || 0}</Text>
-              <Text style={styles.streakLabel}>{t('dash_routines')}</Text>
-            </View>
-          </View>
+          {/* ── Streak & Gamification (Enhanced) ── */}
+          <StreakSection data={{
+            streakDays: dashboard?.routines?.streak_days || 0,
+            mealsToday: dashboard?.nutrition?.meals_count || 0,
+            routinesCompleted: dashboard?.routines?.completed || 0,
+            routinesTotal: dashboard?.routines?.total || 0,
+          }} />
 
           {/* ── Macros Breakdown ── */}
           <View style={styles.macrosCard}>
