@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, Scro
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width } = Dimensions.get('window');
@@ -26,6 +27,7 @@ const HEALTH_GOALS = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [weight, setWeight] = useState('70');
   const [activityLevel, setActivityLevel] = useState('moderate');

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Mod
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -24,6 +25,7 @@ interface MealPlan {
 
 export default function MealPlanScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [mealPlans, setMealPlans] = useState<Record<string, MealPlan[]>>({});
   const [recipes, setRecipes] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,7 +111,7 @@ export default function MealPlanScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Meal Planning</Text>
+        <Text style={styles.title}>{t('plan_title')}</Text>
         <TouchableOpacity onPress={() => setShowAddModal(true)}>
           <Ionicons name="add-circle" size={28} color="#00d4ff" />
         </TouchableOpacity>

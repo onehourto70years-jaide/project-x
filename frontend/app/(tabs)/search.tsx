@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -14,6 +15,7 @@ interface FoodItem {
 }
 
 export default function SearchScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodItem[]>([]);
@@ -94,7 +96,7 @@ export default function SearchScreen() {
           )}
         </View>
         <TouchableOpacity style={styles.searchButton} onPress={searchFoods}>
-          <Text style={styles.searchButtonText}>Search</Text>
+          <Text style={styles.searchButtonText}>{t('nutr_search_btn')}</Text>
         </TouchableOpacity>
       </View>
 

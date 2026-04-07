@@ -5,11 +5,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart, LineChart } from 'react-native-gifted-charts';
 import { useTheme } from '../src/ThemeContext';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const screenWidth = Dimensions.get('window').width - 64;
 
 export default function ProgressScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'nutrition' | 'water' | 'elements' | 'routines'>('nutrition');
@@ -103,7 +105,7 @@ export default function ProgressScreen() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Progress</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('prog_title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 

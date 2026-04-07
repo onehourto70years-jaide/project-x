@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ScannerScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,9 +28,9 @@ export default function ScannerScreen() {
         const productData = await response.json();
         setProduct(productData);
       } else {
-        Alert.alert('Not Found', 'Product not found in database. Try searching manually.', [
-          { text: 'Search', onPress: () => router.push('/(tabs)/nutrition') },
-          { text: 'Scan Again', onPress: () => { setScanned(false); setProduct(null); } }
+        Alert.alert(t('scan_not_found'), t('scan_not_found_desc'), [
+          { text: t('nutr_search_btn'), onPress: () => router.push('/(tabs)/nutrition') },
+          { text: t('scan_again'), onPress: () => { setScanned(false); setProduct(null); } }
         ]);
       }
     } catch (error) {
@@ -92,7 +94,7 @@ export default function ScannerScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Barcode Scanner</Text>
+          <Text style={styles.headerTitle}>{t('scan_title')}</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.centered}>
@@ -207,7 +209,7 @@ export default function ScannerScreen() {
           <View style={styles.buttonRow}>
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#2a2a4e' }]} onPress={resetScanner}>
               <Ionicons name="scan" size={20} color="#fff" />
-              <Text style={styles.actionBtnText}>Scan Again</Text>
+              <Text style={styles.actionBtnText}>{t('scan_again')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#00d4ff' }]} onPress={addToLog}>
               <Ionicons name="add-circle" size={20} color="#fff" />

@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../src/LanguageContext';
+import { CacheKeys, CacheTTL } from '../src/cache';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -77,6 +79,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 export default function SequenceOptimizerScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const [foods, setFoods] = useState<FoodEntry[]>([]);
   const [foodInput, setFoodInput] = useState('');
   const [portionInput, setPortionInput] = useState('100');
@@ -105,7 +108,7 @@ export default function SequenceOptimizerScreen() {
 
   const optimize = async () => {
     if (foods.length < 2) {
-      Alert.alert('Need More Foods', 'Add at least 2 foods to optimize the eating sequence.');
+      Alert.alert(t('seq_need_more'), t('seq_need_more_desc'));
       return;
     }
     setLoading(true);
@@ -126,14 +129,31 @@ export default function SequenceOptimizerScreen() {
       if (res.ok) {
         const data = await res.json();
         setResult(data);
+        // Cache the result for offline use
+        const cacheKey = CacheKeys.sequenceResult(mode);
+        await AsyncStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
         fadeAnim.setValue(0);
         Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
       } else {
-        Alert.alert('Error', 'Failed to optimize. Try again.');
+        Alert.alert(t('common_error'), t('seq_optimize_fail'));
       }
     } catch (e) {
-      Alert.alert('Error', 'Connection failed. Check your network.');
+      // Try loading cached result when offline
+      try {
+        const cacheKey = CacheKeys.sequenceResult(mode);
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.ts < CacheTTL.LONG) {
+            setResult(parsed.data);
+            fadeAnim.setValue(0);
+            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+            return;
+          }
+        }
+      } catch (_) {}
+      Alert.alert(t('common_error'), t('seq_connection_fail'));
     } finally {
       setLoading(false);
     }
@@ -153,16 +173,33 @@ export default function SequenceOptimizerScreen() {
       if (res.ok) {
         const data = await res.json();
         if (data.error) {
-          Alert.alert('Not Enough Data', data.error);
+          Alert.alert(t('seq_not_enough'), data.error);
         } else {
           setResult(data);
+          // Cache for offline use
+          const cacheKey = CacheKeys.sequenceResult(`today_${mode}`);
+          await AsyncStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
           fadeAnim.setValue(0);
           Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
           setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300);
         }
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to load today\'s meals.');
+      // Try cached result on network error
+      try {
+        const cacheKey = CacheKeys.sequenceResult(`today_${mode}`);
+        const cached = await AsyncStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Date.now() - parsed.ts < CacheTTL.LONG) {
+            setResult(parsed.data);
+            fadeAnim.setValue(0);
+            Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+            return;
+          }
+        }
+      } catch (_) {}
+      Alert.alert(t('common_error'), t('seq_todays_fail'));
     } finally {
       setLoadingToday(false);
     }
@@ -252,8 +289,8 @@ export default function SequenceOptimizerScreen() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Sequence Optimizer</Text>
-          <Text style={styles.headerSub}>Optimal eating order for max absorption</Text>
+          <Text style={styles.headerTitle}>{t('seq_title')}</Text>
+          <Text style={styles.headerSub}>{t('seq_subtitle')}</Text>
         </View>
         <Ionicons name="flask" size={24} color="#00d4ff" />
       </View>
@@ -268,14 +305,14 @@ export default function SequenceOptimizerScreen() {
               onPress={() => setMode('health')}
             >
               <Ionicons name="heart" size={16} color={mode === 'health' ? '#fff' : '#888'} />
-              <Text style={[styles.modeBtnText, mode === 'health' && styles.modeBtnTextActive]}>Health</Text>
+              <Text style={[styles.modeBtnText, mode === 'health' && styles.modeBtnTextActive]}>{t('seq_health')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeBtn, mode === 'performance' && styles.modeBtnActivePerf]}
               onPress={() => setMode('performance')}
             >
               <Ionicons name="flash" size={16} color={mode === 'performance' ? '#fff' : '#888'} />
-              <Text style={[styles.modeBtnText, mode === 'performance' && styles.modeBtnTextActive]}>Performance</Text>
+              <Text style={[styles.modeBtnText, mode === 'performance' && styles.modeBtnTextActive]}>{t('seq_performance')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -283,10 +320,10 @@ export default function SequenceOptimizerScreen() {
           {mode === 'performance' && (
             <View style={styles.goalRow}>
               {[
-                { id: 'muscle_gain', label: 'Muscle', icon: 'barbell' },
-                { id: 'fat_loss', label: 'Fat Loss', icon: 'flame' },
-                { id: 'energy', label: 'Energy', icon: 'flash' },
-                { id: 'digestion', label: 'Digest', icon: 'medical' },
+                { id: 'muscle_gain', label: t('seq_muscle'), icon: 'barbell' },
+                { id: 'fat_loss', label: t('seq_fat_loss'), icon: 'flame' },
+                { id: 'energy', label: t('seq_energy'), icon: 'flash' },
+                { id: 'digestion', label: t('seq_digest'), icon: 'medical' },
               ].map(g => (
                 <TouchableOpacity
                   key={g.id}
@@ -302,7 +339,7 @@ export default function SequenceOptimizerScreen() {
 
           {/* Food Input */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Add Foods</Text>
+            <Text style={styles.sectionTitle}>{t('seq_add_foods')}</Text>
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.foodInput}
@@ -348,7 +385,7 @@ export default function SequenceOptimizerScreen() {
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : (
                   <>
                     <Ionicons name="flash" size={18} color="#fff" />
-                    <Text style={styles.optimizeBtnText}>Optimize Sequence</Text>
+                    <Text style={styles.optimizeBtnText}>{t('seq_optimize')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -357,7 +394,7 @@ export default function SequenceOptimizerScreen() {
                 {loadingToday ? <ActivityIndicator color="#00d4ff" size="small" /> : (
                   <>
                     <Ionicons name="today" size={16} color="#00d4ff" />
-                    <Text style={styles.todayBtnText}>Use Today's Meals</Text>
+                    <Text style={styles.todayBtnText}>{t('seq_use_today')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -372,7 +409,7 @@ export default function SequenceOptimizerScreen() {
                 <View style={styles.aiSummaryCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <Ionicons name="sparkles" size={18} color="#ffd93d" />
-                    <Text style={styles.aiSummaryTitle}>AI Analysis</Text>
+                    <Text style={styles.aiSummaryTitle}>{t('seq_ai_analysis')}</Text>
                   </View>
                   <Text style={styles.aiSummaryText}>{result.ai_summary}</Text>
                 </View>
@@ -382,7 +419,7 @@ export default function SequenceOptimizerScreen() {
               <View style={styles.section}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                   <Ionicons name="git-branch" size={20} color="#00d4ff" />
-                  <Text style={styles.sectionTitle}>Optimal Eating Order</Text>
+                  <Text style={styles.sectionTitle}>{t('seq_optimal_order')}</Text>
                 </View>
                 {result.sequence.map((step: SequenceStep, i: number) => renderStepCard(step, i))}
               </View>
@@ -395,7 +432,7 @@ export default function SequenceOptimizerScreen() {
                     onPress={() => setShowInsights(!showInsights)}
                   >
                     <Ionicons name="bulb" size={20} color="#ffd93d" />
-                    <Text style={styles.sectionTitle}>Smart Insights</Text>
+                    <Text style={styles.sectionTitle}>{t('seq_smart_insights')}</Text>
                     <Ionicons name={showInsights ? 'chevron-up' : 'chevron-down'} size={18} color="#888" />
                   </TouchableOpacity>
 

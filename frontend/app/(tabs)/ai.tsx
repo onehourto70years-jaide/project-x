@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Act
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -41,6 +42,7 @@ const GOALS = [
 ];
 
 export default function AIScreen() {
+  const { t } = useLanguage();
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -159,7 +161,7 @@ export default function AIScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>AI Health Assistant</Text>
+          <Text style={styles.title}>{t('ai_title')}</Text>
           <Text style={styles.subtitle}>Personalized insights powered by AI</Text>
         </View>
 

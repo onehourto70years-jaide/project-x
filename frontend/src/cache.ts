@@ -113,6 +113,7 @@ export const CacheKeys = {
   progressWater: (days: number) => `progress_water_${days}`,
   foodSearch: (query: string) => `food_search_${query.toLowerCase().trim()}`,
   molecularProfiles: 'molecular_profiles',
+  sequenceResult: (mode: string) => `sequence_result_${mode}`,
 } as const;
 
 // ─── TTL presets (ms) ────────────────────────────────────

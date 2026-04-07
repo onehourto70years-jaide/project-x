@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './_layout';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -20,6 +21,7 @@ const GOAL_META: Record<GoalKey, { icon: string; color: string; label: string }>
 
 export default function MolecularEngineScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedGoals, setSelectedGoals] = useState<GoalKey[]>(['muscle_gain']);
   const [loading, setLoading] = useState(false);
@@ -50,7 +52,7 @@ export default function MolecularEngineScreen() {
   };
 
   const analyzeMeals = async () => {
-    if (todaysMeals.length === 0) { Alert.alert('No Meals', 'Log some meals first to analyze their elemental balance.'); return; }
+    if (todaysMeals.length === 0) { Alert.alert(t('mol_no_meals'), t('mol_no_meals_desc')); return; }
     setLoading(true); setAnalysisResult(null); setFixSuggestions(null);
     try {
       const token = await getToken();
@@ -91,8 +93,8 @@ export default function MolecularEngineScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Molecular Engine</Text>
-          <Text style={styles.headerSub}>Elemental food optimization</Text>
+          <Text style={styles.headerTitle}>{t('mol_title')}</Text>
+          <Text style={styles.headerSub}>{t('mol_subtitle')}</Text>
         </View>
         <Ionicons name="flask" size={28} color="#00d4ff" />
       </View>
@@ -130,7 +132,7 @@ export default function MolecularEngineScreen() {
           {loading ? <ActivityIndicator color="#fff" /> : (
             <>
               <Ionicons name="analytics" size={22} color="#fff" />
-              <Text style={styles.actionBtnText}>Analyze Elemental Balance</Text>
+              <Text style={styles.actionBtnText}>{t('mol_analyze')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -145,7 +147,7 @@ export default function MolecularEngineScreen() {
                 <Text style={styles.scoreLabel}>/ 100</Text>
               </View>
               <View style={styles.scoreInfo}>
-                <Text style={styles.resultTitle}>Elemental Balance Score</Text>
+                <Text style={styles.resultTitle}>{t('mol_balance')}</Text>
                 <Text style={styles.resultDesc}>Total mass: {analysisResult.total_mass_g}g across {analysisResult.food_names?.length || 0} food(s)</Text>
               </View>
             </View>

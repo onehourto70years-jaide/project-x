@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -23,6 +24,7 @@ interface RecentFood {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [recentFoods, setRecentFoods] = useState<RecentFood[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -72,7 +74,7 @@ export default function FavoritesScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Favorites & Recent</Text>
+        <Text style={styles.title}>{t('fav_title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -108,7 +110,7 @@ export default function FavoritesScreen() {
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="star-outline" size={48} color="#444" />
-              <Text style={styles.emptyText}>No favorites yet</Text>
+              <Text style={styles.emptyText}>{t('fav_no_favorites')}</Text>
               <Text style={styles.emptySubtext}>Add foods to favorites for quick access</Text>
             </View>
           )

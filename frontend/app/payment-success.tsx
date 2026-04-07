@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaVi
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function PaymentSuccessScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const params = useLocalSearchParams();
   const sessionId = params.session_id as string;
   const [status, setStatus] = useState<'polling' | 'success' | 'failed' | 'error'>('polling');
@@ -79,7 +81,7 @@ export default function PaymentSuccessScreen() {
             <View style={styles.successIcon}>
               <Ionicons name="checkmark-circle" size={80} color="#00ff88" />
             </View>
-            <Text style={styles.title}>Payment Successful!</Text>
+            <Text style={styles.title}>{t('pay_success')}</Text>
             <Text style={styles.subtitle}>Welcome to NutriOS Pro. Enjoy lifetime access!</Text>
             <TouchableOpacity
               style={styles.continueButton}
@@ -101,8 +103,8 @@ export default function PaymentSuccessScreen() {
             </Text>
             <Text style={styles.subtitle}>
               {status === 'error'
-                ? 'Missing payment session information'
-                : 'We could not confirm your payment. If you were charged, please contact support.'}
+                ? t('pay_missing')
+                : t('pay_contact')}
             </Text>
             <TouchableOpacity
               style={styles.retryButton}

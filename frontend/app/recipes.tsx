@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/ThemeContext';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -32,6 +33,7 @@ interface Ingredient {
 
 export default function RecipesScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { theme } = useTheme();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -173,7 +175,7 @@ export default function RecipesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: theme.text }]}>Recipe Builder</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{t('recipe_title')}</Text>
         <TouchableOpacity onPress={() => setShowCreateModal(true)} style={[styles.addBtn, { backgroundColor: theme.accent }]}>
           <Ionicons name="add" size={22} color="#fff" />
         </TouchableOpacity>
@@ -244,14 +246,14 @@ export default function RecipesScreen() {
         ) : (
           <View style={styles.emptyState}>
             <Ionicons name="restaurant-outline" size={64} color={theme.textDim} />
-            <Text style={[styles.emptyText, { color: theme.text }]}>No recipes yet</Text>
+            <Text style={[styles.emptyText, { color: theme.text }]}>{t('recipe_no_recipes')}</Text>
             <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>
               Create custom recipes with combined molecular nutrition analysis
             </Text>
             <TouchableOpacity style={[styles.createEmptyBtn, { backgroundColor: theme.accent }]}
               onPress={() => setShowCreateModal(true)}>
               <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.createEmptyText}>Create Your First Recipe</Text>
+              <Text style={styles.createEmptyText}>{t('recipe_create_first')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -263,21 +265,21 @@ export default function RecipesScreen() {
           <View style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: theme.bgSecondary }]}>
               <View style={[styles.modalHeader, { borderBottomColor: theme.borderLight }]}>
-                <Text style={[styles.modalTitle, { color: theme.text }]}>Create Recipe</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>{t('recipe_create')}</Text>
                 <TouchableOpacity onPress={() => { setShowCreateModal(false); resetForm(); }}>
                   <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Recipe Name *</Text>
+                <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('recipe_name')} *</Text>
                 <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
-                  value={newRecipe.name} onChangeText={(t) => setNewRecipe(prev => ({ ...prev, name: t }))}
+                  value={newRecipe.name} onChangeText={(v) => setNewRecipe(prev => ({ ...prev, name: v }))}
                   placeholder="e.g., Protein Power Bowl" placeholderTextColor={theme.textDim} />
 
                 <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Description</Text>
                 <TextInput style={[styles.input, styles.textArea, { backgroundColor: theme.bgInput, color: theme.text }]}
-                  value={newRecipe.description} onChangeText={(t) => setNewRecipe(prev => ({ ...prev, description: t }))}
+                  value={newRecipe.description} onChangeText={(v) => setNewRecipe(prev => ({ ...prev, description: v }))}
                   placeholder="Brief description..." placeholderTextColor={theme.textDim} multiline />
 
                 <View style={styles.servingsRow}>

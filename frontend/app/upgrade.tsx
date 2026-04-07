@@ -4,11 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from './_layout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<any>(null);
@@ -221,7 +223,7 @@ export default function UpgradeScreen() {
 
         {/* Features */}
         <View style={styles.featuresCard}>
-          <Text style={styles.featuresTitle}>Everything in NutriOS Pro:</Text>
+          <Text style={styles.featuresTitle}>{t('up_title')}:</Text>
           {features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
               <View style={[styles.featureIcon, { backgroundColor: f.color + '20' }]}>

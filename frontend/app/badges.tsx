@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLanguage } from '../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -18,6 +19,7 @@ interface Badge {
 
 export default function BadgesScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [stats, setStats] = useState<any>({});
   const [weeklySummary, setWeeklySummary] = useState<any>({});
@@ -112,7 +114,7 @@ export default function BadgesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Achievements</Text>
+        <Text style={styles.headerTitle}>{t('badge_title')}</Text>
         <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
           <Ionicons name="share-social" size={22} color="#00d4ff" />
         </TouchableOpacity>
@@ -189,7 +191,7 @@ export default function BadgesScreen() {
                   <View style={styles.badgeActions}>
                     <View style={[styles.earnedTag, { backgroundColor: badge.color + '20' }]}>
                       <Ionicons name="checkmark" size={12} color={badge.color} />
-                      <Text style={[styles.earnedText, { color: badge.color }]}>Earned</Text>
+                      <Text style={[styles.earnedText, { color: badge.color }]}>{t('badge_earned')}</Text>
                     </View>
                     <TouchableOpacity style={styles.badgeShareBtn} onPress={() => handleShareBadge(badge)}>
                       <Ionicons name="share-outline" size={14} color="#00d4ff" />
@@ -199,7 +201,7 @@ export default function BadgesScreen() {
                 {!badge.earned && (
                   <View style={styles.lockedTag}>
                     <Ionicons name="lock-closed" size={12} color="#444" />
-                    <Text style={styles.lockedText}>Locked</Text>
+                    <Text style={styles.lockedText}>{t('badge_locked')}</Text>
                   </View>
                 )}
                 {newlyEarned.includes(badge.id) && (

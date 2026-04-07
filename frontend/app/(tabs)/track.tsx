@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../../src/LanguageContext';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -19,6 +20,7 @@ interface Meal {
 }
 
 export default function TrackScreen() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [refreshing, setRefreshing] = useState(false);

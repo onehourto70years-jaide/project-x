@@ -163,7 +163,7 @@ export default function SettingsScreen() {
         // Master toggle off - cancel all
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
-      Alert.alert('Saved!', 'Your settings have been updated');
+      Alert.alert(t('set_saved'), t('set_saved_desc'));
     } catch (e) { Alert.alert('Error', 'Failed to save settings'); }
     finally { setSaving(false); }
   };
@@ -242,7 +242,7 @@ export default function SettingsScreen() {
               </View>
               <View>
                 <Text style={[styles.switchLabel, { color: theme.text }]}>Dark Mode</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{isDark ? 'Futuristic dark theme' : 'Clean light theme'}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{isDark ? t('set_dark_desc') : t('set_light_desc')}</Text>
               </View>
             </View>
             <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: theme.accent }} thumbColor="#fff" />
@@ -307,7 +307,7 @@ export default function SettingsScreen() {
                     onPress={() => setProfile(prev => ({ ...prev, sex: s.id }))}>
                     <Ionicons name={s.icon as any} size={18} color={profile.sex === s.id ? '#fff' : theme.textMuted} />
                     <Text style={[styles.sexLabel, { color: theme.textMuted }, profile.sex === s.id && { color: '#fff' }]}>
-                      {s.id === 'male' ? 'Male' : 'Female'}
+                      {s.id === 'male' ? t('set_male') : t('set_female')}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -368,9 +368,9 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_daily_goals')}</Text>
         <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
           {[
-            { key: 'daily_calorie_goal', label: 'Calorie Goal', unit: 'kcal', icon: 'flame', color: '#ff6b6b' },
-            { key: 'daily_protein_goal', label: 'Protein Goal', unit: 'g', icon: 'barbell', color: '#00d4ff' },
-            { key: 'daily_water_goal_ml', label: 'Water Goal', unit: 'ml', icon: 'water', color: '#4ecdc4' },
+            { key: 'daily_calorie_goal', label: t('set_calorie_goal'), unit: 'kcal', icon: 'flame', color: '#ff6b6b' },
+            { key: 'daily_protein_goal', label: t('set_protein_goal'), unit: 'g', icon: 'barbell', color: '#00d4ff' },
+            { key: 'daily_water_goal_ml', label: t('set_water_goal_label'), unit: 'ml', icon: 'water', color: '#4ecdc4' },
           ].map((goal) => (
             <View key={goal.key} style={styles.goalInputRow}>
               <View style={[styles.settingIcon, { backgroundColor: goal.color + '15' }]}>
@@ -400,7 +400,7 @@ export default function SettingsScreen() {
                 <Ionicons name="notifications" size={18} color="#00ff88" />
               </View>
               <View>
-                <Text style={[styles.switchLabel, { color: theme.text }]}>All Notifications</Text>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_all_notifs')}</Text>
                 <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_notif_master')}</Text>
               </View>
             </View>
@@ -635,7 +635,7 @@ export default function SettingsScreen() {
         </Text>
         <TouchableOpacity style={styles.tosLink} onPress={() => Linking.openURL('https://sites.google.com/view/nutrios-terms-of-service/home-page')}>
           <Ionicons name="document-text-outline" size={14} color={theme.accent} />
-          <Text style={[styles.tosText, { color: theme.accent }]}>Terms of Service</Text>
+          <Text style={[styles.tosText, { color: theme.accent }]}>{t('set_terms')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -684,7 +684,7 @@ export default function SettingsScreen() {
 
             {deleteStep === 1 ? (
               <>
-                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>Delete Account?</Text>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>{t('set_delete_question')}</Text>
                 <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
                   Are you sure you want to permanently delete your account and all your data? This action cannot be undone.
                 </Text>
@@ -692,7 +692,7 @@ export default function SettingsScreen() {
                   style={{ backgroundColor: '#ff3b30', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 10 }}
                   onPress={() => setDeleteStep(2)}
                 >
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Yes, Delete My Account</Text>
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{t('set_delete_btn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
@@ -703,7 +703,7 @@ export default function SettingsScreen() {
               </>
             ) : (
               <>
-                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>Final Confirmation</Text>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>{t('set_final_confirm')}</Text>
                 <Text style={{ color: '#aaa', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
                   This will permanently delete ALL your data including meals, water logs, routines, recipes, and badges. This is irreversible.
                 </Text>
@@ -711,13 +711,13 @@ export default function SettingsScreen() {
                   style={{ backgroundColor: '#ff3b30', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 10 }}
                   onPress={executeDeleteAccount}
                 >
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Permanently Delete</Text>
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{t('set_delete_final_btn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
                   onPress={() => setShowDeleteModal(false)}
                 >
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Keep My Account</Text>
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{t('set_keep')}</Text>
                 </TouchableOpacity>
               </>
             )}

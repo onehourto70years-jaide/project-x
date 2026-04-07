@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ima
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../_layout';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../src/LanguageContext';
 
 export default function ProfileScreen() {
+  const { t } = useLanguage();
   const { user, signOut } = useAuth();
   const router = useRouter();
 

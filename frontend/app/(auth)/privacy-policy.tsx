@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ani
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../../src/LanguageContext';
 
 const POLICY_SECTIONS = [
   {
@@ -57,6 +58,7 @@ const POLICY_SECTIONS = [
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -90,8 +92,8 @@ export default function PrivacyPolicyScreen() {
           <View style={styles.headerIcon}>
             <Ionicons name="shield-checkmark" size={28} color="#00d4ff" />
           </View>
-          <Text style={styles.headerTitle}>Privacy Policy</Text>
-          <Text style={styles.headerSubtitle}>Please read and accept to continue</Text>
+          <Text style={styles.headerTitle}>{t('privacy_title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('privacy_read')}</Text>
         </View>
 
         {/* Policy Content */}
@@ -140,7 +142,7 @@ export default function PrivacyPolicyScreen() {
           >
             <Ionicons name="checkmark-circle" size={20} color={scrolledToEnd ? '#fff' : '#555'} />
             <Text style={[styles.agreeBtnText, !scrolledToEnd && styles.agreeBtnTextDisabled]}>
-              I Agree
+              {t('privacy_agree')}
             </Text>
           </TouchableOpacity>
         </View>

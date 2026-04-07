@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../src/LanguageContext';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
@@ -248,7 +249,7 @@ export default function FoodDetailsScreen() {
 
         {/* Elemental Composition */}
         <View style={styles.elementsCard}>
-          <Text style={styles.cardTitle}>Elemental Composition</Text>
+          <Text style={styles.cardTitle}>{t('fd_elements')}</Text>
           <Text style={styles.confidenceBadge}>Confidence: {analysis.elements.confidence}</Text>
           
           <View style={styles.elementsGrid}>
@@ -289,7 +290,7 @@ export default function FoodDetailsScreen() {
 
         {/* Vitamins & Minerals */}
         <View style={styles.vitaminsCard}>
-          <Text style={styles.cardTitle}>Vitamins & Minerals</Text>
+          <Text style={styles.cardTitle}>{t('fd_vitamins')}</Text>
           <View style={styles.vitaminsGrid}>
             {[
               { key: 'vitamin_a_mcg', label: 'Vitamin A', unit: 'mcg' },
