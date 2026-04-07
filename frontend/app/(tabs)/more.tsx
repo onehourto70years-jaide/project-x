@@ -23,6 +23,7 @@ export default function MoreScreen() {
         { id: 'scanner', label: t('more_barcode_scanner'), icon: 'barcode', color: '#ffd93d', route: '/scanner' },
         { id: 'progress', label: t('more_progress_charts'), icon: 'stats-chart', color: '#4ecdc4', route: '/progress' },
         { id: 'weight', label: t('more_weight'), icon: 'scale', color: '#00ff88', route: '/weight' },
+        { id: 'reports', label: t('more_reports'), icon: 'document-text', color: '#ff6b6b', route: '/reports' },
       ]
     },
     {
