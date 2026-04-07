@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -479,74 +479,77 @@ export default function NutritionScreen() {
 
       {/* Search Modal */}
       <Modal visible={showSearchModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('nutr_add_food')}</Text>
-              <TouchableOpacity onPress={() => setShowSearchModal(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Meal Type Selection */}
-            <View style={styles.mealTypeRow}>
-              {MEAL_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]}
-                  onPress={() => setSelectedMealType(type.id)}
-                >
-                  <Ionicons name={type.icon as any} size={16} color={selectedMealType === type.id ? type.color : '#666'} />
-                  <Text style={[styles.mealTypeText, selectedMealType === type.id && { color: type.color }]}>{type.label}</Text>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => Keyboard.dismiss()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('nutr_add_food')}</Text>
+                <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+                  <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Search */}
-            <View style={styles.searchRow}>
-              <View style={styles.searchInput}>
-                <Ionicons name="search" size={20} color="#666" />
-                <TextInput
-                  style={styles.searchField}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder={t('nutr_search_food')}
-                  placeholderTextColor="#666"
-                  onSubmitEditing={searchFoods}
-                  returnKeyType="search"
-                />
               </View>
-              <TouchableOpacity style={styles.searchBtn} onPress={searchFoods}>
-                <Text style={styles.searchBtnText}>{t('nutr_search_btn')}</Text>
-              </TouchableOpacity>
-            </View>
 
-            {/* Results */}
-            <ScrollView style={styles.resultsScroll}>
-              {searching ? (
-                <Text style={styles.searchingText}>{t('nutr_searching')}</Text>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((food) => (
-                  <TouchableOpacity key={food.fdc_id} style={styles.foodResult} onPress={() => handleFoodSelect(food)}>
-                    <View style={styles.foodResultIcon}>
-                      <Ionicons name="nutrition" size={20} color="#00d4ff" />
-                    </View>
-                    <View style={styles.foodResultInfo}>
-                      <Text style={styles.foodResultName} numberOfLines={2}>{food.description}</Text>
-                      <Text style={styles.foodResultMeta}>{food.data_type || 'USDA'}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#666" />
+              {/* Meal Type Selection */}
+              <View style={styles.mealTypeRow}>
+                {MEAL_TYPES.map((type) => (
+                  <TouchableOpacity
+                    key={type.id}
+                    style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]}
+                    onPress={() => setSelectedMealType(type.id)}
+                  >
+                    <Ionicons name={type.icon as any} size={16} color={selectedMealType === type.id ? type.color : '#666'} />
+                    <Text style={[styles.mealTypeText, selectedMealType === type.id && { color: type.color }]}>{type.label}</Text>
                   </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptySearch}>
-                  <Ionicons name="search-outline" size={40} color="#444" />
-                  <Text style={styles.emptySearchText}>Search for foods to add</Text>
+                ))}
+              </View>
+
+              {/* Search */}
+              <View style={styles.searchRow}>
+                <View style={styles.searchInput}>
+                  <Ionicons name="search" size={20} color="#666" />
+                  <TextInput
+                    style={styles.searchField}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder={t('nutr_search_food')}
+                    placeholderTextColor="#666"
+                    onSubmitEditing={searchFoods}
+                    returnKeyType="search"
+                    autoFocus={true}
+                  />
                 </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
+                <TouchableOpacity style={styles.searchBtn} onPress={searchFoods}>
+                  <Text style={styles.searchBtnText}>{t('nutr_search_btn')}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Results */}
+              <ScrollView style={styles.resultsScroll} keyboardShouldPersistTaps="handled">
+                {searching ? (
+                  <Text style={styles.searchingText}>{t('nutr_searching')}</Text>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((food) => (
+                    <TouchableOpacity key={food.fdc_id} style={styles.foodResult} onPress={() => handleFoodSelect(food)}>
+                      <View style={styles.foodResultIcon}>
+                        <Ionicons name="nutrition" size={20} color="#00d4ff" />
+                      </View>
+                      <View style={styles.foodResultInfo}>
+                        <Text style={styles.foodResultName} numberOfLines={2}>{food.description}</Text>
+                        <Text style={styles.foodResultMeta}>{food.data_type || 'USDA'}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#666" />
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptySearch}>
+                    <Ionicons name="search-outline" size={40} color="#444" />
+                    <Text style={styles.emptySearchText}>Search for foods to add</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

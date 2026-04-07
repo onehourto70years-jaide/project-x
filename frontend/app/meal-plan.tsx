@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, RefreshControl, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -156,48 +156,50 @@ export default function MealPlanScreen() {
 
       {/* Add Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Plan Meal</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll}>
-              <Text style={styles.inputLabel}>Date: {formatDate(selectedDate)}</Text>
-              
-              <Text style={styles.inputLabel}>Meal Type</Text>
-              <View style={styles.mealTypeRow}>
-                {MEAL_TYPES.map((type) => (
-                  <TouchableOpacity key={type.id} style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]} onPress={() => setSelectedMealType(type.id)}>
-                    <Ionicons name={type.icon as any} size={18} color={selectedMealType === type.id ? type.color : '#666'} />
-                  </TouchableOpacity>
-                ))}
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => Keyboard.dismiss()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Plan Meal</Text>
+                <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                  <Ionicons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.inputLabel}>Select Recipe</Text>
-              {recipes.length > 0 ? (
-                recipes.map((recipe) => (
-                  <TouchableOpacity key={recipe.id} style={[styles.recipeOption, selectedRecipeId === recipe.id && styles.recipeOptionActive]} onPress={() => setSelectedRecipeId(recipe.id)}>
-                    <Ionicons name={selectedRecipeId === recipe.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedRecipeId === recipe.id ? '#00d4ff' : '#666'} />
-                    <Text style={styles.recipeOptionText}>{recipe.name}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.noRecipes}>No recipes. Create one first!</Text>
-              )}
+              <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+                <Text style={styles.inputLabel}>Date: {formatDate(selectedDate)}</Text>
+              
+                <Text style={styles.inputLabel}>Meal Type</Text>
+                <View style={styles.mealTypeRow}>
+                  {MEAL_TYPES.map((type) => (
+                    <TouchableOpacity key={type.id} style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]} onPress={() => setSelectedMealType(type.id)}>
+                      <Ionicons name={type.icon as any} size={18} color={selectedMealType === type.id ? type.color : '#666'} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-              <Text style={styles.inputLabel}>Or add notes</Text>
-              <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder="e.g., Order salad from restaurant" placeholderTextColor="#666" />
-            </ScrollView>
+                <Text style={styles.inputLabel}>Select Recipe</Text>
+                {recipes.length > 0 ? (
+                  recipes.map((recipe) => (
+                    <TouchableOpacity key={recipe.id} style={[styles.recipeOption, selectedRecipeId === recipe.id && styles.recipeOptionActive]} onPress={() => setSelectedRecipeId(recipe.id)}>
+                      <Ionicons name={selectedRecipeId === recipe.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedRecipeId === recipe.id ? '#00d4ff' : '#666'} />
+                      <Text style={styles.recipeOptionText}>{recipe.name}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.noRecipes}>No recipes. Create one first!</Text>
+                )}
 
-            <TouchableOpacity style={styles.addBtn} onPress={addMealPlan}>
-              <Text style={styles.addBtnText}>Add to Plan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+                <Text style={styles.inputLabel}>Or add notes</Text>
+                <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder="e.g., Order salad from restaurant" placeholderTextColor="#666" />
+              </ScrollView>
+
+              <TouchableOpacity style={styles.addBtn} onPress={addMealPlan}>
+                <Text style={styles.addBtnText}>Add to Plan</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

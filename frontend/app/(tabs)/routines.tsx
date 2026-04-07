@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -148,6 +148,8 @@ export default function RoutinesScreen() {
       tasks: [...prev.tasks, { id: Date.now().toString(), name: newTaskName.trim() }]
     }));
     setNewTaskName('');
+    // Scroll to bottom so the input stays visible
+    setTimeout(() => modalScrollRef.current?.scrollToEnd({ animated: true }), 150);
   };
 
   const removeTask = (taskId: string) => {
@@ -165,6 +167,8 @@ export default function RoutinesScreen() {
   };
 
   const getRoutineType = (typeId: string) => ROUTINE_TYPES.find(rt => rt.id === typeId) || ROUTINE_TYPES[4];
+  const modalScrollRef = useRef<ScrollView>(null);
+  const taskInputRef = useRef<TextInput>(null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -276,106 +280,119 @@ export default function RoutinesScreen() {
 
       {/* Create Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('rout_create')}</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll}>
-              <Text style={styles.inputLabel}>Routine Name</Text>
-              <TextInput
-                style={styles.input}
-                value={newRoutine.name}
-                onChangeText={(text) => setNewRoutine(prev => ({ ...prev, name: text }))}
-                placeholder="e.g., Morning Workout"
-                placeholderTextColor="#666"
-              />
-
-              <Text style={styles.inputLabel}>Type</Text>
-              <View style={styles.typeGrid}>
-                {ROUTINE_TYPES.map((type) => (
-                  <TouchableOpacity
-                    key={type.id}
-                    style={[styles.typeOption, newRoutine.type === type.id && { borderColor: type.color, backgroundColor: type.color + '20' }]}
-                    onPress={() => setNewRoutine(prev => ({ ...prev, type: type.id }))}
-                  >
-                    <Ionicons name={type.icon as any} size={20} color={newRoutine.type === type.id ? type.color : '#666'} />
-                    <Text style={[styles.typeLabel, newRoutine.type === type.id && { color: type.color }]}>{type.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>Days</Text>
-              <View style={styles.daysRow}>
-                {DAYS.map((day) => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[styles.dayOption, newRoutine.days.includes(day) && styles.daySelected]}
-                    onPress={() => toggleDay(day)}
-                  >
-                    <Text style={[styles.dayText, newRoutine.days.includes(day) && styles.dayTextSelected]}>{day.charAt(0).toUpperCase()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.timeRow}>
-                <View style={styles.timeInput}>
-                  <Text style={styles.inputLabel}>Start Time</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newRoutine.time_start}
-                    onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_start: text }))}
-                    placeholder="07:00"
-                    placeholderTextColor="#666"
-                  />
-                </View>
-                <View style={styles.timeInput}>
-                  <Text style={styles.inputLabel}>End Time</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newRoutine.time_end}
-                    onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_end: text }))}
-                    placeholder="08:00"
-                    placeholderTextColor="#666"
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.inputLabel}>Tasks</Text>
-              <View style={styles.addTaskRow}>
-                <TextInput
-                  style={[styles.input, { flex: 1, marginRight: 8 }]}
-                  value={newTaskName}
-                  onChangeText={setNewTaskName}
-                  placeholder="Add a task"
-                  placeholderTextColor="#666"
-                  onSubmitEditing={addTask}
-                />
-                <TouchableOpacity style={styles.addTaskBtn} onPress={addTask}>
-                  <Ionicons name="add" size={20} color="#fff" />
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => Keyboard.dismiss()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('rout_create')}</Text>
+                <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                  <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              {newRoutine.tasks.map((task) => (
-                <View key={task.id} style={styles.taskPreview}>
-                  <Ionicons name="checkbox-outline" size={18} color="#00d4ff" />
-                  <Text style={styles.taskPreviewText}>{task.name}</Text>
-                  <TouchableOpacity onPress={() => removeTask(task.id)}>
-                    <Ionicons name="close-circle" size={20} color="#ff6b6b" />
+              <ScrollView
+                ref={modalScrollRef}
+                style={styles.modalScroll}
+                contentContainerStyle={{ paddingBottom: 30 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.inputLabel}>Routine Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newRoutine.name}
+                  onChangeText={(text) => setNewRoutine(prev => ({ ...prev, name: text }))}
+                  placeholder="e.g., Morning Workout"
+                  placeholderTextColor="#666"
+                  onFocus={() => setTimeout(() => modalScrollRef.current?.scrollTo({ y: 0, animated: true }), 200)}
+                />
+
+                <Text style={styles.inputLabel}>Type</Text>
+                <View style={styles.typeGrid}>
+                  {ROUTINE_TYPES.map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[styles.typeOption, newRoutine.type === type.id && { borderColor: type.color, backgroundColor: type.color + '20' }]}
+                      onPress={() => setNewRoutine(prev => ({ ...prev, type: type.id }))}
+                    >
+                      <Ionicons name={type.icon as any} size={20} color={newRoutine.type === type.id ? type.color : '#666'} />
+                      <Text style={[styles.typeLabel, newRoutine.type === type.id && { color: type.color }]}>{type.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabel}>Days</Text>
+                <View style={styles.daysRow}>
+                  {DAYS.map((day) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.dayOption, newRoutine.days.includes(day) && styles.daySelected]}
+                      onPress={() => toggleDay(day)}
+                    >
+                      <Text style={[styles.dayText, newRoutine.days.includes(day) && styles.dayTextSelected]}>{day.charAt(0).toUpperCase()}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.timeRow}>
+                  <View style={styles.timeInput}>
+                    <Text style={styles.inputLabel}>Start Time</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newRoutine.time_start}
+                      onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_start: text }))}
+                      placeholder="07:00"
+                      placeholderTextColor="#666"
+                    />
+                  </View>
+                  <View style={styles.timeInput}>
+                    <Text style={styles.inputLabel}>End Time</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newRoutine.time_end}
+                      onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_end: text }))}
+                      placeholder="08:00"
+                      placeholderTextColor="#666"
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.inputLabel}>Tasks</Text>
+                <View style={styles.addTaskRow}>
+                  <TextInput
+                    ref={taskInputRef}
+                    style={[styles.input, { flex: 1, marginRight: 8 }]}
+                    value={newTaskName}
+                    onChangeText={setNewTaskName}
+                    placeholder="Add a task"
+                    placeholderTextColor="#666"
+                    onSubmitEditing={addTask}
+                    returnKeyType="done"
+                    blurOnSubmit={false}
+                    onFocus={() => setTimeout(() => modalScrollRef.current?.scrollToEnd({ animated: true }), 200)}
+                  />
+                  <TouchableOpacity style={styles.addTaskBtn} onPress={addTask}>
+                    <Ionicons name="add" size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
-              ))}
-            </ScrollView>
 
-            <TouchableOpacity style={styles.createRoutineBtn} onPress={createRoutine}>
-              <Text style={styles.createRoutineBtnText}>Create Routine</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+                {newRoutine.tasks.map((task) => (
+                  <View key={task.id} style={styles.taskPreview}>
+                    <Ionicons name="checkbox-outline" size={18} color="#00d4ff" />
+                    <Text style={styles.taskPreviewText}>{task.name}</Text>
+                    <TouchableOpacity onPress={() => removeTask(task.id)}>
+                      <Ionicons name="close-circle" size={20} color="#ff6b6b" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity style={styles.createRoutineBtn} onPress={createRoutine}>
+                <Text style={styles.createRoutineBtnText}>Create Routine</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
