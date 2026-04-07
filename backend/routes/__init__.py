@@ -15,6 +15,7 @@ from routes.molecular import router as molecular_router
 from routes.notifications import router as notifications_router
 from routes.sharing import router as sharing_router
 from routes.sequence_optimizer import router as sequence_router
+from routes.weight import router as weight_router
 
 
 def create_api_router() -> APIRouter:
@@ -34,4 +35,5 @@ def create_api_router() -> APIRouter:
     api.include_router(notifications_router)
     api.include_router(sharing_router)
     api.include_router(sequence_router)
+    api.include_router(weight_router)
     return api
