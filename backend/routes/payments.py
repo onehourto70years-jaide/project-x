@@ -7,7 +7,7 @@ from database import db
 from dependencies import require_user
 from models import User
 from config import logger, STRIPE_API_KEY, MONTHLY_PRICE_EUR, ANNUAL_PRICE_EUR, TRIAL_DAYS
-from services import send_cancellation_email
+from services import send_cancellation_email, send_subscription_activation_email
 
 router = APIRouter(tags=["payments"])
 
@@ -94,6 +94,9 @@ async def check_checkout_status(session_id: str, user: User = Depends(require_us
         user_id = tx.get("user_id", user.user_id)
         await db.users.update_one({"user_id": user_id}, {"$set": {"is_premium": True, "subscription_plan": plan, "stripe_subscription_id": sub_id, "subscription_status": "active", "premium_since": datetime.now(timezone.utc)}})
         logger.info(f"User {user_id} subscribed to {plan} plan via checkout {session_id}")
+        # Send subscription activation email (fire-and-forget)
+        import asyncio
+        asyncio.create_task(send_subscription_activation_email(user.email, user.name, plan))
     return {"status": status, "payment_status": payment_status}
 
 

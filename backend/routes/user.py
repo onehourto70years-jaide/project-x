@@ -4,6 +4,8 @@ from database import db
 from dependencies import require_user
 from models import User
 from config import logger
+from services import send_account_deletion_email
+import asyncio
 
 router = APIRouter(tags=["user"])
 
@@ -36,9 +38,15 @@ async def delete_user_account(request: Request, response: Response, user: User =
     user_doc = await db.users.find_one({"user_id": user_id})
     if user_doc and user_doc.get("is_premium") and not user_doc.get("cancel_at_period_end", False):
         raise HTTPException(status_code=400, detail="Please cancel your subscription before deleting your account.")
+    # Capture email and name BEFORE deletion for confirmation email
+    user_email = user_doc.get("email", "") if user_doc else ""
+    user_name = user_doc.get("name", "") if user_doc else ""
     logger.info(f"Deleting account for user {user_id}")
     for coll in ["users", "user_settings", "user_sessions", "meals", "water_logs", "favorites", "recipes", "meal_plans", "routines", "user_badges", "ai_conversations"]:
         await db[coll].delete_many({"user_id": user_id})
     response.delete_cookie(key="session_token", path="/")
     logger.info(f"Account deleted for user {user_id}")
+    # Send account deletion confirmation email (fire-and-forget)
+    if user_email:
+        asyncio.create_task(send_account_deletion_email(user_email, user_name))
     return {"message": "Account and all data permanently deleted"}

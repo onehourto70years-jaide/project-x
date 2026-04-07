@@ -25,6 +25,8 @@ from services import (
     send_smart_routine_reminder,
     send_streak_risk_alerts,
     send_inactivity_reminders,
+    send_weekly_summary_emails,
+    check_streak_milestones,
 )
 
 # ── FastAPI App ──
@@ -120,6 +122,22 @@ scheduler.add_job(
     send_inactivity_reminders,
     "cron", hour=10, minute=0,
     id="inactivity_reminder",
+    replace_existing=True,
+)
+
+# ── Weekly Summary Email ── (every Sunday at 7pm UTC)
+scheduler.add_job(
+    send_weekly_summary_emails,
+    "cron", day_of_week="sun", hour=19, minute=0,
+    id="weekly_summary_email",
+    replace_existing=True,
+)
+
+# ── Streak Milestone Email Checker ── (daily at 9pm UTC)
+scheduler.add_job(
+    check_streak_milestones,
+    "cron", hour=21, minute=0,
+    id="streak_milestone_check",
     replace_existing=True,
 )
 

@@ -1,0 +1,318 @@
+[
+  {
+    "endpoint": "/",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:20.161647",
+    "response_data": {
+      "message": "NutriOS - Personal Health Operating System",
+      "version": "4.0.0",
+      "status": "healthy"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/auth/me",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:20.238240",
+    "response_data": {
+      "user_id": "test_user_123",
+      "email": "test@example.com",
+      "name": "Test User",
+      "picture": null,
+      "weight_kg": 70.0,
+      "activity_level": "moderate",
+      "health_goals": []
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:20.300891",
+    "response_data": {
+      "user_id": "test_user_123",
+      "daily_calorie_goal": 2000,
+      "daily_protein_goal": 50,
+      "daily_water_goal_ml": 2500,
+      "meal_reminder_enabled": true,
+      "notifications_enabled": true,
+      "routine_reminder_enabled": true,
+      "water_reminder_enabled": true
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:20.375136",
+    "response_data": {
+      "message": "Settings updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/profile",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:20.441174",
+    "response_data": {
+      "message": "Profile updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/foods/search",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.098854",
+    "response_data": {
+      "foods": [
+        {
+          "fdc_id": 454004,
+          "description": "APPLE",
+          "brand_owner": "TREECRISP 2 GO",
+          "data_type": "Branded"
+        },
+        {
+          "fdc_id": 2117388,
+          "description": "APPLE",
+          "brand_owner": "Associated Wholesale Grocers, Inc.",
+          "data_type": "Branded"
+        },
+        {
+          "fdc_id": 2124902,
+          "description": "APPLE",
+          "brand_owner": "Oneonta Trading Corporation",
+          "data_type": "Branded"
+        }
+      ],
+      "query": "apple"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/meals",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.162057",
+    "response_data": {
+      "message": "Meal added",
+      "meal_id": "de5608fb-bf93-4ad8-9b95-85256d2eda4b"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/meals/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.228407",
+    "response_data": {
+      "meals": [
+        {
+          "id": "de5608fb-bf93-4ad8-9b95-85256d2eda4b",
+          "fdc_id": null,
+          "food_name": "Apple",
+          "portion_grams": 150.0,
+          "meal_type": "snack",
+          "cooking_method": "raw",
+          "nutrients": {
+            "energy_kcal": 78.0,
+            "protein_g": 0.4,
+            "carbs_g": 20.6,
+            "fat_g": 0.3
+          },
+          "elements": {
+            "C": 6.5,
+            "H": 1.2,
+            "O": 8.3,
+            "N": 0.1
+          },
+          "allergens": [],
+          "timestamp": "2026-04-07T17:55:21.131000",
+          "date": "2026-04-07"
+        }
+      ],
+      "date": "2026-04-07"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/water",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.284486",
+    "response_data": {
+      "message": "Water logged",
+      "log_id": "d6886c26-30f0-47db-986f-133e40df2b97",
+      "amount_ml": 250
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/water/today",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.337926",
+    "response_data": {
+      "logs": [
+        {
+          "id": "d6886c26-30f0-47db-986f-133e40df2b97",
+          "amount_ml": 250,
+          "timestamp": "2026-04-07T17:55:21.265000"
+        }
+      ],
+      "total_ml": 250,
+      "goal_ml": 3000,
+      "percentage": 8.3
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/dashboard",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.406424",
+    "response_data": {
+      "date": "2026-04-07",
+      "user": {
+        "name": "Test User",
+        "weight_kg": 75.0,
+        "activity_level": "active"
+      },
+      "nutrition": {
+        "calories": {
+          "current": 78.0,
+          "goal": 2000,
+          "percentage": 3.9
+        },
+        "protein": {
+          "current": 0.4,
+          "goal": 50,
+          "percentage": 0.8
+        },
+        "carbs": {
+          "current": 0
+        },
+        "fat": {
+          "current": 0.3
+        },
+        "deficiencies": [
+          "energy_kcal",
+          "protein_g",
+          "carbohydrate_g",
+          "fat_g",
+          "fiber_g",
+          "vitamin_a_mcg",
+          "vitamin_c_mg",
+          "iron_mg",
+          "calcium_mg",
+          "magnesium_mg",
+          "potassium_mg",
+          "zinc_mg"
+        ],
+        "meals_count": 1
+      },
+      "hydration": {
+        "current_ml": 250,
+        "goal_ml": 3000,
+        "percentage": 8.3,
+        "logs_count": 1
+      },
+      "routines": {
+        "completed": 0,
+        "total": 0,
+        "percentage": 0.0,
+        "streak_days": 0,
+        "today_routines": []
+      },
+      "elements": {
+        "C": 6.5,
+        "H": 1.2,
+        "O": 8.3,
+        "N": 0.1
+      },
+      "recent_meals": [
+        {
+          "id": "de5608fb-bf93-4ad8-9b95-85256d2eda4b",
+          "food_name": "Apple",
+          "portion_grams": 150.0,
+          "meal_type": "snack",
+          "cooking_method": "raw",
+          "nutrients": {
+            "energy_kcal": 78.0,
+            "protein_g": 0.4,
+            "carbs_g": 20.6,
+            "fat_g": 0.3
+          },
+          "elements": {
+            "C": 6.5,
+            "H": 1.2,
+            "O": 8.3,
+            "N": 0.1
+          },
+          "allergens": [],
+          "timestamp": "2026-04-07T17:55:21.131000"
+        }
+      ],
+      "insights": []
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/payments/status",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.460725",
+    "response_data": {
+      "is_premium": false,
+      "subscription_plan": null,
+      "trial_active": true,
+      "trial_days_remaining": 16,
+      "trial_end_date": "2026-04-24T17:55:19.872000+00:00",
+      "has_access": true,
+      "monthly_price_eur": 2.99,
+      "annual_price_eur": 29.99,
+      "cancel_at_period_end": false,
+      "access_until": null
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/account",
+    "method": "DELETE",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T17:55:21.512321",
+    "response_data": {
+      "message": "Account and all data permanently deleted"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "GET",
+    "status": 401,
+    "success": false,
+    "timestamp": "2026-04-07T17:55:21.562715",
+    "response_data": {
+      "detail": "Not authenticated"
+    },
+    "error": null
+  }
+]

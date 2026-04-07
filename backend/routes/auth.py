@@ -6,6 +6,7 @@ from database import db
 from dependencies import require_user
 from models import User
 from fastapi import Depends
+from services import send_welcome_email
 
 router = APIRouter(tags=["auth"])
 
@@ -30,6 +31,9 @@ async def create_session(request: Request, response: Response):
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         await db.users.insert_one({"user_id": user_id, "email": email, "name": name, "picture": picture, "created_at": datetime.now(timezone.utc), "weight_kg": 70.0, "activity_level": "moderate", "health_goals": []})
         await db.user_settings.insert_one({"user_id": user_id, "daily_water_goal_ml": 2500, "daily_calorie_goal": 2000, "daily_protein_goal": 50, "wake_time": "07:00", "sleep_time": "23:00", "water_reminder_enabled": True, "meal_reminder_enabled": True, "routine_reminder_enabled": True})
+        # Send welcome email to new user (fire-and-forget)
+        import asyncio
+        asyncio.create_task(send_welcome_email(email, name))
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.delete_many({"user_id": user_id})
     await db.user_sessions.insert_one({"session_token": session_token, "user_id": user_id, "expires_at": expires_at, "created_at": datetime.now(timezone.utc)})
