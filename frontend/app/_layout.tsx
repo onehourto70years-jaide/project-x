@@ -224,7 +224,7 @@ export default function RootLayout() {
 
 function RootContent() {
   const { isDark } = useTheme();
-  const { matrixEnabled, adaptiveColor, matrixIntensity, priorityElements } = useMatrix();
+  const { matrixEnabled, adaptiveColor, matrixIntensity, matrixSpeed, matrixDensity, priorityElements } = useMatrix();
 
   // Enforce fullscreen immersive mode (hides status bar + nav bar)
   useImmersiveMode();
@@ -235,6 +235,8 @@ function RootContent() {
         <MatrixRainBackground
           colorTheme={adaptiveColor}
           intensity={matrixIntensity}
+          speed={matrixSpeed}
+          density={matrixDensity}
           priorityElements={priorityElements}
           overlay={true}
         />

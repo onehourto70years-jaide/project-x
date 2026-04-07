@@ -6,6 +6,7 @@ import { useAuth } from './_layout';
 import { useTheme } from '../src/ThemeContext';
 import { useLanguage } from '../src/LanguageContext';
 import { useMatrix } from '../src/MatrixContext';
+import type { MatrixSpeed, MatrixDensity } from '../src/MatrixContext';
 import { SUPPORTED_LOCALES, Locale } from '../src/i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
@@ -86,9 +87,11 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useLanguage();
-  const { matrixEnabled, setMatrixEnabled, matrixIntensity, setMatrixIntensity, adaptiveColor, setAdaptiveColor } = useMatrix();
+  const { matrixEnabled, setMatrixEnabled, matrixIntensity, setMatrixIntensity, adaptiveColor, setAdaptiveColor, matrixSpeed, setMatrixSpeed, matrixDensity, setMatrixDensity } = useMatrix();
   const [showLangModal, setShowLangModal] = useState(false);
   const [showMatrixColorModal, setShowMatrixColorModal] = useState(false);
+  const [showMatrixSpeedModal, setShowMatrixSpeedModal] = useState(false);
+  const [showMatrixDensityModal, setShowMatrixDensityModal] = useState(false);
   const [profile, setProfile] = useState({
     weight_kg: 70, height_cm: 170, age: 30, sex: 'male',
     activity_level: 'moderate', weight_goal: 'maintain', health_goals: [] as string[]
@@ -273,8 +276,8 @@ export default function SettingsScreen() {
                   </View>
                   <View>
                     <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_color')}</Text>
-                    <Text style={[styles.switchDesc, { color: adaptiveColor === 'green' ? '#00ff41' : adaptiveColor === 'cyan' ? '#00f5ff' : adaptiveColor === 'amber' ? '#ffb300' : '#00ff41' }]}>
-                      {adaptiveColor === 'green' ? t('set_matrix_green') : adaptiveColor === 'cyan' ? t('set_matrix_cyan') : adaptiveColor === 'amber' ? t('set_matrix_amber') : t('set_matrix_auto')}
+                    <Text style={[styles.switchDesc, { color: adaptiveColor === 'green' ? '#00ff41' : adaptiveColor === 'cyan' ? '#00f5ff' : adaptiveColor === 'amber' ? '#ffb300' : adaptiveColor === 'purple' ? '#bf5af2' : adaptiveColor === 'blood' ? '#ff3b30' : adaptiveColor === 'gold' ? '#ffd700' : '#00ff41' }]}>
+                      {t(`set_matrix_${adaptiveColor}` as any)}
                     </Text>
                   </View>
                 </View>
@@ -301,6 +304,44 @@ export default function SettingsScreen() {
                   thumbColor="#fff"
                 />
               </View>
+
+              {/* Speed */}
+              <TouchableOpacity
+                style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: theme.border }]}
+                onPress={() => setShowMatrixSpeedModal(true)}
+              >
+                <View style={styles.switchLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 255, 65, 0.08)' }]}>
+                    <Ionicons name="flash" size={20} color="#00ff41" />
+                  </View>
+                  <View>
+                    <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_speed')}</Text>
+                    <Text style={[styles.switchDesc, { color: '#00ff41' }]}>
+                      {t(`set_matrix_speed_${matrixSpeed}` as any)}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              {/* Density */}
+              <TouchableOpacity
+                style={[styles.switchRow, { borderTopWidth: 1, borderTopColor: theme.border }]}
+                onPress={() => setShowMatrixDensityModal(true)}
+              >
+                <View style={styles.switchLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 255, 65, 0.08)' }]}>
+                    <Ionicons name="grid" size={20} color="#00ff41" />
+                  </View>
+                  <View>
+                    <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_matrix_density')}</Text>
+                    <Text style={[styles.switchDesc, { color: '#00ff41' }]}>
+                      {t(`set_matrix_density_${matrixDensity === 'maximum' ? 'max' : matrixDensity}` as any)}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -803,6 +844,9 @@ export default function SettingsScreen() {
               { key: 'green', color: '#00ff41', label: t('set_matrix_green'), icon: 'leaf' },
               { key: 'cyan', color: '#00f5ff', label: t('set_matrix_cyan'), icon: 'water' },
               { key: 'amber', color: '#ffb300', label: t('set_matrix_amber'), icon: 'flame' },
+              { key: 'purple', color: '#bf5af2', label: t('set_matrix_purple'), icon: 'planet' },
+              { key: 'blood', color: '#ff3b30', label: t('set_matrix_blood'), icon: 'heart' },
+              { key: 'gold', color: '#ffd700', label: t('set_matrix_gold'), icon: 'diamond' },
               { key: 'auto', color: '#00ff41', label: t('set_matrix_auto'), icon: 'sync' },
             ] as const).map((opt) => (
               <TouchableOpacity
@@ -820,6 +864,77 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity onPress={() => setShowMatrixColorModal(false)} style={{ marginTop: 12, alignItems: 'center', padding: 14 }}>
+              <Text style={{ color: '#666', fontSize: 14, fontWeight: '600' }}>{t('set_cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Matrix Speed Selection Modal */}
+      <Modal visible={showMatrixSpeedModal} transparent animationType="fade" onRequestClose={() => setShowMatrixSpeedModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: '100%', maxWidth: 340, backgroundColor: '#080810', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(0,255,65,0.15)' }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#00ff41', marginBottom: 6, textAlign: 'center' }}>{t('set_matrix_speed')}</Text>
+            <Text style={{ fontSize: 13, color: '#666', marginBottom: 20, textAlign: 'center' }}>Control the falling speed</Text>
+            {([
+              { key: 'slow' as MatrixSpeed, icon: 'hourglass', label: t('set_matrix_speed_slow'), desc: '8-14s per drop' },
+              { key: 'medium' as MatrixSpeed, icon: 'time', label: t('set_matrix_speed_medium'), desc: '4-8s per drop' },
+              { key: 'fast' as MatrixSpeed, icon: 'flash', label: t('set_matrix_speed_fast'), desc: '2-5s per drop' },
+              { key: 'ultra' as MatrixSpeed, icon: 'rocket', label: t('set_matrix_speed_ultra'), desc: '1-3s per drop' },
+            ]).map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => { setMatrixSpeed(opt.key); setShowMatrixSpeedModal(false); }}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 8,
+                  backgroundColor: matrixSpeed === opt.key ? 'rgba(0,255,65,0.1)' : 'rgba(255,255,255,0.03)',
+                  borderWidth: 1, borderColor: matrixSpeed === opt.key ? 'rgba(0,255,65,0.3)' : 'transparent',
+                }}
+              >
+                <Ionicons name={opt.icon as any} size={22} color="#00ff41" />
+                <View style={{ marginLeft: 14, flex: 1 }}>
+                  <Text style={{ color: matrixSpeed === opt.key ? '#00ff41' : '#ccc', fontSize: 15, fontWeight: '600' }}>{opt.label}</Text>
+                  <Text style={{ color: '#555', fontSize: 11, marginTop: 2 }}>{opt.desc}</Text>
+                </View>
+                {matrixSpeed === opt.key && <Ionicons name="checkmark-circle" size={22} color="#00ff41" />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setShowMatrixSpeedModal(false)} style={{ marginTop: 12, alignItems: 'center', padding: 14 }}>
+              <Text style={{ color: '#666', fontSize: 14, fontWeight: '600' }}>{t('set_cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Matrix Density Selection Modal */}
+      <Modal visible={showMatrixDensityModal} transparent animationType="fade" onRequestClose={() => setShowMatrixDensityModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: '100%', maxWidth: 340, backgroundColor: '#080810', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: 'rgba(0,255,65,0.15)' }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#00ff41', marginBottom: 6, textAlign: 'center' }}>{t('set_matrix_density')}</Text>
+            <Text style={{ fontSize: 13, color: '#666', marginBottom: 20, textAlign: 'center' }}>How many element streams</Text>
+            {([
+              { key: 'sparse' as MatrixDensity, icon: 'remove', label: t('set_matrix_density_sparse'), columns: 8 },
+              { key: 'normal' as MatrixDensity, icon: 'reorder-two', label: t('set_matrix_density_normal'), columns: 14 },
+              { key: 'dense' as MatrixDensity, icon: 'reorder-three', label: t('set_matrix_density_dense'), columns: 18 },
+              { key: 'maximum' as MatrixDensity, icon: 'reorder-four', label: t('set_matrix_density_max'), columns: 24 },
+            ]).map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => { setMatrixDensity(opt.key); setShowMatrixDensityModal(false); }}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 8,
+                  backgroundColor: matrixDensity === opt.key ? 'rgba(0,255,65,0.1)' : 'rgba(255,255,255,0.03)',
+                  borderWidth: 1, borderColor: matrixDensity === opt.key ? 'rgba(0,255,65,0.3)' : 'transparent',
+                }}
+              >
+                <Ionicons name={opt.icon as any} size={22} color="#00ff41" />
+                <View style={{ marginLeft: 14, flex: 1 }}>
+                  <Text style={{ color: matrixDensity === opt.key ? '#00ff41' : '#ccc', fontSize: 15, fontWeight: '600' }}>{opt.label}</Text>
+                </View>
+                {matrixDensity === opt.key && <Ionicons name="checkmark-circle" size={22} color="#00ff41" />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setShowMatrixDensityModal(false)} style={{ marginTop: 12, alignItems: 'center', padding: 14 }}>
               <Text style={{ color: '#666', fontSize: 14, fontWeight: '600' }}>{t('set_cancel')}</Text>
             </TouchableOpacity>
           </View>

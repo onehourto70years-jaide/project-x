@@ -52,12 +52,31 @@ const ELEMENT_INFO: Record<string, { name: string; number: number; role: string;
   Au: { name: 'Gold',       number: 79, role: 'Used in medical treatments', sources: [] },
 };
 
-// ── Color themes ──
+// ── Color themes (expanded) ──
 const COLOR_THEMES = {
-  green: { head: '#00ff41', trail: '#00cc33', dim: '#004d14', glow: 'rgba(0, 255, 65, 0.6)' },
-  cyan:  { head: '#00f5ff', trail: '#00bcd4', dim: '#004d57', glow: 'rgba(0, 245, 255, 0.6)' },
-  amber: { head: '#ffb300', trail: '#ff8f00', dim: '#4d3600', glow: 'rgba(255, 179, 0, 0.6)' },
-  auto:  { head: '#00ff41', trail: '#00cc33', dim: '#004d14', glow: 'rgba(0, 255, 65, 0.6)' },
+  green:  { head: '#00ff41', trail: '#00cc33', dim: '#004d14', glow: 'rgba(0, 255, 65, 0.6)' },
+  cyan:   { head: '#00f5ff', trail: '#00bcd4', dim: '#004d57', glow: 'rgba(0, 245, 255, 0.6)' },
+  amber:  { head: '#ffb300', trail: '#ff8f00', dim: '#4d3600', glow: 'rgba(255, 179, 0, 0.6)' },
+  purple: { head: '#bf5af2', trail: '#9b59b6', dim: '#3d1f5c', glow: 'rgba(191, 90, 242, 0.6)' },
+  blood:  { head: '#ff3b30', trail: '#cc2d25', dim: '#4d110d', glow: 'rgba(255, 59, 48, 0.6)' },
+  gold:   { head: '#ffd700', trail: '#daa520', dim: '#4d4000', glow: 'rgba(255, 215, 0, 0.6)' },
+  auto:   { head: '#00ff41', trail: '#00cc33', dim: '#004d14', glow: 'rgba(0, 255, 65, 0.6)' },
+};
+
+// ── Speed multipliers (base duration range in ms) ──
+const SPEED_CONFIG = {
+  slow:   { min: 8000, max: 14000, delayMax: 7000 },
+  medium: { min: 4000, max: 8000,  delayMax: 5000 },
+  fast:   { min: 2000, max: 5000,  delayMax: 3000 },
+  ultra:  { min: 1000, max: 3000,  delayMax: 1500 },
+};
+
+// ── Density → number of columns ──
+const DENSITY_CONFIG = {
+  sparse:  8,
+  normal:  14,
+  dense:   18,
+  maximum: 24,
 };
 
 // ── Single falling stream column ──
@@ -66,21 +85,22 @@ interface StreamProps {
   totalColumns: number;
   colorTheme: keyof typeof COLOR_THEMES;
   intensity: 'full' | 'reduced';
+  speed: keyof typeof SPEED_CONFIG;
   elementPool: string[];
   onElementTap: (symbol: string, x: number, y: number) => void;
 }
 
-function MatrixStream({ columnIndex, totalColumns, colorTheme, intensity, elementPool, onElementTap }: StreamProps) {
+function MatrixStream({ columnIndex, totalColumns, colorTheme, intensity, speed: speedKey, elementPool, onElementTap }: StreamProps) {
   const columnWidth = SCREEN_WIDTH / totalColumns;
   const xPos = columnIndex * columnWidth;
+  const speedCfg = SPEED_CONFIG[speedKey] || SPEED_CONFIG.medium;
 
   // Random stream properties
   const streamLength = useMemo(() => Math.floor(Math.random() * 4) + 4, []); // 4-7 symbols
-  const speed = useMemo(() => intensity === 'reduced'
-    ? Math.random() * 6000 + 6000   // 6-12s (slower for reduced)
-    : Math.random() * 4000 + 3000,  // 3-7s
-  [intensity]);
-  const delay = useMemo(() => Math.random() * 5000, []);
+  const speed = useMemo(() =>
+    Math.random() * (speedCfg.max - speedCfg.min) + speedCfg.min,
+  [speedCfg]);
+  const delay = useMemo(() => Math.random() * speedCfg.delayMax, [speedCfg]);
   const fontSize = useMemo(() => Math.floor(Math.random() * 6) + 12, []); // 12-17px
 
   // Generate random elements for this stream
@@ -228,20 +248,24 @@ function ElementInfoModal({ symbol, visible, onClose, colorTheme }: {
 
 // ── Main Matrix Rain Background ──
 interface MatrixRainProps {
-  colorTheme?: 'green' | 'cyan' | 'amber' | 'auto';
+  colorTheme?: keyof typeof COLOR_THEMES;
   intensity?: 'full' | 'reduced';
-  priorityElements?: Record<string, number>; // element -> deficiency weight
+  speed?: keyof typeof SPEED_CONFIG;
+  density?: keyof typeof DENSITY_CONFIG;
+  priorityElements?: Record<string, number>;
   overlay?: boolean;
 }
 
 export default function MatrixRainBackground({
   colorTheme = 'green',
   intensity = 'full',
+  speed = 'medium',
+  density = 'normal',
   priorityElements = {},
   overlay = true,
 }: MatrixRainProps) {
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const numColumns = intensity === 'reduced' ? 12 : 18;
+  const numColumns = DENSITY_CONFIG[density] || DENSITY_CONFIG.normal;
 
   // Build weighted element pool based on priority
   const elementPool = useMemo(() => {
@@ -279,6 +303,7 @@ export default function MatrixRainBackground({
           totalColumns={numColumns}
           colorTheme={colorTheme}
           intensity={intensity}
+          speed={speed}
           elementPool={elementPool}
           onElementTap={handleElementTap}
         />
