@@ -483,6 +483,15 @@ export default function SettingsScreen() {
             <Ionicons name="send" size={16} color={theme.accent} />
             <Text style={[styles.testNotifText, { color: theme.accent }]}>{t('set_test_notif')}</Text>
           </TouchableOpacity>
+          {/* View Notification Center */}
+          <TouchableOpacity
+            style={[styles.notifCenterBtn, { borderColor: theme.border }]}
+            onPress={() => router.push('/notifications')}
+          >
+            <Ionicons name="notifications-outline" size={18} color={theme.accent} />
+            <Text style={[styles.testNotifText, { color: theme.accent, marginLeft: 8 }]}>{t('notif_view_all')}</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.textDim} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
         </View>
 
         {/* Subscription Section */}
@@ -789,4 +798,5 @@ const styles = StyleSheet.create({
   tosText: { fontSize: 13, fontWeight: '500', marginLeft: 6, textDecorationLine: 'underline' },
   testNotifBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, marginTop: 12 },
   testNotifText: { fontSize: 13, fontWeight: '600', marginLeft: 8 },
+  notifCenterBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderRadius: 10, marginTop: 8, borderTopWidth: 1, paddingHorizontal: 16 },
 });

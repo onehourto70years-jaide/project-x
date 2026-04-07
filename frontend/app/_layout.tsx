@@ -159,6 +159,27 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
+  // ── Notification Deep-Linking ──
+  useEffect(() => {
+    // Handle notification taps (when app is in foreground or background)
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      const screen = data?.screen as string;
+      if (screen && user) {
+        try {
+          // Navigate to the screen specified in the notification data
+          router.push(screen as any);
+        } catch (e) {
+          console.log('Notification deep-link navigation error:', e);
+        }
+      }
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(responseListener);
+    };
+  }, [user, router]);
+
   useEffect(() => {
     if (!navigationState?.key || isLoading) return;
 
@@ -221,6 +242,7 @@ function RootContent() {
         <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
         <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
         <Stack.Screen name="sequence-optimizer" options={{ presentation: 'card' }} />
+        <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
       </Stack>
     </>
   );

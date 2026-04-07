@@ -451,6 +451,17 @@ const translations: Record<Locale, Record<string, string>> = {
     common_no_data: 'No data available',
     common_logged: 'Logged!',
     common_of: 'of',
+
+    // Notification Center
+    notif_center_title: 'Notification Center',
+    notif_center_subtitle: 'Your recent alerts & reminders',
+    notif_center_empty: 'No notifications yet',
+    notif_center_empty_desc: 'Your smart reminders will appear here',
+    notif_center_mark_read: 'Mark All Read',
+    notif_schedule_title: 'Notification Schedule',
+    notif_smart_label: 'Smart',
+    notif_view_all: 'View Notification Center',
+    notif_unread: 'unread',
   },
 
   // ─────────────────── ITALIAN ───────────────────
@@ -867,6 +878,16 @@ const translations: Record<Locale, Record<string, string>> = {
     common_no_data: 'Nessun dato disponibile',
     common_logged: 'Registrato!',
     common_of: 'di',
+
+    notif_center_title: 'Centro Notifiche',
+    notif_center_subtitle: 'I tuoi avvisi e promemoria recenti',
+    notif_center_empty: 'Nessuna notifica',
+    notif_center_empty_desc: 'I tuoi promemoria intelligenti appariranno qui',
+    notif_center_mark_read: 'Segna Tutto Letto',
+    notif_schedule_title: 'Programma Notifiche',
+    notif_smart_label: 'Intelligente',
+    notif_view_all: 'Centro Notifiche',
+    notif_unread: 'non lette',
   },
 
   // ─────────────────── SPANISH ───────────────────
@@ -1283,6 +1304,16 @@ const translations: Record<Locale, Record<string, string>> = {
     common_no_data: 'Sin datos disponibles',
     common_logged: '¡Registrado!',
     common_of: 'de',
+
+    notif_center_title: 'Centro de Notificaciones',
+    notif_center_subtitle: 'Tus alertas y recordatorios recientes',
+    notif_center_empty: 'Sin notificaciones',
+    notif_center_empty_desc: 'Tus recordatorios inteligentes aparecerán aquí',
+    notif_center_mark_read: 'Marcar Todo Leído',
+    notif_schedule_title: 'Horario de Notificaciones',
+    notif_smart_label: 'Inteligente',
+    notif_view_all: 'Centro de Notificaciones',
+    notif_unread: 'no leídas',
   },
 
   // ─────────────────── FRENCH ───────────────────
@@ -1699,6 +1730,16 @@ const translations: Record<Locale, Record<string, string>> = {
     common_no_data: 'Aucune donnée disponible',
     common_logged: 'Enregistré !',
     common_of: 'de',
+
+    notif_center_title: 'Centre de Notifications',
+    notif_center_subtitle: 'Vos alertes et rappels récents',
+    notif_center_empty: 'Aucune notification',
+    notif_center_empty_desc: 'Vos rappels intelligents apparaîtront ici',
+    notif_center_mark_read: 'Tout Marquer Comme Lu',
+    notif_schedule_title: 'Horaire des Notifications',
+    notif_smart_label: 'Intelligent',
+    notif_view_all: 'Centre de Notifications',
+    notif_unread: 'non lues',
   },
 };
 

@@ -1,0 +1,260 @@
+[
+  {
+    "endpoint": "/",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.380019",
+    "response_data": {
+      "message": "NutriOS - Personal Health Operating System",
+      "version": "4.0.0",
+      "status": "healthy"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/register-token",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.463043",
+    "response_data": {
+      "status": "registered"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/status",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.519147",
+    "response_data": {
+      "push_token_registered": true,
+      "notifications_enabled": true,
+      "water_reminder_enabled": true,
+      "meal_reminder_enabled": true,
+      "routine_reminder_enabled": true
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/history",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.566249",
+    "response_data": {
+      "notifications": [],
+      "unread_count": 0
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/mark-read",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.611747",
+    "response_data": {
+      "marked_read": 0
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/schedule",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.669937",
+    "response_data": {
+      "schedule": {
+        "water_reminders": {
+          "enabled": true,
+          "times": [
+            "08:00",
+            "10:00",
+            "12:00",
+            "14:00",
+            "16:00",
+            "18:00",
+            "20:00"
+          ],
+          "type": "smart",
+          "description": "Checks your actual water intake before sending"
+        },
+        "meal_reminders": {
+          "enabled": true,
+          "times": [
+            "07:00 (Breakfast)",
+            "12:00 (Lunch)",
+            "18:00 (Dinner)"
+          ],
+          "type": "standard",
+          "description": "Translated meal reminders at set times"
+        },
+        "routine_reminders": {
+          "enabled": true,
+          "times": [
+            "06:30 (Morning)",
+            "15:00 (Task check)",
+            "21:00 (Evening)"
+          ],
+          "type": "smart",
+          "description": "Checks uncompleted tasks before sending"
+        },
+        "smart_alerts": {
+          "calorie_check": "19:30 \u2014 Evening intake summary",
+          "streak_risk": "20:30 \u2014 Alert if streak about to break",
+          "daily_summary": "21:30 \u2014 Daily activity summary",
+          "inactivity": "10:00 \u2014 Nudge after 2+ days inactive"
+        }
+      },
+      "timezone": "UTC",
+      "note": "All times are in UTC. Notifications are personalized to your language preference."
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/test",
+    "method": "POST",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.809313",
+    "response_data": {
+      "status": "sent",
+      "message": "Test notification sent to your device"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/dashboard",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.865092",
+    "response_data": {
+      "date": "2026-04-07",
+      "user": {
+        "name": "Test User",
+        "weight_kg": 70.0,
+        "activity_level": "moderate"
+      },
+      "nutrition": {
+        "calories": {
+          "current": 0,
+          "goal": 2000,
+          "percentage": 0.0
+        },
+        "protein": {
+          "current": 0,
+          "goal": 50,
+          "percentage": 0.0
+        },
+        "carbs": {
+          "current": 0
+        },
+        "fat": {
+          "current": 0
+        },
+        "deficiencies": [
+          "energy_kcal",
+          "protein_g",
+          "carbohydrate_g",
+          "fat_g",
+          "fiber_g",
+          "vitamin_a_mcg",
+          "vitamin_c_mg",
+          "iron_mg",
+          "calcium_mg",
+          "magnesium_mg",
+          "potassium_mg",
+          "zinc_mg"
+        ],
+        "meals_count": 0
+      },
+      "hydration": {
+        "current_ml": 0,
+        "goal_ml": 2500,
+        "percentage": 0.0,
+        "logs_count": 0
+      },
+      "routines": {
+        "completed": 0,
+        "total": 0,
+        "percentage": 0.0,
+        "streak_days": 0,
+        "today_routines": []
+      },
+      "elements": {},
+      "recent_meals": [],
+      "insights": []
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/profile",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.918934",
+    "response_data": {
+      "message": "Profile updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:30.966735",
+    "response_data": {
+      "user_id": "test_notif_user",
+      "daily_calorie_goal": 2000,
+      "daily_water_goal_ml": 2500,
+      "meal_reminder_enabled": true,
+      "notifications_enabled": true,
+      "routine_reminder_enabled": true,
+      "water_reminder_enabled": true
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/user/settings",
+    "method": "PUT",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:31.011967",
+    "response_data": {
+      "message": "Settings updated"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/unregister-token",
+    "method": "DELETE",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:31.058675",
+    "response_data": {
+      "status": "unregistered"
+    },
+    "error": null
+  },
+  {
+    "endpoint": "/notifications/status",
+    "method": "GET",
+    "status": 200,
+    "success": true,
+    "timestamp": "2026-04-07T07:51:31.105757",
+    "response_data": {
+      "push_token_registered": false,
+      "notifications_enabled": true,
+      "water_reminder_enabled": true,
+      "meal_reminder_enabled": true,
+      "routine_reminder_enabled": true
+    },
+    "error": null
+  }
+]
