@@ -126,7 +126,6 @@ export default function Index() {
                   style={[styles.langOption, isActive && styles.langOptionActive]}
                   onPress={() => {
                     setSelectedLang(lang.code);
-                    setLocale(lang.code);
                   }}
                   activeOpacity={0.7}
                 >

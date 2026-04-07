@@ -6,6 +6,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t as translate, Locale } from './i18n';
 
@@ -33,7 +34,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         setLocaleState(val as Locale);
       }
       setLoaded(true);
-    });
+    }).catch(() => setLoaded(true));
   }, []);
 
   const syncLanguageToBackend = async (lang: Locale) => {
@@ -53,12 +54,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLocale = async (newLocale: Locale) => {
     setLocaleState(newLocale);
     await AsyncStorage.setItem('user_language', newLocale);
-    syncLanguageToBackend(newLocale);
+    syncLanguageToBackend(newLocale).catch(() => {});
   };
 
   const t = (key: string) => translate(locale, key);
 
-  if (!loaded) return null;
+  // Show loading indicator instead of blocking the entire app render tree
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#080818' }}>
+        <ActivityIndicator size="large" color="#00d4ff" />
+      </View>
+    );
+  }
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale, t }}>
