@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
 import { LanguageProvider } from '../src/LanguageContext';
 import { clearCache } from '../src/cache';
+import { useImmersiveMode } from '../src/useImmersiveMode';
 import * as Notifications from 'expo-notifications';
 
 // Configure notification handler
@@ -219,9 +220,13 @@ export default function RootLayout() {
 
 function RootContent() {
   const { isDark } = useTheme();
+
+  // Enforce fullscreen immersive mode (hides status bar + nav bar)
+  useImmersiveMode();
+
   return (
     <>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar hidden={true} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />

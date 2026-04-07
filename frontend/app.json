@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Scan food barcodes for nutrition data"
+        "NSCameraUsageDescription": "Scan food barcodes for nutrition data",
+        "UIStatusBarHidden": true,
+        "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {
@@ -40,6 +42,15 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#00d4ff"
+        }
+      ],
+      [
+        "expo-navigation-bar",
+        {
+          "position": "absolute",
+          "visibility": "hidden",
+          "behavior": "overlay-swipe",
+          "backgroundColor": "#00000000"
         }
       ],
       [
