@@ -106,7 +106,7 @@ export default function WaterScreen() {
       }
     } catch (error) {
       console.error('Error adding water:', error);
-      Alert.alert('Error', 'Failed to log water');
+      Alert.alert(t('alert_error'), t('alert_failed_water'));
     } finally {
       setAdding(false);
     }

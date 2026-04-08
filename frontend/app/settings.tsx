@@ -24,7 +24,7 @@ const HEALTH_GOAL_DEFS = [
 ] as const;
 
 // Schedule local notifications
-async function scheduleWaterReminders(enabled: boolean) {
+async function scheduleWaterReminders(enabled: boolean, t?: (k: string) => string) {
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!enabled) return;
 
@@ -32,16 +32,19 @@ async function scheduleWaterReminders(enabled: boolean) {
 
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Please enable notifications in your device settings');
+    Alert.alert(t?.('alert_permission_required') || 'Permission Required', t?.('alert_enable_notif') || 'Please enable notifications in your device settings');
     return;
   }
+
+  const waterTitle = t?.('notif_water_title') || 'Stay Hydrated!';
+  const waterBody = t?.('notif_water_body') || 'Time to drink water. Your body needs it for optimal nutrient absorption!';
 
   // Water reminders every 2 hours from 8am to 8pm
   for (let hour = 8; hour <= 20; hour += 2) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '💧 Stay Hydrated!',
-        body: "Time to drink water. Your body needs it for optimal nutrient absorption!",
+        title: `💧 ${waterTitle}`,
+        body: waterBody,
         sound: true,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute: 0 },
@@ -49,13 +52,13 @@ async function scheduleWaterReminders(enabled: boolean) {
   }
 }
 
-async function scheduleMealReminders(enabled: boolean) {
+async function scheduleMealReminders(enabled: boolean, t?: (k: string) => string) {
   if (!enabled || Platform.OS === 'web') return;
 
   const meals = [
-    { hour: 8, title: '🍳 Breakfast Time', body: 'Start your day with a nutrient-rich breakfast!' },
-    { hour: 12, title: '🥗 Lunch Time', body: "Don't forget to log your lunch for accurate tracking!" },
-    { hour: 19, title: '🍽️ Dinner Time', body: 'Plan a balanced dinner to hit your daily goals!' },
+    { hour: 8, title: `🍳 ${t?.('notif_breakfast_title') || 'Breakfast Time'}`, body: t?.('notif_breakfast_body') || 'Start your day with a nutrient-rich breakfast!' },
+    { hour: 12, title: `🥗 ${t?.('notif_lunch_title') || 'Lunch Time'}`, body: t?.('notif_lunch_body') || "Don't forget to log your lunch for accurate tracking!" },
+    { hour: 19, title: `🍽️ ${t?.('notif_dinner_title') || 'Dinner Time'}`, body: t?.('notif_dinner_body') || 'Plan a balanced dinner to hit your daily goals!' },
   ];
 
   for (const meal of meals) {
@@ -66,12 +69,12 @@ async function scheduleMealReminders(enabled: boolean) {
   }
 }
 
-async function scheduleRoutineReminders(enabled: boolean) {
+async function scheduleRoutineReminders(enabled: boolean, t?: (k: string) => string) {
   if (!enabled || Platform.OS === 'web') return;
 
   const routines = [
-    { hour: 7, title: '🌅 Morning Routine', body: 'Time to start your morning routine!' },
-    { hour: 22, title: '🌙 Evening Routine', body: 'Wind down with your evening routine.' },
+    { hour: 7, title: `🌅 ${t?.('notif_morning_title') || 'Morning Routine'}`, body: t?.('notif_morning_body') || 'Time to start your morning routine!' },
+    { hour: 22, title: `🌙 ${t?.('notif_evening_title') || 'Evening Routine'}`, body: t?.('notif_evening_body') || 'Wind down with your evening routine.' },
   ];
 
   for (const r of routines) {
@@ -155,15 +158,15 @@ export default function SettingsScreen() {
       ]);
       // Schedule notifications based on settings
       if (settings.notifications_enabled) {
-        await scheduleWaterReminders(settings.water_reminder_enabled);
-        await scheduleMealReminders(settings.meal_reminder_enabled);
-        await scheduleRoutineReminders(settings.routine_reminder_enabled);
+        await scheduleWaterReminders(settings.water_reminder_enabled, t);
+        await scheduleMealReminders(settings.meal_reminder_enabled, t);
+        await scheduleRoutineReminders(settings.routine_reminder_enabled, t);
       } else {
         // Master toggle off - cancel all
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
       Alert.alert(t('set_saved'), t('set_saved_desc'));
-    } catch (e) { Alert.alert('Error', 'Failed to save settings'); }
+    } catch (e) { Alert.alert(t('alert_error'), t('alert_failed_save')); }
     finally { setSaving(false); }
   };
 
@@ -200,10 +203,10 @@ export default function SettingsScreen() {
         signOut();
       } else {
         const err = await res.json().catch(() => ({}));
-        Alert.alert('Error', err.detail || 'Failed to delete account.');
+        Alert.alert(t('alert_error'), err.detail || t('alert_failed_delete_account'));
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to delete account. Please try again.');
+      Alert.alert(t('alert_error'), t('alert_failed_delete_account'));
     } finally {
       setDeleting(false);
     }
@@ -600,13 +603,13 @@ export default function SettingsScreen() {
                   headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                  Alert.alert('Sent!', 'A test notification has been sent to your device.');
+                  Alert.alert(t('alert_sent'), t('alert_test_notif'));
                 } else {
                   const err = await res.json();
-                  Alert.alert('Info', err.detail || 'Could not send test notification. Make sure notifications are enabled on your device.');
+                  Alert.alert(t('alert_info'), err.detail || t('alert_enable_notif'));
                 }
               } catch (e) {
-                Alert.alert('Note', 'Push notifications work on physical devices only. They do not work in the web preview.');
+                Alert.alert(t('alert_note'), t('alert_notif_web_only'));
               }
             }}
           >
@@ -672,15 +675,15 @@ export default function SettingsScreen() {
                               if (res.ok) {
                                 const data = await res.json();
                                 Alert.alert(
-                                  'Subscription Cancelled',
-                                  `You'll have access until ${data.access_until_formatted}. A confirmation email has been sent.`
+                                  t('alert_info'),
+                                  t('alert_failed_cancel_sub')
                                 );
                                 fetchData();
                               } else {
-                                Alert.alert('Error', 'Failed to cancel subscription');
+                                Alert.alert(t('alert_error'), t('alert_failed_cancel_sub'));
                               }
                             } catch (e) {
-                              Alert.alert('Error', 'Failed to cancel subscription');
+                              Alert.alert(t('alert_error'), t('alert_failed_cancel_sub'));
                             }
                           },
                         },
@@ -735,9 +738,9 @@ export default function SettingsScreen() {
 
         {/* Sign Out */}
         <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: 'rgba(255, 107, 107, 0.1)' }]} onPress={() => {
-          Alert.alert('Sign Out', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign Out', style: 'destructive', onPress: signOut }
+          Alert.alert(t('alert_sign_out'), t('alert_sign_out_confirm'), [
+            { text: t('common_cancel'), style: 'cancel' },
+            { text: t('alert_sign_out'), style: 'destructive', onPress: signOut }
           ]);
         }}>
           <Ionicons name="log-out" size={20} color={theme.danger} />

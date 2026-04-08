@@ -67,12 +67,12 @@ export default function MoreScreen() {
         });
         if (res.ok) {
           const data = await res.json();
-          await Share.share({ message: data.text, title: 'My NutriOS Daily Report' });
+          await Share.share({ message: data.text, title: t('share_daily_title') });
         } else {
-          Alert.alert('No Data', 'Start tracking to share your progress!');
+          Alert.alert(t('alert_no_data_title'), t('alert_no_data_share'));
         }
       } catch (e) {
-        Alert.alert('Error', 'Failed to generate share data');
+        Alert.alert(t('alert_error'), t('alert_failed_share'));
       }
     } else {
       router.push(item.route as any);
@@ -81,9 +81,9 @@ export default function MoreScreen() {
 
   const handleLogout = () => {
     hapticWarning();
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut }
+    Alert.alert(t('alert_sign_out'), t('alert_sign_out_confirm'), [
+      { text: t('common_cancel'), style: 'cancel' },
+      { text: t('alert_sign_out'), style: 'destructive', onPress: signOut }
     ]);
   };
 

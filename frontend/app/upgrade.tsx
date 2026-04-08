@@ -64,7 +64,7 @@ export default function UpgradeScreen() {
 
       if (!res.ok) {
         const err = await res.json();
-        Alert.alert('Error', err.detail || 'Failed to create checkout session');
+        Alert.alert(t('alert_error'), err.detail || t('alert_failed_checkout'));
         return;
       }
 
@@ -78,7 +78,7 @@ export default function UpgradeScreen() {
         }
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to initiate payment. Please try again.');
+      Alert.alert(t('alert_error'), t('alert_failed_checkout'));
     } finally {
       setLoading(false);
     }
@@ -88,19 +88,19 @@ export default function UpgradeScreen() {
     // Block if active subscription not cancelled
     if (status?.is_premium && !status?.cancel_at_period_end) {
       Alert.alert(
-        'Cancel Subscription First',
-        'Please cancel your subscription before deleting your account. Go to Settings → Subscription → Cancel Subscription.',
+        t('alert_info'),
+        t('alert_failed_cancel_sub'),
         [{ text: 'OK' }]
       );
       return;
     }
     Alert.alert(
-      'Delete Account',
-      'Are you sure you want to permanently delete your account and all your data?',
+      t('common_confirm_delete'),
+      t('set_delete_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common_cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common_delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -115,10 +115,10 @@ export default function UpgradeScreen() {
                 signOut();
               } else {
                 const err = await res.json();
-                Alert.alert('Error', err.detail || 'Failed to delete account');
+                Alert.alert(t('alert_error'), err.detail || t('alert_failed_delete_account'));
               }
             } catch (e) {
-              Alert.alert('Error', 'Failed to delete account');
+              Alert.alert(t('alert_error'), t('alert_failed_delete_account'));
             }
           },
         },
@@ -240,8 +240,8 @@ export default function UpgradeScreen() {
         {/* Bottom actions */}
         <View style={styles.bottomActions}>
           <TouchableOpacity style={styles.secondaryBtn} onPress={() => {
-            Alert.alert('Sign Out', 'Are you sure?', [
-              { text: 'Cancel', style: 'cancel' },
+            Alert.alert(t('alert_sign_out'), t('alert_sign_out_confirm'), [
+              { text: t('common_cancel'), style: 'cancel' },
               { text: 'Sign Out', style: 'destructive', onPress: signOut }
             ]);
           }}>

@@ -132,7 +132,7 @@ export default function AIChatScreen() {
         setMessages(msgs);
       }
     } catch {
-      Alert.alert('Error', 'Failed to load conversation');
+      Alert.alert(t('alert_error'), t('alert_failed_convo'));
     } finally {
       setLoadingHistory(false);
       setShowHistory(false);

@@ -53,11 +53,11 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('alert_sign_out'),
+      t('alert_sign_out_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: signOut }
+        { text: t('common_cancel'), style: 'cancel' },
+        { text: t('alert_sign_out'), style: 'destructive', onPress: signOut }
       ]
     );
   };

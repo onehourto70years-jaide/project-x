@@ -29,10 +29,10 @@ interface FoodItem {
 }
 
 const MEAL_TYPES = [
-  { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
-  { id: 'lunch', label: 'Lunch', icon: 'restaurant', color: '#4ecdc4' },
-  { id: 'dinner', label: 'Dinner', icon: 'moon', color: '#a29bfe' },
-  { id: 'snack', label: 'Snack', icon: 'cafe', color: '#ff6b6b' },
+  { id: 'breakfast', icon: 'sunny', color: '#ffd93d' },
+  { id: 'lunch', icon: 'restaurant', color: '#4ecdc4' },
+  { id: 'dinner', icon: 'moon', color: '#a29bfe' },
+  { id: 'snack', icon: 'cafe', color: '#ff6b6b' },
 ];
 
 const COOKING_METHODS = ['raw', 'steaming', 'boiling', 'baking', 'frying'];
@@ -170,11 +170,11 @@ export default function NutritionScreen() {
         }
         setRefreshing(false);
       } else {
-        Alert.alert('Error', 'Failed to update meal');
+        Alert.alert(t('alert_error'), t('alert_failed_meal_update'));
       }
     } catch (error) {
       console.error('Edit error:', error);
-      Alert.alert('Error', 'Failed to update meal');
+      Alert.alert(t('alert_error'), t('alert_failed_meal_update'));
     } finally {
       setSavingEdit(false);
     }
@@ -365,7 +365,7 @@ export default function NutritionScreen() {
                         <View style={[styles.timelineMealIcon, { backgroundColor: mealInfo.color + '20' }]}>
                           <Ionicons name={mealInfo.icon as any} size={14} color={mealInfo.color} />
                         </View>
-                        <Text style={styles.timelineMealType}>{mealInfo.label}</Text>
+                        <Text style={styles.timelineMealType}>{t(`nutr_${mealInfo.id}`)}</Text>
                         <Text style={styles.timelineCalories}>{formatNumber(meal.nutrients?.energy_kcal)} kcal</Text>
                       </View>
                       <Text style={styles.timelineFoodName} numberOfLines={1}>{meal.food_name}</Text>
@@ -397,7 +397,7 @@ export default function NutritionScreen() {
                 <View style={[styles.mealTypeIcon, { backgroundColor: mealType.color + '20' }]}>
                   <Ionicons name={mealType.icon as any} size={18} color={mealType.color} />
                 </View>
-                <Text style={[styles.mealTypeLabel, { color: theme.text }]}>{mealType.label}</Text>
+                <Text style={[styles.mealTypeLabel, { color: theme.text }]}>{t(`nutr_${mealType.id}`)}</Text>
                 <TouchableOpacity
                   style={styles.addMealBtn}
                   onPress={() => { setSelectedMealType(mealType.id); setShowSearchModal(true); }}
@@ -422,7 +422,7 @@ export default function NutritionScreen() {
                   </TouchableOpacity>
                 ))
               ) : (
-                <Text style={styles.noMeals}>No {mealType.label.toLowerCase()} logged</Text>
+                <Text style={styles.noMeals}>{(t('nutr_no_logged') || 'No {type} logged').replace('{type}', t(`nutr_${mealType.id}`))}</Text>
               )}
             </View>
           );
@@ -510,7 +510,7 @@ export default function NutritionScreen() {
                         onPress={() => setEditMealType(type.id)}
                       >
                         <Ionicons name={type.icon as any} size={18} color={editMealType === type.id ? type.color : theme.textDim} />
-                        <Text style={[styles.editMealTypeText, editMealType === type.id && { color: type.color }, { color: theme.textDim }]}>{type.label}</Text>
+                        <Text style={[styles.editMealTypeText, editMealType === type.id && { color: type.color }, { color: theme.textDim }]}>{t(`nutr_${type.id}`)}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -533,7 +533,7 @@ export default function NutritionScreen() {
                             color={editCookingMethod === method ? '#fff' : theme.textDim}
                           />
                           <Text style={[styles.editCookingText, editCookingMethod === method && { color: '#fff' }, { color: theme.textDim }]}>
-                            {method.charAt(0).toUpperCase() + method.slice(1)}
+                            {t(`nutr_${method}`) || method.charAt(0).toUpperCase() + method.slice(1)}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -583,7 +583,7 @@ export default function NutritionScreen() {
                     onPress={() => setSelectedMealType(type.id)}
                   >
                     <Ionicons name={type.icon as any} size={16} color={selectedMealType === type.id ? type.color : '#666'} />
-                    <Text style={[styles.mealTypeText, selectedMealType === type.id && { color: type.color }]}>{type.label}</Text>
+                    <Text style={[styles.mealTypeText, selectedMealType === type.id && { color: type.color }]}>{t(`nutr_${type.id}`)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

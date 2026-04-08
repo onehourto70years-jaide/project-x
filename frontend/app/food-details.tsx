@@ -7,10 +7,10 @@ import { useLanguage } from '../src/LanguageContext';
 import { SkeletonFoodDetail } from '../src/components/Skeleton';
 
 const MEAL_TYPES = [
-  { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
-  { id: 'lunch', label: 'Lunch', icon: 'restaurant', color: '#4ecdc4' },
-  { id: 'dinner', label: 'Dinner', icon: 'moon', color: '#a29bfe' },
-  { id: 'snack', label: 'Snack', icon: 'cafe', color: '#ff6b6b' },
+  { id: 'breakfast', icon: 'sunny', color: '#ffd93d' },
+  { id: 'lunch', icon: 'restaurant', color: '#4ecdc4' },
+  { id: 'dinner', icon: 'moon', color: '#a29bfe' },
+  { id: 'snack', icon: 'cafe', color: '#ff6b6b' },
 ];
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -196,7 +196,7 @@ export default function FoodDetailsScreen() {
                     color={cookingMethod === method ? '#fff' : '#888'}
                   />
                   <Text style={[styles.cookingBtnText, cookingMethod === method && styles.cookingBtnTextActive]}>
-                    {method.charAt(0).toUpperCase() + method.slice(1)}
+                    {t(`nutr_${method}`) || method.charAt(0).toUpperCase() + method.slice(1)}
                   </Text>
                 </TouchableOpacity>
               ))}

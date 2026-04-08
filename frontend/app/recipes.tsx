@@ -145,9 +145,9 @@ export default function RecipesScreen() {
   };
 
   const deleteRecipe = async (recipeId: string) => {
-    Alert.alert('Delete Recipe', 'This cannot be undone. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
+    Alert.alert(t('common_confirm_delete'), t('recipe_delete_confirm') || 'This cannot be undone. Continue?', [
+      { text: t('common_cancel'), style: 'cancel' },
+      { text: t('common_delete'), style: 'destructive', onPress: async () => {
         const token = await AsyncStorage.getItem('session_token');
         if (!token) return;
         await fetch(`${BACKEND_URL}/api/recipes/${recipeId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });

@@ -611,6 +611,65 @@ const translations: Record<Locale, Record<string, string>> = {
     mp_add_to_plan: 'Add to Plan',
     mp_error_empty: 'Please select a recipe or add notes',
     mp_error_add: 'Failed to add meal plan',
+
+    // Alerts & Common
+    alert_error: 'Error',
+    alert_no_data_title: 'No Data',
+    alert_no_data_share: 'Start tracking meals to share your progress!',
+    alert_no_data_weekly: 'Start tracking to generate a weekly report!',
+    alert_failed_save: 'Failed to save settings',
+    alert_failed_water: 'Failed to log water',
+    alert_failed_meal_update: 'Failed to update meal',
+    alert_failed_analyze: 'Failed to analyze meals',
+    alert_failed_fix: 'Failed to get fix suggestions',
+    alert_failed_share: 'Failed to generate share data',
+    alert_failed_delete_account: 'Failed to delete account. Please try again.',
+    alert_failed_checkout: 'Failed to create checkout session',
+    alert_failed_cancel_sub: 'Failed to cancel subscription',
+    alert_failed_convo: 'Failed to load conversation',
+    alert_permission_required: 'Permission Required',
+    alert_enable_notif: 'Please enable notifications in your device settings',
+    alert_sent: 'Sent!',
+    alert_test_notif: 'A test notification has been sent to your device.',
+    alert_notif_web_only: 'Push notifications work on physical devices only. They do not work in the web preview.',
+    alert_sign_out: 'Sign Out',
+    alert_sign_out_confirm: 'Are you sure you want to sign out?',
+    alert_info: 'Info',
+    alert_note: 'Note',
+
+    // Dashboard Customize
+    dash_cust_subtitle: 'Toggle widgets on/off and reorder with arrows',
+    dash_cust_reset: 'Reset to Default',
+
+    // Share
+    share_daily_title: 'My NutriOS Daily Report',
+    share_weekly_title: 'My NutriOS Weekly Report',
+
+    // Notifications
+    notif_water_title: 'Stay Hydrated!',
+    notif_water_body: 'Time to drink water. Your body needs it for optimal nutrient absorption!',
+    notif_breakfast_title: 'Breakfast Time',
+    notif_breakfast_body: 'Start your day with a nutrient-rich breakfast!',
+    notif_lunch_title: 'Lunch Time',
+    notif_lunch_body: "Don't forget to log your lunch for accurate tracking!",
+    notif_dinner_title: 'Dinner Time',
+    notif_dinner_body: 'Plan a balanced dinner to hit your daily goals!',
+    notif_morning_title: 'Morning Routine',
+    notif_morning_body: 'Time to start your morning routine!',
+    notif_evening_title: 'Evening Routine',
+    notif_evening_body: 'Wind down with your evening routine.',
+
+    // Widget Labels
+    widget_health_score: 'Health Score',
+    widget_quick_actions: 'Quick Actions',
+    widget_nutrient_gaps: 'Nutrient Gaps',
+    widget_elements: 'Elements',
+    widget_streak: 'Streak',
+    widget_macros: 'Macros',
+    widget_recent_meals: 'Recent Meals',
+    widget_ai_insights: 'AI Insights',
+    widget_quick_nav: 'Quick Nav',
+    widget_share: 'Share',
   },
 
   // ─────────────────── ITALIAN ───────────────────
@@ -1181,6 +1240,65 @@ const translations: Record<Locale, Record<string, string>> = {
     mp_add_to_plan: 'Aggiungi al Piano',
     mp_error_empty: 'Seleziona una ricetta o aggiungi note',
     mp_error_add: 'Impossibile aggiungere il pasto',
+
+    // Alerts & Common
+    alert_error: 'Errore',
+    alert_no_data_title: 'Nessun Dato',
+    alert_no_data_share: 'Inizia a monitorare i pasti per condividere i tuoi progressi!',
+    alert_no_data_weekly: 'Inizia a monitorare per generare un report settimanale!',
+    alert_failed_save: 'Salvataggio impostazioni fallito',
+    alert_failed_water: 'Registrazione acqua fallita',
+    alert_failed_meal_update: 'Aggiornamento pasto fallito',
+    alert_failed_analyze: 'Analisi pasti fallita',
+    alert_failed_fix: 'Suggerimenti correttivi falliti',
+    alert_failed_share: 'Generazione dati condivisione fallita',
+    alert_failed_delete_account: 'Eliminazione account fallita. Riprova.',
+    alert_failed_checkout: 'Creazione sessione di pagamento fallita',
+    alert_failed_cancel_sub: 'Annullamento abbonamento fallito',
+    alert_failed_convo: 'Caricamento conversazione fallito',
+    alert_permission_required: 'Permesso Necessario',
+    alert_enable_notif: 'Abilita le notifiche nelle impostazioni del dispositivo',
+    alert_sent: 'Inviato!',
+    alert_test_notif: 'Una notifica di test è stata inviata al dispositivo.',
+    alert_notif_web_only: 'Le notifiche push funzionano solo su dispositivi fisici. Non funzionano nell\'anteprima web.',
+    alert_sign_out: 'Esci',
+    alert_sign_out_confirm: 'Sei sicuro di voler uscire?',
+    alert_info: 'Info',
+    alert_note: 'Nota',
+
+    // Dashboard Customize
+    dash_cust_subtitle: 'Attiva/disattiva i widget e riordina con le frecce',
+    dash_cust_reset: 'Ripristina Predefiniti',
+
+    // Share
+    share_daily_title: 'Il Mio Report Giornaliero NutriOS',
+    share_weekly_title: 'Il Mio Report Settimanale NutriOS',
+
+    // Notifications
+    notif_water_title: 'Resta Idratato!',
+    notif_water_body: 'È ora di bere acqua. Il tuo corpo ne ha bisogno per un assorbimento ottimale dei nutrienti!',
+    notif_breakfast_title: 'Ora della Colazione',
+    notif_breakfast_body: 'Inizia la giornata con una colazione ricca di nutrienti!',
+    notif_lunch_title: 'Ora del Pranzo',
+    notif_lunch_body: 'Non dimenticare di registrare il pranzo per un monitoraggio accurato!',
+    notif_dinner_title: 'Ora della Cena',
+    notif_dinner_body: 'Pianifica una cena equilibrata per raggiungere i tuoi obiettivi giornalieri!',
+    notif_morning_title: 'Routine Mattutina',
+    notif_morning_body: 'È ora di iniziare la tua routine mattutina!',
+    notif_evening_title: 'Routine Serale',
+    notif_evening_body: 'Rilassati con la tua routine serale.',
+
+    // Widget Labels
+    widget_health_score: 'Punteggio Salute',
+    widget_quick_actions: 'Azioni Rapide',
+    widget_nutrient_gaps: 'Carenze Nutrizionali',
+    widget_elements: 'Elementi',
+    widget_streak: 'Serie',
+    widget_macros: 'Macro',
+    widget_recent_meals: 'Pasti Recenti',
+    widget_ai_insights: 'Consigli IA',
+    widget_quick_nav: 'Nav Rapida',
+    widget_share: 'Condividi',
   },
 
   // ─────────────────── SPANISH ───────────────────
@@ -1751,6 +1869,65 @@ const translations: Record<Locale, Record<string, string>> = {
     mp_add_to_plan: 'Agregar al Plan',
     mp_error_empty: 'Selecciona una receta o agrega notas',
     mp_error_add: 'Error al agregar el plan de comida',
+
+    // Alerts & Common
+    alert_error: 'Error',
+    alert_no_data_title: 'Sin Datos',
+    alert_no_data_share: '¡Comienza a rastrear comidas para compartir tu progreso!',
+    alert_no_data_weekly: '¡Comienza a rastrear para generar un informe semanal!',
+    alert_failed_save: 'Error al guardar configuración',
+    alert_failed_water: 'Error al registrar agua',
+    alert_failed_meal_update: 'Error al actualizar comida',
+    alert_failed_analyze: 'Error al analizar comidas',
+    alert_failed_fix: 'Error al obtener sugerencias',
+    alert_failed_share: 'Error al generar datos de compartir',
+    alert_failed_delete_account: 'Error al eliminar cuenta. Inténtalo de nuevo.',
+    alert_failed_checkout: 'Error al crear sesión de pago',
+    alert_failed_cancel_sub: 'Error al cancelar suscripción',
+    alert_failed_convo: 'Error al cargar conversación',
+    alert_permission_required: 'Permiso Requerido',
+    alert_enable_notif: 'Habilita las notificaciones en los ajustes del dispositivo',
+    alert_sent: '¡Enviado!',
+    alert_test_notif: 'Se ha enviado una notificación de prueba a tu dispositivo.',
+    alert_notif_web_only: 'Las notificaciones push solo funcionan en dispositivos físicos. No funcionan en la vista web.',
+    alert_sign_out: 'Cerrar Sesión',
+    alert_sign_out_confirm: '¿Estás seguro de que quieres cerrar sesión?',
+    alert_info: 'Info',
+    alert_note: 'Nota',
+
+    // Dashboard Customize
+    dash_cust_subtitle: 'Activa/desactiva widgets y reordena con flechas',
+    dash_cust_reset: 'Restablecer Valores',
+
+    // Share
+    share_daily_title: 'Mi Informe Diario NutriOS',
+    share_weekly_title: 'Mi Informe Semanal NutriOS',
+
+    // Notifications
+    notif_water_title: '¡Mantente Hidratado!',
+    notif_water_body: 'Es hora de beber agua. ¡Tu cuerpo la necesita para una absorción óptima de nutrientes!',
+    notif_breakfast_title: 'Hora del Desayuno',
+    notif_breakfast_body: '¡Comienza tu día con un desayuno rico en nutrientes!',
+    notif_lunch_title: 'Hora del Almuerzo',
+    notif_lunch_body: '¡No olvides registrar tu almuerzo para un seguimiento preciso!',
+    notif_dinner_title: 'Hora de la Cena',
+    notif_dinner_body: '¡Planifica una cena equilibrada para alcanzar tus objetivos diarios!',
+    notif_morning_title: 'Rutina Matutina',
+    notif_morning_body: '¡Es hora de comenzar tu rutina matutina!',
+    notif_evening_title: 'Rutina Nocturna',
+    notif_evening_body: 'Relájate con tu rutina nocturna.',
+
+    // Widget Labels
+    widget_health_score: 'Puntuación de Salud',
+    widget_quick_actions: 'Acciones Rápidas',
+    widget_nutrient_gaps: 'Carencias Nutricionales',
+    widget_elements: 'Elementos',
+    widget_streak: 'Racha',
+    widget_macros: 'Macros',
+    widget_recent_meals: 'Comidas Recientes',
+    widget_ai_insights: 'Consejos IA',
+    widget_quick_nav: 'Nav Rápida',
+    widget_share: 'Compartir',
   },
 
   // ─────────────────── FRENCH ───────────────────
@@ -2321,6 +2498,65 @@ const translations: Record<Locale, Record<string, string>> = {
     mp_add_to_plan: 'Ajouter au Plan',
     mp_error_empty: 'Veuillez sélectionner une recette ou ajouter des notes',
     mp_error_add: 'Échec de l\'ajout au plan de repas',
+
+    // Alerts & Common
+    alert_error: 'Erreur',
+    alert_no_data_title: 'Aucune Donnée',
+    alert_no_data_share: 'Commencez à suivre vos repas pour partager vos progrès !',
+    alert_no_data_weekly: 'Commencez à suivre pour générer un rapport hebdomadaire !',
+    alert_failed_save: 'Échec de la sauvegarde des paramètres',
+    alert_failed_water: 'Échec de l\'enregistrement de l\'eau',
+    alert_failed_meal_update: 'Échec de la mise à jour du repas',
+    alert_failed_analyze: 'Échec de l\'analyse des repas',
+    alert_failed_fix: 'Échec de l\'obtention des suggestions',
+    alert_failed_share: 'Échec de la génération des données de partage',
+    alert_failed_delete_account: 'Échec de la suppression du compte. Réessayez.',
+    alert_failed_checkout: 'Échec de la création de la session de paiement',
+    alert_failed_cancel_sub: 'Échec de l\'annulation de l\'abonnement',
+    alert_failed_convo: 'Échec du chargement de la conversation',
+    alert_permission_required: 'Autorisation Requise',
+    alert_enable_notif: 'Activez les notifications dans les paramètres de l\'appareil',
+    alert_sent: 'Envoyé !',
+    alert_test_notif: 'Une notification de test a été envoyée à votre appareil.',
+    alert_notif_web_only: 'Les notifications push ne fonctionnent que sur les appareils physiques. Elles ne fonctionnent pas dans l\'aperçu web.',
+    alert_sign_out: 'Déconnexion',
+    alert_sign_out_confirm: 'Êtes-vous sûr de vouloir vous déconnecter ?',
+    alert_info: 'Info',
+    alert_note: 'Note',
+
+    // Dashboard Customize
+    dash_cust_subtitle: 'Activez/désactivez les widgets et réordonnez avec les flèches',
+    dash_cust_reset: 'Réinitialiser par Défaut',
+
+    // Share
+    share_daily_title: 'Mon Rapport Quotidien NutriOS',
+    share_weekly_title: 'Mon Rapport Hebdomadaire NutriOS',
+
+    // Notifications
+    notif_water_title: 'Restez Hydraté !',
+    notif_water_body: 'C\'est l\'heure de boire de l\'eau. Votre corps en a besoin pour une absorption optimale des nutriments !',
+    notif_breakfast_title: 'Heure du Petit-déjeuner',
+    notif_breakfast_body: 'Commencez votre journée avec un petit-déjeuner riche en nutriments !',
+    notif_lunch_title: 'Heure du Déjeuner',
+    notif_lunch_body: 'N\'oubliez pas d\'enregistrer votre déjeuner pour un suivi précis !',
+    notif_dinner_title: 'Heure du Dîner',
+    notif_dinner_body: 'Planifiez un dîner équilibré pour atteindre vos objectifs quotidiens !',
+    notif_morning_title: 'Routine Matinale',
+    notif_morning_body: 'C\'est l\'heure de commencer votre routine matinale !',
+    notif_evening_title: 'Routine du Soir',
+    notif_evening_body: 'Détendez-vous avec votre routine du soir.',
+
+    // Widget Labels
+    widget_health_score: 'Score de Santé',
+    widget_quick_actions: 'Actions Rapides',
+    widget_nutrient_gaps: 'Carences Nutritionnelles',
+    widget_elements: 'Éléments',
+    widget_streak: 'Série',
+    widget_macros: 'Macros',
+    widget_recent_meals: 'Repas Récents',
+    widget_ai_insights: 'Conseils IA',
+    widget_quick_nav: 'Nav Rapide',
+    widget_share: 'Partager',
   },
 };
 

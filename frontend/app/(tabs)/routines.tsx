@@ -31,11 +31,11 @@ interface Routine {
 }
 
 const ROUTINE_TYPES = [
-  { id: 'morning', label: 'Morning', icon: 'sunny', color: '#ffd93d' },
-  { id: 'work', label: 'Work', icon: 'briefcase', color: '#00d4ff' },
-  { id: 'workout', label: 'Workout', icon: 'barbell', color: '#ff6b6b' },
-  { id: 'evening', label: 'Evening', icon: 'moon', color: '#a29bfe' },
-  { id: 'custom', label: 'Custom', icon: 'list', color: '#4ecdc4' },
+  { id: 'morning', icon: 'sunny', color: '#ffd93d' },
+  { id: 'work', icon: 'briefcase', color: '#00d4ff' },
+  { id: 'workout', icon: 'barbell', color: '#ff6b6b' },
+  { id: 'evening', icon: 'moon', color: '#a29bfe' },
+  { id: 'custom', icon: 'list', color: '#4ecdc4' },
 ];
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -356,7 +356,7 @@ export default function RoutinesScreen() {
                       onPress={() => setNewRoutine(prev => ({ ...prev, type: type.id }))}
                     >
                       <Ionicons name={type.icon as any} size={20} color={newRoutine.type === type.id ? type.color : '#666'} />
-                      <Text style={[styles.typeLabel, newRoutine.type === type.id && { color: type.color }]}>{type.label}</Text>
+                      <Text style={[styles.typeLabel, newRoutine.type === type.id && { color: type.color }]}>{t(`rout_${type.id}`)}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>

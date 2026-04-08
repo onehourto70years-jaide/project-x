@@ -122,8 +122,8 @@ export default function DashboardScreen() {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
       const res = await fetch(`${BACKEND_URL}/api/share/daily-summary`, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) { const data = await res.json(); await Share.share({ message: data.text, title: 'My NutriOS Daily Report' }); }
-      else Alert.alert('No Data', 'Start tracking meals to share your progress!');
+      if (res.ok) { const data = await res.json(); await Share.share({ message: data.text, title: t('share_daily_title') }); }
+      else Alert.alert(t('alert_no_data_title'), t('alert_no_data_share'));
     } catch (e) { console.error(e); }
   };
 
@@ -132,8 +132,8 @@ export default function DashboardScreen() {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
       const res = await fetch(`${BACKEND_URL}/api/share/weekly-report`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) { const data = await res.json(); await Share.share({ message: data.text, title: 'My NutriOS Weekly Report' }); }
-      else Alert.alert('No Data', 'Start tracking to generate a weekly report!');
+      if (res.ok) { const data = await res.json(); await Share.share({ message: data.text, title: t('share_weekly_title') }); }
+      else Alert.alert(t('alert_no_data_title'), t('alert_no_data_weekly'));
     } catch (e) { console.error(e); }
   };
 
@@ -262,10 +262,10 @@ export default function DashboardScreen() {
               <Text style={[s.custTitle, { color: theme.text }]}>{t('dash_customize') || 'Customize Dashboard'}</Text>
               <TouchableOpacity style={[s.custSaveBtn, { backgroundColor: theme.accent }]} onPress={saveAndClose}>
                 <Ionicons name="checkmark" size={20} color={theme.bg} />
-                <Text style={[s.custSaveTxt, { color: theme.bg }]}>Save</Text>
+                <Text style={[s.custSaveTxt, { color: theme.bg }]}>{t('common_save')}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={[s.custSubtitle, { color: theme.textMuted }]}>Toggle widgets on/off and reorder with arrows</Text>
+            <Text style={[s.custSubtitle, { color: theme.textMuted }]}>{t('dash_cust_subtitle')}</Text>
             <ScrollView style={s.custScroll} showsVerticalScrollIndicator={false}>
               {editWidgets.map((w, i) => (
                 <View key={w.id} style={[s.custRow, { backgroundColor: theme.bgSecondary, borderColor: `${theme.accent}14` }, !w.enabled && s.custRowOff]}>
@@ -273,7 +273,7 @@ export default function DashboardScreen() {
                     <View style={[s.custIcon, { backgroundColor: w.enabled ? `${theme.accent}1e` : `${theme.text}0a` }]}>
                       <Ionicons name={w.icon as any} size={18} color={w.enabled ? theme.accent : theme.textDim} />
                     </View>
-                    <Text style={[s.custLabel, { color: theme.text }, !w.enabled && { color: theme.textDim }]}>{w.label}</Text>
+                    <Text style={[s.custLabel, { color: theme.text }, !w.enabled && { color: theme.textDim }]}>{t(`widget_${w.id}`) || w.label}</Text>
                   </View>
                   <View style={s.custRowRight}>
                     <TouchableOpacity onPress={() => moveWidget(i, -1)} disabled={i === 0} style={s.arrowBtn}>
@@ -291,10 +291,10 @@ export default function DashboardScreen() {
             <View style={s.custFooter}>
               <TouchableOpacity style={s.resetBtn} onPress={resetDefaults}>
                 <Ionicons name="refresh" size={16} color={theme.textMuted} />
-                <Text style={[s.resetText, { color: theme.textMuted }]}>Reset to Default</Text>
+                <Text style={[s.resetText, { color: theme.textMuted }]}>{t('dash_cust_reset')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.custCloseBtn} onPress={() => setShowCustomize(false)}>
-                <Text style={[s.custCloseTxt, { color: theme.danger }]}>Cancel</Text>
+                <Text style={[s.custCloseTxt, { color: theme.danger }]}>{t('common_cancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
