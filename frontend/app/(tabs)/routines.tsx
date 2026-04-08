@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,9 +47,15 @@ export default function RoutinesScreen() {
   const [streak, setStreak] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newRoutine, setNewRoutine] = useState({ name: '', type: 'morning', time_start: '07:00', time_end: '08:00', days: [...DAYS], tasks: [] as Task[] });
+  const [newRoutine, setNewRoutine] = useState({ type: 'morning', days: [...DAYS], tasks: [] as Task[] });
   const [newTaskName, setNewTaskName] = useState('');
-  const [routineNameError, setRoutineNameError] = useState('');
+
+  // ── react-hook-form ──
+  const { control, handleSubmit, reset: resetFormFields, formState: { errors, touchedFields } } = useForm({
+    resolver: zodResolver(routineSchema),
+    defaultValues: { name: '', time_start: '07:00', time_end: '08:00' },
+    mode: 'onBlur',
+  });
 
   const fetchRoutines = async () => {
     try {
@@ -118,26 +124,32 @@ export default function RoutinesScreen() {
     }
   };
 
-  const createRoutine = async () => {
-    if (!newRoutine.name.trim()) {
-      Alert.alert('Error', 'Please enter a routine name');
-      return;
-    }
+  const createRoutine = async (formData: { name: string; time_start: string; time_end: string }) => {
     hapticMedium();
 
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
 
+      const payload = {
+        name: formData.name,
+        type: newRoutine.type,
+        time_start: formData.time_start,
+        time_end: formData.time_end,
+        days: newRoutine.days,
+        tasks: newRoutine.tasks,
+      };
+
       const response = await fetch(`${BACKEND_URL}/api/routines`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(newRoutine)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         setShowCreateModal(false);
-        setNewRoutine({ name: '', type: 'morning', time_start: '07:00', time_end: '08:00', days: [...DAYS], tasks: [] });
+        setNewRoutine({ type: 'morning', days: [...DAYS], tasks: [] });
+        resetFormFields();
         await Promise.all([
           clearCacheForKey(CacheKeys.routines),
           clearCacheForKey(CacheKeys.routinesToday),
@@ -146,7 +158,6 @@ export default function RoutinesScreen() {
       }
     } catch (error) {
       console.error('Error creating routine:', error);
-      Alert.alert('Error', 'Failed to create routine');
     }
   };
 
@@ -306,7 +317,7 @@ export default function RoutinesScreen() {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('rout_create')}</Text>
-                <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                <TouchableOpacity onPress={() => { setShowCreateModal(false); resetFormFields(); setNewRoutine({ type: 'morning', days: [...DAYS], tasks: [] }); }}>
                   <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -319,13 +330,21 @@ export default function RoutinesScreen() {
                 showsVerticalScrollIndicator={false}
               >
                 <Text style={styles.inputLabel}>{t('rout_name')}</Text>
-                <FormField
-                  value={newRoutine.name}
-                  onChangeText={(text: string) => setNewRoutine(prev => ({ ...prev, name: text }))}
-                  placeholder={t('rout_name_placeholder')}
-                  error={newRoutine.name.length === 0 && newRoutine.type ? '' : newRoutine.name.length > 100 ? 'Name must be under 100 characters' : ''}
-                  icon="create"
-                  onFocus={() => setTimeout(() => modalScrollRef.current?.scrollTo({ y: 0, animated: true }), 200)}
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <FormField
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder={t('rout_name_placeholder')}
+                      error={errors.name?.message as string}
+                      touched={!!touchedFields.name || !!errors.name}
+                      icon="create"
+                      onFocus={() => setTimeout(() => modalScrollRef.current?.scrollTo({ y: 0, animated: true }), 200)}
+                    />
+                  )}
                 />
 
                 <Text style={styles.inputLabel}>{t('rout_type')}</Text>
@@ -358,22 +377,36 @@ export default function RoutinesScreen() {
                 <View style={styles.timeRow}>
                   <View style={styles.timeInput}>
                     <Text style={styles.inputLabel}>{t('rout_start_time')}</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={newRoutine.time_start}
-                      onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_start: text }))}
-                      placeholder="07:00"
-                      placeholderTextColor="#666"
+                    <Controller
+                      control={control}
+                      name="time_start"
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <FormField
+                          value={value}
+                          onChangeText={onChange}
+                          onBlur={onBlur}
+                          placeholder="07:00"
+                          error={errors.time_start?.message as string}
+                          touched={!!touchedFields.time_start || !!errors.time_start}
+                        />
+                      )}
                     />
                   </View>
                   <View style={styles.timeInput}>
                     <Text style={styles.inputLabel}>{t('rout_end_time')}</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={newRoutine.time_end}
-                      onChangeText={(text) => setNewRoutine(prev => ({ ...prev, time_end: text }))}
-                      placeholder="08:00"
-                      placeholderTextColor="#666"
+                    <Controller
+                      control={control}
+                      name="time_end"
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <FormField
+                          value={value}
+                          onChangeText={onChange}
+                          onBlur={onBlur}
+                          placeholder="08:00"
+                          error={errors.time_end?.message as string}
+                          touched={!!touchedFields.time_end || !!errors.time_end}
+                        />
+                      )}
                     />
                   </View>
                 </View>
@@ -408,7 +441,7 @@ export default function RoutinesScreen() {
                 ))}
               </ScrollView>
 
-              <TouchableOpacity style={styles.createRoutineBtn} onPress={createRoutine}>
+              <TouchableOpacity style={styles.createRoutineBtn} onPress={handleSubmit(createRoutine)}>
                 <Text style={styles.createRoutineBtnText}>Create Routine</Text>
               </TouchableOpacity>
             </View>

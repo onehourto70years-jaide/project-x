@@ -5,6 +5,10 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/ThemeContext';
 import { useLanguage } from '../src/LanguageContext';
+import FormField from '../src/components/FormField';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { recipeSchema } from '../src/schemas';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -41,13 +45,20 @@ export default function RecipesScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [newRecipe, setNewRecipe] = useState({
-    name: '', description: '', servings: 2, ingredients: [] as Ingredient[], instructions: [] as string[]
+    servings: 2, ingredients: [] as Ingredient[], instructions: [] as string[]
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [newInstruction, setNewInstruction] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // ── react-hook-form ──
+  const { control, handleSubmit: handleRecipeSubmit, reset: resetFormFields, formState: { errors, touchedFields } } = useForm({
+    resolver: zodResolver(recipeSchema),
+    defaultValues: { name: '', description: '' },
+    mode: 'onBlur',
+  });
 
   const fetchRecipes = async () => {
     try {
@@ -103,16 +114,22 @@ export default function RecipesScreen() {
     setNewRecipe(prev => ({ ...prev, instructions: prev.instructions.filter((_, i) => i !== index) }));
   };
 
-  const createRecipe = async () => {
-    if (!newRecipe.name.trim()) { Alert.alert('Error', 'Please enter a recipe name'); return; }
+  const createRecipe = async (formData: { name: string; description?: string }) => {
     if (newRecipe.ingredients.length === 0) { Alert.alert('Error', 'Add at least one ingredient'); return; }
     setCreating(true);
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
+      const payload = {
+        name: formData.name,
+        description: formData.description || '',
+        servings: newRecipe.servings,
+        ingredients: newRecipe.ingredients,
+        instructions: newRecipe.instructions,
+      };
       const res = await fetch(`${BACKEND_URL}/api/recipes`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(newRecipe)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         Alert.alert('Recipe Created!', 'Your recipe with full elemental analysis is ready.');
@@ -159,7 +176,8 @@ export default function RecipesScreen() {
   };
 
   const resetForm = () => {
-    setNewRecipe({ name: '', description: '', servings: 2, ingredients: [], instructions: [] });
+    setNewRecipe({ servings: 2, ingredients: [], instructions: [] });
+    resetFormFields();
     setSearchQuery(''); setSearchResults([]); setNewInstruction('');
   };
 
@@ -274,14 +292,38 @@ export default function RecipesScreen() {
 
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
                 <Text style={[styles.inputLabel, { color: theme.textMuted }]}>{t('recipe_name')} *</Text>
-                <TextInput style={[styles.input, { backgroundColor: theme.bgInput, color: theme.text }]}
-                  value={newRecipe.name} onChangeText={(v) => setNewRecipe(prev => ({ ...prev, name: v }))}
-                  placeholder="e.g., Protein Power Bowl" placeholderTextColor={theme.textDim} />
+                <Controller
+                  control={control}
+                  name="name"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <FormField
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="e.g., Protein Power Bowl"
+                      error={errors.name?.message as string}
+                      touched={!!touchedFields.name || !!errors.name}
+                      icon="restaurant"
+                    />
+                  )}
+                />
 
                 <Text style={[styles.inputLabel, { color: theme.textMuted }]}>Description</Text>
-                <TextInput style={[styles.input, styles.textArea, { backgroundColor: theme.bgInput, color: theme.text }]}
-                  value={newRecipe.description} onChangeText={(v) => setNewRecipe(prev => ({ ...prev, description: v }))}
-                  placeholder="Brief description..." placeholderTextColor={theme.textDim} multiline />
+                <Controller
+                  control={control}
+                  name="description"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <FormField
+                      value={value || ''}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="Brief description..."
+                      error={errors.description?.message as string}
+                      touched={!!touchedFields.description || !!errors.description}
+                      multiline
+                    />
+                  )}
+                />
 
                 <View style={styles.servingsRow}>
                   <Text style={[styles.inputLabel, { color: theme.textMuted, marginTop: 0 }]}>Servings</Text>
@@ -390,7 +432,7 @@ export default function RecipesScreen() {
               </ScrollView>
 
               <TouchableOpacity style={[styles.createRecipeBtn, { backgroundColor: theme.accent }]}
-                onPress={createRecipe} disabled={creating}>
+                onPress={handleRecipeSubmit(createRecipe)} disabled={creating}>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
                 <Text style={styles.createRecipeBtnText}>
                   {creating ? 'Analyzing & Creating...' : 'Create Recipe'}

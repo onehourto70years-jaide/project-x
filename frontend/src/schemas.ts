@@ -21,10 +21,14 @@ export const routineSchema = z.object({
     .string()
     .min(1, 'Routine name is required')
     .max(100, 'Name must be under 100 characters'),
-  type: z.string().min(1, 'Select a routine type'),
-  time_start: z.string().min(1, 'Start time is required'),
-  time_end: z.string().min(1, 'End time is required'),
-  tasks: z.string().max(500, 'Tasks too long').optional(),
+  time_start: z
+    .string()
+    .min(1, 'Start time is required')
+    .regex(/^\d{1,2}:\d{2}$/, 'Use HH:MM format'),
+  time_end: z
+    .string()
+    .min(1, 'End time is required')
+    .regex(/^\d{1,2}:\d{2}$/, 'Use HH:MM format'),
 });
 
 /* ────────────── Recipe ────────────── */
@@ -34,19 +38,6 @@ export const recipeSchema = z.object({
     .min(1, 'Recipe name is required')
     .max(150, 'Name must be under 150 characters'),
   description: z.string().max(500, 'Description too long').optional(),
-  servings: z
-    .string()
-    .refine((v) => !isNaN(parseInt(v, 10)), 'Must be a number')
-    .refine((v) => parseInt(v, 10) >= 1, 'At least 1 serving')
-    .refine((v) => parseInt(v, 10) <= 50, 'Maximum 50 servings'),
-  prep_time_mins: z
-    .string()
-    .refine((v) => v === '' || !isNaN(parseInt(v, 10)), 'Must be a number')
-    .optional(),
-  cook_time_mins: z
-    .string()
-    .refine((v) => v === '' || !isNaN(parseInt(v, 10)), 'Must be a number')
-    .optional(),
 });
 
 /* ────────────── Meal Plan ────────────── */

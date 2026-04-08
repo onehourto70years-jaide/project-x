@@ -12,6 +12,10 @@ import StreakSection from '../../src/components/StreakSection';
 import EmptyState from '../../src/components/EmptyState';
 import NutrientGapAlerts from '../../src/components/NutrientGapAlerts';
 import { useMatrix } from '../../src/MatrixContext';
+import FormField from '../../src/components/FormField';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { quickMealSchema } from '../../src/schemas';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -109,13 +113,20 @@ export default function DashboardScreen() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [selectedFood, setSelectedFood] = useState<any>(null);
-  const [portionAmount, setPortionAmount] = useState('100');
   const [portionUnit, setPortionUnit] = useState<'g' | 'ml'>('g');
   const [cookingMethod, setCookingMethod] = useState('raw');
   const [logging, setLogging] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(false);
+
+  // ── react-hook-form for quick meal portion ──
+  const { control: mealControl, handleSubmit: handleMealSubmit, reset: resetMealForm, setValue: setMealValue, watch: watchMeal, formState: { errors: mealErrors, touchedFields: mealTouched } } = useForm({
+    resolver: zodResolver(quickMealSchema),
+    defaultValues: { food_name: '', portion_grams: '100' },
+    mode: 'onBlur',
+  });
+  const portionAmount = watchMeal('portion_grams');
 
   const fetchDashboard = async () => {
     try {
@@ -213,16 +224,17 @@ export default function DashboardScreen() {
 
   const selectFood = (food: any) => {
     setSelectedFood(food);
-    setPortionAmount('100');
+    setMealValue('food_name', food.description || food.fdc_id?.toString() || 'food');
+    setMealValue('portion_grams', '100');
     setPortionUnit('g');
     setCookingMethod('raw');
   };
 
-  const confirmLogMeal = async () => {
+  const confirmLogMeal = async (formData: { food_name: string; portion_grams: string }) => {
     if (!selectedFood) return;
     setLogging(true);
     try {
-      const grams = parseFloat(portionAmount) || 100;
+      const grams = parseFloat(formData.portion_grams);
       const token = await AsyncStorage.getItem('session_token');
       if (!token) { Alert.alert('Error', 'Not logged in'); return; }
 
@@ -275,6 +287,7 @@ export default function DashboardScreen() {
 
       if (mealRes.ok) {
         setShowQuickMeal(false); setQuickSearch(''); setSearchResults([]); setSelectedFood(null);
+        resetMealForm();
         await Promise.all([
           clearCacheForKey(CacheKeys.dashboard),
           clearCacheForKey(CacheKeys.mealsToday),
@@ -670,13 +683,22 @@ export default function DashboardScreen() {
                 {/* Portion Amount + Unit */}
                 <Text style={styles.mealFormLabel}>{t('nutr_portion_label')}</Text>
                 <View style={styles.portionRow}>
-                  <TextInput
-                    style={styles.portionInput}
-                    value={portionAmount}
-                    onChangeText={setPortionAmount}
-                    keyboardType="numeric"
-                    placeholder="100"
-                    placeholderTextColor="#666"
+                  <Controller
+                    control={mealControl}
+                    name="portion_grams"
+                    render={({ field: { onChange, onBlur, value } }) => (
+                      <View style={{ flex: 1 }}>
+                        <FormField
+                          value={value}
+                          onChangeText={onChange}
+                          onBlur={onBlur}
+                          keyboardType="numeric"
+                          placeholder="100"
+                          error={mealErrors.portion_grams?.message as string}
+                          touched={!!mealTouched.portion_grams || !!mealErrors.portion_grams}
+                        />
+                      </View>
+                    )}
                   />
                   <View style={styles.unitToggle}>
                     {(['g', 'ml'] as const).map((u) => (
@@ -718,7 +740,7 @@ export default function DashboardScreen() {
                 {/* Confirm Button */}
                 <TouchableOpacity
                   style={[styles.confirmLogBtn, logging && { opacity: 0.6 }]}
-                  onPress={confirmLogMeal}
+                  onPress={handleMealSubmit(confirmLogMeal)}
                   disabled={logging}
                 >
                   {logging ? (
