@@ -7,6 +7,7 @@ import { useLanguage } from '../../src/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useMatrix } from '../../src/MatrixContext';
+import { useTheme } from '../../src/ThemeContext';
 import { WidgetItem, DEFAULT_WIDGETS, loadWidgetLayout, saveWidgetLayout } from '../../src/widgetConfig';
 
 // ─── Widgets ──────────────────────────────
@@ -30,6 +31,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { matrixEnabled, setPriorityElements, setAdaptiveColor, adaptiveColor } = useMatrix();
+  const { theme } = useTheme();
 
   // ─── Data State ────────────────────────
   const [refreshing, setRefreshing] = useState(false);
@@ -186,38 +188,38 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={[s.container, { backgroundColor: theme.bg }]}>
       <ScrollView contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor="#00d4ff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={theme.accent} />}
         showsVerticalScrollIndicator={false}>
 
         <Animated.View style={{ opacity: fadeAnim }}>
           {/* ── Offline Banner ── */}
           {isOffline && (
-            <View style={s.offlineBanner}>
-              <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
-              <Text style={s.offlineText}>{t('dash_offline')}</Text>
+            <View style={[s.offlineBanner, { backgroundColor: `${theme.warning}1e` }]}>
+              <Ionicons name="cloud-offline" size={16} color={theme.warning} />
+              <Text style={[s.offlineText, { color: theme.warning }]}>{t('dash_offline')}</Text>
             </View>
           )}
 
           {/* ── Header ── */}
           <View style={s.header}>
             <View>
-              <Text style={s.greeting}>{getGreeting()},</Text>
-              <Text style={s.userName}>{user?.name?.split(' ')[0] || 'User'}</Text>
+              <Text style={[s.greeting, { color: theme.textMuted }]}>{getGreeting()},</Text>
+              <Text style={[s.userName, { color: theme.text }]}>{user?.name?.split(' ')[0] || 'User'}</Text>
             </View>
             <View style={s.headerRight}>
-              <TouchableOpacity style={s.customizeBtn} onPress={openCustomize}
+              <TouchableOpacity style={[s.customizeBtn, { backgroundColor: `${theme.text}0f` }]} onPress={openCustomize}
                 accessibilityRole="button" accessibilityLabel="Customize dashboard">
-                <Ionicons name="options" size={20} color="#888" />
+                <Ionicons name="options" size={20} color={theme.textMuted} />
               </TouchableOpacity>
               <TouchableOpacity style={s.profileBtn} onPress={() => router.push('/settings')}
                 accessibilityRole="button" accessibilityLabel={t('set_title')}>
-                <View style={[s.avatar, paymentStatus?.is_premium && s.avatarPro]}>
+                <View style={[s.avatar, { backgroundColor: theme.accent, borderColor: `${theme.accent}4d` }, paymentStatus?.is_premium && s.avatarPro]}>
                   <Text style={s.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
                 </View>
                 {paymentStatus?.is_premium && (
-                  <View style={s.proBadgeSmall}><Ionicons name="diamond" size={10} color="#ffd93d" /></View>
+                  <View style={[s.proBadgeSmall, { backgroundColor: theme.bgCard }]}><Ionicons name="diamond" size={10} color={theme.warning} /></View>
                 )}
               </TouchableOpacity>
             </View>
@@ -225,21 +227,21 @@ export default function DashboardScreen() {
 
           {/* ── Trial/Pro Badge ── */}
           {paymentStatus && !paymentStatus.is_premium && (
-            <TouchableOpacity style={[s.trialBadge, paymentStatus.trial_days_remaining <= 3 && s.trialUrgent]} onPress={() => router.push('/upgrade')}>
+            <TouchableOpacity style={[s.trialBadge, { backgroundColor: `${theme.warning}14`, borderColor: `${theme.warning}26` }, paymentStatus.trial_days_remaining <= 3 && { backgroundColor: `${theme.danger}14`, borderColor: `${theme.danger}33` }]} onPress={() => router.push('/upgrade')}>
               <Ionicons name={paymentStatus.trial_days_remaining <= 3 ? 'warning' : 'time'} size={16}
-                color={paymentStatus.trial_days_remaining <= 3 ? '#ff6b6b' : '#ffd93d'} />
-              <Text style={[s.trialText, paymentStatus.trial_days_remaining <= 3 && { color: '#ff6b6b' }]}>
+                color={paymentStatus.trial_days_remaining <= 3 ? theme.danger : theme.warning} />
+              <Text style={[s.trialText, { color: theme.warning }, paymentStatus.trial_days_remaining <= 3 && { color: theme.danger }]}>
                 {paymentStatus.trial_days_remaining > 0 ? `${paymentStatus.trial_days_remaining} ${t('dash_trial_days')}` : t('dash_trial_expired')}
               </Text>
-              <View style={s.trialBtn}><Text style={s.trialBtnText}>{t('dash_subscribe')}</Text></View>
+              <View style={[s.trialBtn, { backgroundColor: theme.warning }]}><Text style={s.trialBtnText}>{t('dash_subscribe')}</Text></View>
             </TouchableOpacity>
           )}
           {paymentStatus?.is_premium && (
-            <View style={s.proBadge}>
-              <View style={s.proBadgeGlow} />
-              <Ionicons name="diamond" size={16} color="#ffd93d" />
-              <Text style={s.proBadgeText}>NutriOS Pro</Text>
-              <Ionicons name="checkmark-circle" size={16} color="#00ff88" />
+            <View style={[s.proBadge, { backgroundColor: `${theme.warning}1e`, borderColor: `${theme.warning}4d` }]}>
+              <View style={[s.proBadgeGlow, { backgroundColor: `${theme.warning}14` }]} />
+              <Ionicons name="diamond" size={16} color={theme.warning} />
+              <Text style={[s.proBadgeText, { color: theme.warning }]}>NutriOS Pro</Text>
+              <Ionicons name="checkmark-circle" size={16} color={theme.success} />
             </View>
           )}
 
@@ -255,44 +257,44 @@ export default function DashboardScreen() {
       {/* ── Customize Dashboard Modal ── */}
       <Modal visible={showCustomize} animationType="slide" transparent>
         <View style={s.custOverlay}>
-          <View style={s.custContent}>
-            <View style={s.custHeader}>
-              <Text style={s.custTitle}>{t('dash_customize') || 'Customize Dashboard'}</Text>
-              <TouchableOpacity style={s.custSaveBtn} onPress={saveAndClose}>
-                <Ionicons name="checkmark" size={20} color="#080818" />
-                <Text style={s.custSaveTxt}>Save</Text>
+          <View style={[s.custContent, { backgroundColor: theme.bgCard }]}>
+            <View style={[s.custHeader, { borderBottomColor: theme.borderLight }]}>
+              <Text style={[s.custTitle, { color: theme.text }]}>{t('dash_customize') || 'Customize Dashboard'}</Text>
+              <TouchableOpacity style={[s.custSaveBtn, { backgroundColor: theme.accent }]} onPress={saveAndClose}>
+                <Ionicons name="checkmark" size={20} color={theme.bg} />
+                <Text style={[s.custSaveTxt, { color: theme.bg }]}>Save</Text>
               </TouchableOpacity>
             </View>
-            <Text style={s.custSubtitle}>Toggle widgets on/off and reorder with arrows</Text>
+            <Text style={[s.custSubtitle, { color: theme.textMuted }]}>Toggle widgets on/off and reorder with arrows</Text>
             <ScrollView style={s.custScroll} showsVerticalScrollIndicator={false}>
               {editWidgets.map((w, i) => (
-                <View key={w.id} style={[s.custRow, !w.enabled && s.custRowOff]}>
+                <View key={w.id} style={[s.custRow, { backgroundColor: theme.bgSecondary, borderColor: `${theme.accent}14` }, !w.enabled && s.custRowOff]}>
                   <View style={s.custRowLeft}>
-                    <View style={[s.custIcon, { backgroundColor: w.enabled ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.04)' }]}>
-                      <Ionicons name={w.icon as any} size={18} color={w.enabled ? '#00d4ff' : '#555'} />
+                    <View style={[s.custIcon, { backgroundColor: w.enabled ? `${theme.accent}1e` : `${theme.text}0a` }]}>
+                      <Ionicons name={w.icon as any} size={18} color={w.enabled ? theme.accent : theme.textDim} />
                     </View>
-                    <Text style={[s.custLabel, !w.enabled && { color: '#555' }]}>{w.label}</Text>
+                    <Text style={[s.custLabel, { color: theme.text }, !w.enabled && { color: theme.textDim }]}>{w.label}</Text>
                   </View>
                   <View style={s.custRowRight}>
                     <TouchableOpacity onPress={() => moveWidget(i, -1)} disabled={i === 0} style={s.arrowBtn}>
-                      <Ionicons name="chevron-up" size={18} color={i === 0 ? '#222' : '#888'} />
+                      <Ionicons name="chevron-up" size={18} color={i === 0 ? theme.borderLight : theme.textMuted} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => moveWidget(i, 1)} disabled={i === editWidgets.length - 1} style={s.arrowBtn}>
-                      <Ionicons name="chevron-down" size={18} color={i === editWidgets.length - 1 ? '#222' : '#888'} />
+                      <Ionicons name="chevron-down" size={18} color={i === editWidgets.length - 1 ? theme.borderLight : theme.textMuted} />
                     </TouchableOpacity>
                     <Switch value={w.enabled} onValueChange={v => toggleWidget(w.id, v)}
-                      trackColor={{ false: '#222', true: 'rgba(0,212,255,0.35)' }} thumbColor={w.enabled ? '#00d4ff' : '#555'} />
+                      trackColor={{ false: theme.borderLight, true: `${theme.accent}59` }} thumbColor={w.enabled ? theme.accent : theme.textDim} />
                   </View>
                 </View>
               ))}
             </ScrollView>
             <View style={s.custFooter}>
               <TouchableOpacity style={s.resetBtn} onPress={resetDefaults}>
-                <Ionicons name="refresh" size={16} color="#888" />
-                <Text style={s.resetText}>Reset to Default</Text>
+                <Ionicons name="refresh" size={16} color={theme.textMuted} />
+                <Text style={[s.resetText, { color: theme.textMuted }]}>Reset to Default</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.custCloseBtn} onPress={() => setShowCustomize(false)}>
-                <Text style={s.custCloseTxt}>Cancel</Text>
+                <Text style={[s.custCloseTxt, { color: theme.danger }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -303,49 +305,48 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#080818' },
+  container: { flex: 1 },
   scroll: { paddingBottom: 100 },
-  offlineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,217,61,0.12)', paddingVertical: 8, marginHorizontal: 16, marginTop: 8, borderRadius: 10, gap: 8 },
-  offlineText: { color: '#ffd93d', fontSize: 13, fontWeight: '500' },
+  offlineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, marginHorizontal: 16, marginTop: 8, borderRadius: 10, gap: 8 },
+  offlineText: { fontSize: 13, fontWeight: '500' },
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  greeting: { fontSize: 14, color: '#666' },
-  userName: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  greeting: { fontSize: 14 },
+  userName: { fontSize: 26, fontWeight: 'bold' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  customizeBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center' },
+  customizeBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   profileBtn: { padding: 4, position: 'relative' },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#00d4ff', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(0,212,255,0.3)' },
+  avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 2 },
   avatarPro: { borderColor: '#ffd93d', borderWidth: 2 },
   avatarText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  proBadgeSmall: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#ffd93d' },
+  proBadgeSmall: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#ffd93d' },
   // Trial/Pro
-  trialBadge: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 8, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(255,217,61,0.15)' },
-  trialUrgent: { backgroundColor: 'rgba(255,107,107,0.08)', borderColor: 'rgba(255,107,107,0.2)' },
-  trialText: { flex: 1, fontSize: 13, color: '#ffd93d', fontWeight: '600', marginLeft: 8 },
-  trialBtn: { backgroundColor: '#ffd93d', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  trialBadge: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginTop: 8, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1 },
+  trialText: { flex: 1, fontSize: 13, fontWeight: '600', marginLeft: 8 },
+  trialBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   trialBtnText: { fontSize: 12, fontWeight: '700', color: '#000' },
-  proBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 8, backgroundColor: 'rgba(255,217,61,0.12)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,217,61,0.3)', position: 'relative', overflow: 'hidden' },
-  proBadgeGlow: { position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,217,61,0.08)', left: -10, top: -15 },
-  proBadgeText: { fontSize: 14, color: '#ffd93d', fontWeight: '800', marginLeft: 8, marginRight: 8, letterSpacing: 0.5 },
+  proBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 8, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, position: 'relative', overflow: 'hidden' },
+  proBadgeGlow: { position: 'absolute', width: 60, height: 60, borderRadius: 30, left: -10, top: -15 },
+  proBadgeText: { fontSize: 14, fontWeight: '800', marginLeft: 8, marginRight: 8, letterSpacing: 0.5 },
   // Customize Modal
   custOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  custContent: { backgroundColor: '#12122a', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 20 },
-  custHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#1a1a3e' },
-  custTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  custSubtitle: { color: '#666', fontSize: 12, paddingHorizontal: 20, marginTop: 8 },
-  custSaveBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#00d4ff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, gap: 6 },
-  custSaveTxt: { color: '#080818', fontWeight: '700', fontSize: 14 },
+  custContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 20 },
+  custHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1 },
+  custTitle: { fontSize: 18, fontWeight: 'bold' },
+  custSubtitle: { fontSize: 12, paddingHorizontal: 20, marginTop: 8 },
+  custSaveBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, gap: 6 },
+  custSaveTxt: { fontWeight: '700', fontSize: 14 },
   custScroll: { paddingHorizontal: 16, marginTop: 12, maxHeight: 420 },
-  custRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#0d0d22', borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(0,212,255,0.08)' },
+  custRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1 },
   custRowOff: { borderColor: 'transparent', opacity: 0.6 },
   custRowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   custIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  custLabel: { color: '#fff', fontSize: 14, fontWeight: '500', flex: 1 },
+  custLabel: { fontSize: 14, fontWeight: '500', flex: 1 },
   custRowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   arrowBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   custFooter: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 12 },
   resetBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10 },
-  resetText: { color: '#888', fontSize: 13, fontWeight: '500' },
+  resetText: { fontSize: 13, fontWeight: '500' },
   custCloseBtn: { paddingVertical: 10, paddingHorizontal: 16 },
-  custCloseTxt: { color: '#ff6b6b', fontSize: 14, fontWeight: '600' },
+  custCloseTxt: { fontSize: 14, fontWeight: '600' },
 });
