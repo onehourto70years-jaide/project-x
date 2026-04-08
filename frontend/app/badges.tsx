@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../src/LanguageContext';
+import EmptyState from '../src/components/EmptyState';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -248,19 +249,30 @@ export default function BadgesScreen() {
 
           {/* Badges Grid */}
           <Text style={styles.sectionTitle}>Badges</Text>
-          <View style={styles.badgesGrid}>
-            {badges.map((badge, index) => (
-              <BadgeCardAnimated
-                key={badge.id}
-                badge={badge}
-                index={index}
-                isNewlyEarned={newlyEarned.includes(badge.id)}
-                onShare={handleShareBadge}
-                earnedLabel={t('badge_earned')}
-                lockedLabel={t('badge_locked')}
-              />
-            ))}
-          </View>
+          {badges.length === 0 ? (
+            <EmptyState
+              icon="trophy-outline"
+              iconColor="#ffd93d"
+              title="No Badges Yet"
+              subtitle="Start logging meals, tracking water, and completing routines to earn your first badge. Every healthy habit counts!"
+              ctaLabel="Start Tracking"
+              onCta={() => router.push('/(tabs)')}
+            />
+          ) : (
+            <View style={styles.badgesGrid}>
+              {badges.map((badge, index) => (
+                <BadgeCardAnimated
+                  key={badge.id}
+                  badge={badge}
+                  index={index}
+                  isNewlyEarned={newlyEarned.includes(badge.id)}
+                  onShare={handleShareBadge}
+                  earnedLabel={t('badge_earned')}
+                  lockedLabel={t('badge_locked')}
+                />
+              ))}
+            </View>
+          )}
 
           {/* Milestones */}
           <Text style={styles.sectionTitle}>Milestones</Text>

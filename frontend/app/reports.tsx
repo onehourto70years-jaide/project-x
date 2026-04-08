@@ -233,6 +233,17 @@ export default function ReportsScreen() {
 
       {loading ? (
         <SkeletonReports />
+      ) : !data || (!data.this_week?.meals_count && !data.last_week?.meals_count) ? (
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+          <EmptyState
+            icon="analytics-outline"
+            iconColor="#4ecdc4"
+            title="No Reports Yet"
+            subtitle="Start logging your meals, water, and routines to unlock weekly comparison reports and exportable health summaries."
+            ctaLabel="Log Your First Meal"
+            onCta={() => router.push('/(tabs)/search')}
+          />
+        </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 

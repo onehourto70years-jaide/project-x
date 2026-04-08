@@ -7,6 +7,7 @@ import { clearCacheForKey, CacheKeys, saveConversation, loadConversation, getCon
 import { useLanguage } from '../src/LanguageContext';
 import { useTheme } from '../src/ThemeContext';
 import { SkeletonAIChat } from '../src/components/Skeleton';
+import EmptyState from '../src/components/EmptyState';
 
 import type { ConversationMeta } from '../src/cache';
 
@@ -453,10 +454,15 @@ export default function AIChatScreen() {
                 </TouchableOpacity>
 
                 {historyList.length === 0 ? (
-                  <View style={styles.emptyHistory}>
-                    <Ionicons name="chatbubbles-outline" size={48} color={theme.textDim} />
-                    <Text style={[styles.emptyHistoryText, { color: theme.textDim }]}>{t('ai_no_history') || 'No saved conversations yet'}</Text>
-                  </View>
+                  <EmptyState
+                    icon="chatbubbles-outline"
+                    iconColor="#a29bfe"
+                    title="No Conversations Yet"
+                    subtitle="Start chatting with your NutriOS AI Coach to get personalized meal suggestions, food synergy tips, and nutrient insights."
+                    ctaLabel="Start a New Chat"
+                    onCta={startNewConversation}
+                    small
+                  />
                 ) : (
                   historyList.map((convo) => (
                     <View
