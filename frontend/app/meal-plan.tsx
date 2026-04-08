@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, RefreshControl, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
+import { useTheme, ThemeColors } from '../src/ThemeContext';
 import { hapticLight, hapticMedium } from '../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -27,6 +28,9 @@ interface MealPlan {
 export default function MealPlanScreen() {
   const router = useRouter();
   const { t, locale } = useLanguage();
+  const { theme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+
   const [mealPlans, setMealPlans] = useState<Record<string, MealPlan[]>>({});
   const [recipes, setRecipes] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,15 +119,15 @@ export default function MealPlanScreen() {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}
           accessibilityRole="button" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={styles.title}>{t('plan_title')}</Text>
         <TouchableOpacity onPress={() => { hapticLight(); setShowAddModal(true); }}>
-          <Ionicons name="add-circle" size={28} color="#00d4ff" />
+          <Ionicons name="add-circle" size={28} color={theme.accent} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor="#00d4ff" />}>
+      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={theme.accent} />}>
         {weekDates.map((date) => (
           <View key={date} style={styles.dayCard}>
             <Text style={styles.dayTitle}>{formatDate(date)}</Text>
@@ -142,13 +146,13 @@ export default function MealPlanScreen() {
                         <View key={plan.id} style={styles.plannedMeal}>
                           <Text style={styles.plannedMealText}>{plan.food_name || plan.notes}</Text>
                           <TouchableOpacity onPress={() => deletePlan(plan.id)}>
-                            <Ionicons name="close-circle" size={18} color="#666" />
+                            <Ionicons name="close-circle" size={18} color={theme.textDim} />
                           </TouchableOpacity>
                         </View>
                       ))
                     ) : (
                       <TouchableOpacity style={styles.addMealBtn} onPress={() => { hapticLight(); setSelectedDate(date); setSelectedMealType(mealType.id); setShowAddModal(true); }}>
-                        <Ionicons name="add" size={16} color="#666" />
+                        <Ionicons name="add" size={16} color={theme.textDim} />
                         <Text style={styles.addMealText}>{t('mp_add_meal')}</Text>
                       </TouchableOpacity>
                     )}
@@ -168,7 +172,7 @@ export default function MealPlanScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{t('mp_plan_meal')}</Text>
                 <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                  <Ionicons name="close" size={24} color="#fff" />
+                  <Ionicons name="close" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
@@ -179,7 +183,7 @@ export default function MealPlanScreen() {
                 <View style={styles.mealTypeRow}>
                   {MEAL_TYPE_DEFS.map((type) => (
                     <TouchableOpacity key={type.id} style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]} onPress={() => { hapticLight(); setSelectedMealType(type.id); }}>
-                      <Ionicons name={type.icon as any} size={18} color={selectedMealType === type.id ? type.color : '#666'} />
+                      <Ionicons name={type.icon as any} size={18} color={selectedMealType === type.id ? type.color : theme.textDim} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -188,7 +192,7 @@ export default function MealPlanScreen() {
                 {recipes.length > 0 ? (
                   recipes.map((recipe) => (
                     <TouchableOpacity key={recipe.id} style={[styles.recipeOption, selectedRecipeId === recipe.id && styles.recipeOptionActive]} onPress={() => { hapticLight(); setSelectedRecipeId(recipe.id); }}>
-                      <Ionicons name={selectedRecipeId === recipe.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedRecipeId === recipe.id ? '#00d4ff' : '#666'} />
+                      <Ionicons name={selectedRecipeId === recipe.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedRecipeId === recipe.id ? theme.accent : theme.textDim} />
                       <Text style={styles.recipeOptionText}>{recipe.name}</Text>
                     </TouchableOpacity>
                   ))
@@ -197,7 +201,7 @@ export default function MealPlanScreen() {
                 )}
 
                 <Text style={styles.inputLabel}>{t('mp_or_notes')}</Text>
-                <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder={t('mp_notes_placeholder')} placeholderTextColor="#666" />
+                <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder={t('mp_notes_placeholder')} placeholderTextColor={theme.textDim} />
               </ScrollView>
 
               <TouchableOpacity style={styles.addBtn} onPress={addMealPlan}>
@@ -211,34 +215,34 @@ export default function MealPlanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f23' },
+const makeStyles = (theme: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  title: { fontSize: 20, fontWeight: 'bold', color: theme.text },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  dayCard: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginBottom: 12 },
-  dayTitle: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 12 },
-  mealSlot: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#2a2a4e' },
+  dayCard: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16, marginBottom: 12 },
+  dayTitle: { fontSize: 16, fontWeight: '600', color: theme.text, marginBottom: 12 },
+  mealSlot: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10, borderTopWidth: 1, borderTopColor: theme.bgInput },
   mealTypeIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   mealContent: { flex: 1, marginLeft: 12 },
-  mealTypeLabel: { fontSize: 13, color: '#888', marginBottom: 4 },
-  plannedMeal: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#2a2a4e', padding: 10, borderRadius: 8, marginTop: 4 },
-  plannedMealText: { color: '#fff', fontSize: 14, flex: 1 },
+  mealTypeLabel: { fontSize: 13, color: theme.textMuted, marginBottom: 4 },
+  plannedMeal: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.bgInput, padding: 10, borderRadius: 8, marginTop: 4 },
+  plannedMealText: { color: theme.text, fontSize: 14, flex: 1 },
   addMealBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
-  addMealText: { color: '#666', fontSize: 13, marginLeft: 4 },
+  addMealText: { color: theme.textDim, fontSize: 13, marginLeft: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#2a2a4e' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  modalContent: { backgroundColor: theme.bgCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: theme.bgInput },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: theme.text },
   modalScroll: { padding: 20 },
-  inputLabel: { color: '#888', fontSize: 13, marginBottom: 10, marginTop: 16 },
-  input: { backgroundColor: '#2a2a4e', borderRadius: 10, padding: 14, color: '#fff', fontSize: 15 },
+  inputLabel: { color: theme.textMuted, fontSize: 13, marginBottom: 10, marginTop: 16 },
+  input: { backgroundColor: theme.bgInput, borderRadius: 10, padding: 14, color: theme.text, fontSize: 15 },
   mealTypeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  mealTypeOption: { flex: 1, padding: 14, borderRadius: 10, backgroundColor: '#2a2a4e', marginHorizontal: 4, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
-  recipeOption: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#2a2a4e', borderRadius: 10, marginTop: 8 },
-  recipeOptionActive: { backgroundColor: 'rgba(0, 212, 255, 0.1)' },
-  recipeOptionText: { color: '#fff', marginLeft: 10, flex: 1 },
-  noRecipes: { color: '#666', fontStyle: 'italic', padding: 10 },
-  addBtn: { backgroundColor: '#00d4ff', margin: 20, padding: 16, borderRadius: 12, alignItems: 'center' },
+  mealTypeOption: { flex: 1, padding: 14, borderRadius: 10, backgroundColor: theme.bgInput, marginHorizontal: 4, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
+  recipeOption: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: theme.bgInput, borderRadius: 10, marginTop: 8 },
+  recipeOptionActive: { backgroundColor: `${theme.accent}18` },
+  recipeOptionText: { color: theme.text, marginLeft: 10, flex: 1 },
+  noRecipes: { color: theme.textDim, fontStyle: 'italic', padding: 10 },
+  addBtn: { backgroundColor: theme.accent, margin: 20, padding: 16, borderRadius: 12, alignItems: 'center' },
   addBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

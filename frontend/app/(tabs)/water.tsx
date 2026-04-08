@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
+import { useTheme, ThemeColors } from '../../src/ThemeContext';
 import { hapticMedium, hapticSuccess } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -23,6 +24,9 @@ interface WaterHistory {
 
 export default function WaterScreen() {
   const { t } = useLanguage();
+  const { theme } = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+
   const [waterData, setWaterData] = useState<WaterData | null>(null);
   const [history, setHistory] = useState<WaterHistory[]>([]);
   const [smartGoal, setSmartGoal] = useState<any>(null);
@@ -67,6 +71,17 @@ export default function WaterScreen() {
 
   useFocusEffect(useCallback(() => { fetchWaterData(); }, []));
 
+  // ─── Pull-to-refresh: clear cache FIRST, then fetch ────
+  const onPullRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      clearCacheForKey(CacheKeys.waterToday),
+      clearCacheForKey('water_history_7'),
+      clearCacheForKey('water_smart_goal'),
+    ]);
+    fetchWaterData();
+  };
+
   const addWater = async (amount: number) => {
     hapticMedium();
     setAdding(true);
@@ -99,10 +114,10 @@ export default function WaterScreen() {
 
   const getHydrationStatus = () => {
     const pct = waterData?.percentage || 0;
-    if (pct >= 100) return { text: t('water_goal_reached'), color: '#4ecdc4', icon: 'checkmark-circle' };
-    if (pct >= 75) return { text: t('water_almost'), color: '#00d4ff', icon: 'water' };
-    if (pct >= 50) return { text: t('water_keep_drinking'), color: '#ffd93d', icon: 'water-outline' };
-    return { text: t('water_need_more'), color: '#ff6b6b', icon: 'alert-circle' };
+    if (pct >= 100) return { text: t('water_goal_reached'), color: theme.teal, icon: 'checkmark-circle' };
+    if (pct >= 75) return { text: t('water_almost'), color: theme.accent, icon: 'water' };
+    if (pct >= 50) return { text: t('water_keep_drinking'), color: theme.warning, icon: 'water-outline' };
+    return { text: t('water_need_more'), color: theme.danger, icon: 'alert-circle' };
   };
 
   const status = getHydrationStatus();
@@ -111,7 +126,7 @@ export default function WaterScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchWaterData(); }} tintColor="#00d4ff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor={theme.accent} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -120,9 +135,9 @@ export default function WaterScreen() {
         </View>
 
         {isOffline && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,217,61,0.12)', paddingVertical: 8, marginHorizontal: 16, marginBottom: 12, borderRadius: 10, gap: 8 }}>
-            <Ionicons name="cloud-offline" size={16} color="#ffd93d" />
-            <Text style={{ color: '#ffd93d', fontSize: 13, fontWeight: '500' }}>{t('dash_offline')}</Text>
+          <View style={styles.offlineBanner}>
+            <Ionicons name="cloud-offline" size={16} color={theme.warning} />
+            <Text style={styles.offlineText}>{t('dash_offline')}</Text>
           </View>
         )}
 
@@ -165,7 +180,7 @@ export default function WaterScreen() {
                 accessibilityLabel={`${item.label}: +${item.amount}ml`}
                 accessibilityState={{ disabled: adding }}
               >
-                <Ionicons name={item.icon as any} size={24} color="#00d4ff" />
+                <Ionicons name={item.icon as any} size={24} color={theme.accent} />
                 <Text style={styles.quickAddAmount}>+{item.amount}ml</Text>
                 <Text style={styles.quickAddLabel}>{item.label}</Text>
               </TouchableOpacity>
@@ -177,17 +192,17 @@ export default function WaterScreen() {
         {smartGoal && (
           <View style={styles.smartGoalCard}>
             <View style={styles.smartGoalHeader}>
-              <Ionicons name="sparkles" size={18} color="#ffd93d" />
+              <Ionicons name="sparkles" size={18} color={theme.warning} />
               <Text style={styles.smartGoalTitle}>{t('water_smart_title')}</Text>
             </View>
             <Text style={styles.smartGoalValue}>{(smartGoal.recommended_ml / 1000).toFixed(1)}L {t('water_recommended')}</Text>
             <View style={styles.smartGoalFactors}>
               <View style={styles.factor}>
-                <Ionicons name="body" size={14} color="#888" />
+                <Ionicons name="body" size={14} color={theme.textMuted} />
                 <Text style={styles.factorText}>{smartGoal.weight_kg}kg</Text>
               </View>
               <View style={styles.factor}>
-                <Ionicons name="fitness" size={14} color="#888" />
+                <Ionicons name="fitness" size={14} color={theme.textMuted} />
                 <Text style={styles.factorText}>{smartGoal.activity_level}</Text>
               </View>
             </View>
@@ -201,7 +216,7 @@ export default function WaterScreen() {
             waterData.logs.slice().reverse().slice(0, 8).map((log, index) => (
               <View key={log.id || index} style={styles.logItem}>
                 <View style={styles.logIcon}>
-                  <Ionicons name="water" size={16} color="#00d4ff" />
+                  <Ionicons name="water" size={16} color={theme.accent} />
                 </View>
                 <Text style={styles.logAmount}>{log.amount_ml}ml</Text>
                 <Text style={styles.logTime}>
@@ -211,7 +226,7 @@ export default function WaterScreen() {
             ))
           ) : (
             <View style={styles.emptyLogs}>
-              <Ionicons name="water-outline" size={40} color="#444" />
+              <Ionicons name="water-outline" size={40} color={theme.textDim} />
               <Text style={styles.emptyText}>{t('water_no_logs')}</Text>
             </View>
           )}
@@ -221,13 +236,13 @@ export default function WaterScreen() {
         <View style={styles.historySection}>
           <Text style={styles.sectionTitle}>{t('water_last_7')}</Text>
           <View style={styles.historyChart}>
-            {history.map((day, index) => {
+            {history.map((day) => {
               const goal = waterData?.goal_ml || 2500;
               const pct = Math.min((day.total_ml / goal) * 100, 100);
               return (
                 <View key={day.date} style={styles.historyBar}>
                   <View style={styles.historyBarBg}>
-                    <View style={[styles.historyBarFill, { height: `${pct}%`, backgroundColor: pct >= 100 ? '#4ecdc4' : pct >= 50 ? '#00d4ff' : '#ff6b6b' }]} />
+                    <View style={[styles.historyBarFill, { height: `${pct}%`, backgroundColor: pct >= 100 ? theme.teal : pct >= 50 ? theme.accent : theme.danger }]} />
                   </View>
                   <Text style={styles.historyDay}>{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }).charAt(0)}</Text>
                 </View>
@@ -241,7 +256,7 @@ export default function WaterScreen() {
           <Text style={styles.sectionTitle}>{t('water_tips')}</Text>
           {[t('water_tip_1'), t('water_tip_2'), t('water_tip_3'), t('water_tip_4')].map((tip, i) => (
             <View key={i} style={styles.tipItem}>
-              <Ionicons name="checkmark-circle" size={16} color="#4ecdc4" />
+              <Ionicons name="checkmark-circle" size={16} color={theme.teal} />
               <Text style={styles.tipText}>{tip}</Text>
             </View>
           ))}
@@ -251,53 +266,55 @@ export default function WaterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f0f23' },
+const makeStyles = (theme: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.bg },
   scrollContent: { padding: 16, paddingBottom: 100 },
   header: { marginBottom: 20, marginTop: 8 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 14, color: '#888', marginTop: 4 },
-  gaugeCard: { backgroundColor: '#1a1a2e', borderRadius: 20, padding: 24, marginBottom: 16, alignItems: 'center' },
+  title: { fontSize: 28, fontWeight: 'bold', color: theme.text },
+  subtitle: { fontSize: 14, color: theme.textMuted, marginTop: 4 },
+  offlineBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: `${theme.warning}18`, paddingVertical: 8, marginHorizontal: 16, marginBottom: 12, borderRadius: 10, gap: 8 },
+  offlineText: { color: theme.warning, fontSize: 13, fontWeight: '500' },
+  gaugeCard: { backgroundColor: theme.bgCard, borderRadius: 20, padding: 24, marginBottom: 16, alignItems: 'center' },
   gaugeContainer: { alignItems: 'center', marginBottom: 20 },
-  gauge: { width: 140, height: 180, backgroundColor: '#2a2a4e', borderRadius: 70, overflow: 'hidden', justifyContent: 'flex-end' },
-  gaugeFill: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#00d4ff', opacity: 0.6 },
+  gauge: { width: 140, height: 180, backgroundColor: theme.bgInput, borderRadius: 70, overflow: 'hidden', justifyContent: 'flex-end' },
+  gaugeFill: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: theme.accent, opacity: 0.6 },
   gaugeContent: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  gaugeAmount: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginTop: 8 },
-  gaugeGoal: { fontSize: 12, color: '#888' },
+  gaugeAmount: { fontSize: 28, fontWeight: 'bold', color: theme.text, marginTop: 8 },
+  gaugeGoal: { fontSize: 12, color: theme.textMuted },
   statusBadge: { marginTop: 12 },
   statusText: { fontSize: 16, fontWeight: '600' },
   percentageRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
-  percentageBar: { flex: 1, height: 8, backgroundColor: '#2a2a4e', borderRadius: 4, marginRight: 12 },
-  percentageFill: { height: 8, backgroundColor: '#00d4ff', borderRadius: 4 },
-  percentageText: { fontSize: 16, fontWeight: 'bold', color: '#00d4ff', width: 50, textAlign: 'right' },
+  percentageBar: { flex: 1, height: 8, backgroundColor: theme.bgInput, borderRadius: 4, marginRight: 12 },
+  percentageFill: { height: 8, backgroundColor: theme.accent, borderRadius: 4 },
+  percentageText: { fontSize: 16, fontWeight: 'bold', color: theme.accent, width: 50, textAlign: 'right' },
   quickAddSection: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: theme.text, marginBottom: 12 },
   quickAddGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  quickAddBtn: { flex: 1, backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginHorizontal: 4, alignItems: 'center' },
+  quickAddBtn: { flex: 1, backgroundColor: theme.bgCard, borderRadius: 16, padding: 16, marginHorizontal: 4, alignItems: 'center' },
   quickAddBtnDisabled: { opacity: 0.5 },
-  quickAddAmount: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginTop: 8 },
-  quickAddLabel: { fontSize: 10, color: '#888', marginTop: 2 },
-  smartGoalCard: { backgroundColor: 'rgba(255, 217, 61, 0.1)', borderRadius: 16, padding: 16, marginBottom: 16 },
+  quickAddAmount: { fontSize: 14, fontWeight: 'bold', color: theme.text, marginTop: 8 },
+  quickAddLabel: { fontSize: 10, color: theme.textMuted, marginTop: 2 },
+  smartGoalCard: { backgroundColor: `${theme.warning}18`, borderRadius: 16, padding: 16, marginBottom: 16 },
   smartGoalHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  smartGoalTitle: { fontSize: 14, fontWeight: '600', color: '#ffd93d', marginLeft: 8 },
-  smartGoalValue: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  smartGoalTitle: { fontSize: 14, fontWeight: '600', color: theme.warning, marginLeft: 8 },
+  smartGoalValue: { fontSize: 20, fontWeight: 'bold', color: theme.text, marginBottom: 8 },
   smartGoalFactors: { flexDirection: 'row' },
   factor: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
-  factorText: { color: '#888', fontSize: 12, marginLeft: 4 },
-  logsSection: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginBottom: 16 },
-  logItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#2a2a4e' },
-  logIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0, 212, 255, 0.1)', justifyContent: 'center', alignItems: 'center' },
-  logAmount: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: '#fff' },
-  logTime: { fontSize: 12, color: '#888' },
+  factorText: { color: theme.textMuted, fontSize: 12, marginLeft: 4 },
+  logsSection: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16, marginBottom: 16 },
+  logItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.bgInput },
+  logIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: `${theme.accent}18`, justifyContent: 'center', alignItems: 'center' },
+  logAmount: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: theme.text },
+  logTime: { fontSize: 12, color: theme.textMuted },
   emptyLogs: { alignItems: 'center', padding: 30 },
-  emptyText: { color: '#666', marginTop: 12 },
-  historySection: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginBottom: 16 },
+  emptyText: { color: theme.textDim, marginTop: 12 },
+  historySection: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16, marginBottom: 16 },
   historyChart: { flexDirection: 'row', justifyContent: 'space-between', height: 100, alignItems: 'flex-end' },
   historyBar: { alignItems: 'center', flex: 1 },
-  historyBarBg: { width: 20, height: 70, backgroundColor: '#2a2a4e', borderRadius: 10, justifyContent: 'flex-end', overflow: 'hidden' },
+  historyBarBg: { width: 20, height: 70, backgroundColor: theme.bgInput, borderRadius: 10, justifyContent: 'flex-end', overflow: 'hidden' },
   historyBarFill: { width: '100%', borderRadius: 10 },
-  historyDay: { fontSize: 10, color: '#888', marginTop: 6 },
-  tipsCard: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16 },
+  historyDay: { fontSize: 10, color: theme.textMuted, marginTop: 6 },
+  tipsCard: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16 },
   tipItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  tipText: { color: '#aaa', fontSize: 13, marginLeft: 10, flex: 1 },
+  tipText: { color: theme.textSecondary, fontSize: 13, marginLeft: 10, flex: 1 },
 });
