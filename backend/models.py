@@ -1,10 +1,30 @@
-"""NutriOS Pydantic Models."""
-from pydantic import BaseModel
+"""NutriOS Pydantic Models with auto-sanitization."""
+from pydantic import BaseModel, validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from security import sanitize
 
 
+# ── Base model that auto-sanitizes all string fields ──
+class SanitizedModel(BaseModel):
+    """Base model that sanitizes all str fields on assignment."""
+
+    class Config:
+        # Run validators on assignment (not just creation)
+        validate_assignment = True
+
+    @validator("*", pre=True, always=True)
+    def _sanitize_strings(cls, v):
+        if isinstance(v, str):
+            return sanitize(v)
+        if isinstance(v, list):
+            return [sanitize(i) if isinstance(i, str) else i for i in v]
+        return v
+
+
+# ── Auth / User ──
 class User(BaseModel):
+    """User identity — not sanitized (system-populated)."""
     user_id: str
     email: str
     name: str
@@ -15,7 +35,8 @@ class User(BaseModel):
     health_goals: Optional[List[str]] = []
 
 
-class MealEntryCreate(BaseModel):
+# ── Meals ──
+class MealEntryCreate(SanitizedModel):
     fdc_id: Optional[int] = None
     food_name: str
     portion_grams: float
@@ -30,7 +51,8 @@ class WaterLogCreate(BaseModel):
     amount_ml: int
 
 
-class RoutineCreate(BaseModel):
+# ── Routines ──
+class RoutineCreate(SanitizedModel):
     name: str
     type: str
     time_start: str
@@ -39,7 +61,8 @@ class RoutineCreate(BaseModel):
     tasks: List[Dict[str, Any]] = []
 
 
-class RecipeCreate(BaseModel):
+# ── Recipes ──
+class RecipeCreate(SanitizedModel):
     name: str
     description: Optional[str] = ""
     ingredients: List[Dict[str, Any]] = []
@@ -49,7 +72,8 @@ class RecipeCreate(BaseModel):
     instructions: Optional[List[str]] = []
 
 
-class MealPlanCreate(BaseModel):
+# ── Meal Plans ──
+class MealPlanCreate(SanitizedModel):
     date: str
     meal_type: str
     recipe_id: Optional[str] = None
@@ -57,20 +81,22 @@ class MealPlanCreate(BaseModel):
     notes: Optional[str] = ""
 
 
-class FavoriteCreate(BaseModel):
+# ── Favorites ──
+class FavoriteCreate(SanitizedModel):
     fdc_id: int
     food_name: str
     default_portion_grams: float = 100
     default_cooking_method: str = "raw"
 
 
-class AIRecommendationRequest(BaseModel):
+# ── AI ──
+class AIRecommendationRequest(SanitizedModel):
     goal: str
     current_foods: Optional[List[str]] = []
     dietary_restrictions: Optional[List[str]] = []
 
 
-class AIChatRequest(BaseModel):
+class AIChatRequest(SanitizedModel):
     message: str
     conversation_history: str = ""
     nutrition_context: str = ""

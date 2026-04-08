@@ -5,6 +5,7 @@ from database import db
 from dependencies import require_user
 from models import User, MealEntryCreate, WaterLogCreate, FavoriteCreate
 from services import update_daily_summary
+from security import sanitize, _sanitize_value
 
 router = APIRouter(tags=["meals"])
 
@@ -50,6 +51,7 @@ async def delete_meal(meal_id: str, user: User = Depends(require_user)):
 async def update_meal(meal_id: str, user: User = Depends(require_user), request_data: dict = {}):
     """Update a logged meal — supports changing portion, meal_type, cooking_method.
     If portion_grams changes, nutrients are recalculated proportionally."""
+    request_data = _sanitize_value(request_data)
     meal = await db.meals.find_one({"id": meal_id, "user_id": user.user_id})
     if not meal:
         return {"message": "Meal not found"}

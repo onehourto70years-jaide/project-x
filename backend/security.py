@@ -103,29 +103,29 @@ def _sanitize_value(val: Any) -> Any:
 
 
 # ────────────────────────────────────────────
-#  Sanitization Middleware
+#  Sanitization Dependency (for route handlers)
 # ────────────────────────────────────────────
-class SanitizeMiddleware(BaseHTTPMiddleware):
-    """Intercepts POST / PUT / PATCH requests and sanitizes all string
-    values in the JSON body before the route handler sees them."""
+async def get_sanitized_body(request: Request) -> dict:
+    """FastAPI dependency: parse JSON body and sanitize all strings.
+    Use as: body = Depends(get_sanitized_body)"""
+    if request.method not in ("POST", "PUT", "PATCH"):
+        return {}
+    content_type = request.headers.get("content-type", "")
+    if "application/json" not in content_type:
+        return {}
+    try:
+        data = await request.json()
+        return _sanitize_value(data)
+    except Exception:
+        return {}
 
-    async def dispatch(self, request: Request, call_next):
-        if request.method in ("POST", "PUT", "PATCH"):
-            content_type = request.headers.get("content-type", "")
-            if "application/json" in content_type:
-                try:
-                    raw_body = await request.body()
-                    if raw_body:
-                        data = json.loads(raw_body)
-                        clean = _sanitize_value(data)
-                        # Monkey-patch the receive so downstream sees the clean body
-                        clean_bytes = json.dumps(clean).encode("utf-8")
 
-                        async def receive():
-                            return {"type": "http.request", "body": clean_bytes}
+class SanitizeMiddleware:
+    """No-op placeholder to avoid import errors. Sanitization is handled
+    via the ``get_sanitized_body`` dependency on individual routes."""
 
-                        request._receive = receive
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    pass  # let FastAPI handle the bad payload
+    def __init__(self, app):
+        self.app = app
 
-        return await call_next(request)
+    async def __call__(self, scope, receive, send):
+        await self.app(scope, receive, send)

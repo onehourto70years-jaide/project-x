@@ -5,7 +5,7 @@ from dependencies import require_user
 from models import User
 from config import logger
 from services import send_account_deletion_email
-from security import limiter
+from security import limiter, _sanitize_value
 import asyncio
 
 router = APIRouter(tags=["user"])
@@ -21,12 +21,14 @@ async def get_user_settings(user: User = Depends(require_user)):
 
 @router.put("/user/settings")
 async def update_user_settings(settings: Dict[str, Any], user: User = Depends(require_user)):
+    settings = _sanitize_value(settings)
     await db.user_settings.update_one({"user_id": user.user_id}, {"$set": settings}, upsert=True)
     return {"message": "Settings updated"}
 
 
 @router.put("/user/profile")
 async def update_user_profile(profile: Dict[str, Any], user: User = Depends(require_user)):
+    profile = _sanitize_value(profile)
     allowed = ["weight_kg", "height_cm", "age", "sex", "activity_level", "weight_goal", "health_goals", "name", "language_preference"]
     update_data = {k: v for k, v in profile.items() if k in allowed}
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})
