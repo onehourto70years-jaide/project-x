@@ -7,15 +7,19 @@ from database import db
 from dependencies import require_user, get_current_user_optional
 from models import User, AIRecommendationRequest, AIChatRequest
 from config import logger, EMERGENT_LLM_KEY
+from security import limiter
 
 router = APIRouter(tags=["ai"])
 
 
 @router.post("/ai/recommendations")
-async def get_ai_recommendations(request: AIRecommendationRequest):
+@limiter.limit("20/minute")
+async def get_ai_recommendations(request: Request):
+    body = await request.json()
+    goal = body.get("goal", "energy")
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     goal_descriptions = {"muscle_gain": "building muscle", "immune_system": "immune function", "brain_health": "cognitive function", "gut_microbiome": "gut health", "energy": "energy levels", "weight_loss": "weight loss"}
-    prompt = f"""Recommend 5 foods for {goal_descriptions.get(request.goal, request.goal)}.
+    prompt = f"""Recommend 5 foods for {goal_descriptions.get(goal, goal)}.
 For each: food name, key_nutrients (list), key_elements (list), health_benefit, best_cooking, synergistic_foods (list).
 Respond as JSON array only: [{{"food": "", "key_nutrients": [], "key_elements": [], "health_benefit": "", "best_cooking": "", "synergistic_foods": []}}]"""
     try:
@@ -24,11 +28,11 @@ Respond as JSON array only: [{{"food": "", "key_nutrients": [], "key_elements": 
         response_text = response.strip()
         if "```" in response_text:
             response_text = response_text.split("```")[1].replace("json", "").strip()
-        return {"goal": request.goal, "recommendations": json.loads(response_text), "ai_model": "gemini-3-flash-preview"}
+        return {"goal": goal, "recommendations": json.loads(response_text), "ai_model": "gemini-3-flash-preview"}
     except Exception as e:
         logger.error(f"AI error: {e}")
         fallback = [{"food": "Salmon", "key_nutrients": ["protein", "omega-3"], "key_elements": ["N", "P"], "health_benefit": "Complete protein", "best_cooking": "baking", "synergistic_foods": ["spinach"]}]
-        return {"goal": request.goal, "recommendations": fallback, "ai_model": "fallback"}
+        return {"goal": goal, "recommendations": fallback, "ai_model": "fallback"}
 
 
 @router.post("/ai/generate-insights")
@@ -71,7 +75,10 @@ async def get_predictive_recommendations(user: User = Depends(require_user)):
 
 
 @router.post("/ai/chat")
-async def ai_chat(request: AIChatRequest, user: Optional[User] = Depends(get_current_user_optional)):
+@limiter.limit("30/minute")
+async def ai_chat(request: Request, user: Optional[User] = Depends(get_current_user_optional)):
+    body = await request.json()
+    chat_request = AIChatRequest(**body)
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     try:
         system_prompt = """You are NutriOS Coach — a friendly, expert AI nutrition advisor integrated into a molecular nutrition app.
@@ -109,11 +116,11 @@ User: "What foods are high in iron?" (no action needed)
 
 ALWAYS respond with valid JSON. Never use markdown code fences. The message field should contain your friendly response text."""
 
-        full_prompt = request.message
-        if request.nutrition_context:
-            full_prompt = f"{request.nutrition_context}\n\nUser message: {request.message}"
-        if request.conversation_history:
-            full_prompt = f"Previous conversation:\n{request.conversation_history}\n\nNew message: {full_prompt}"
+        full_prompt = chat_request.message
+        if chat_request.nutrition_context:
+            full_prompt = f"{chat_request.nutrition_context}\n\nUser message: {chat_request.message}"
+        if chat_request.conversation_history:
+            full_prompt = f"Previous conversation:\n{chat_request.conversation_history}\n\nNew message: {full_prompt}"
 
         chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"chat_{uuid.uuid4().hex[:8]}", system_message=system_prompt).with_model("gemini", "gemini-3-flash-preview")
         raw_response = await chat.send_message(UserMessage(text=full_prompt))

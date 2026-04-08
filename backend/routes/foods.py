@@ -2,11 +2,13 @@ from fastapi import APIRouter, Request, HTTPException
 import httpx
 from config import logger, RETENTION_FACTORS, BIOLOGICAL_EFFECTS, ATOMIC_WEIGHTS
 from services import search_usda_foods, get_usda_food_details, extract_nutrients, apply_cooking_retention, calculate_elemental_composition, detect_allergens
+from security import limiter
 
 router = APIRouter(tags=["foods"])
 
 
 @router.post("/foods/search")
+@limiter.limit("30/minute")
 async def search_foods(request: Request):
     body = await request.json()
     foods = await search_usda_foods(body.get("query", ""), body.get("page_size", 10))

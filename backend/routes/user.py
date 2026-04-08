@@ -5,6 +5,7 @@ from dependencies import require_user
 from models import User
 from config import logger
 from services import send_account_deletion_email
+from security import limiter
 import asyncio
 
 router = APIRouter(tags=["user"])
@@ -33,6 +34,7 @@ async def update_user_profile(profile: Dict[str, Any], user: User = Depends(requ
 
 
 @router.delete("/user/account")
+@limiter.limit("3/minute")
 async def delete_user_account(request: Request, response: Response, user: User = Depends(require_user)):
     user_id = user.user_id
     user_doc = await db.users.find_one({"user_id": user_id})

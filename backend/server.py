@@ -5,17 +5,21 @@ All business logic lives in:
   database.py      → MongoDB connection
   models.py        → Pydantic schemas
   dependencies.py  → auth helpers
+  security.py      → rate limiting & input sanitization
   services.py      → USDA, email, push, daily-summary helpers
   routes/           → all API route modules
 """
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from slowapi.middleware import SlowAPIMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config import logger
 from database import client as mongo_client
 from routes import create_api_router
+from security import limiter, rate_limit_exceeded_handler, SanitizeMiddleware
+from slowapi.errors import RateLimitExceeded
 from services import (
     send_scheduled_notifications,
     send_daily_summary_notification,
@@ -32,7 +36,16 @@ from services import (
 # ── FastAPI App ──
 app = FastAPI(title="NutriOS - Personal Health Operating System")
 
-# ── CORS ──
+# ── Bind rate limiter to app state ──
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# ── Middleware stack (order matters: bottom added first, top executed first) ──
+# 1. Sanitize all incoming JSON strings
+app.add_middleware(SanitizeMiddleware)
+# 2. SlowAPI rate limiting
+app.add_middleware(SlowAPIMiddleware)
+# 3. CORS
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

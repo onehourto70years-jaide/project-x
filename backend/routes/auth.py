@@ -7,11 +7,13 @@ from dependencies import require_user
 from models import User
 from fastapi import Depends
 from services import send_welcome_email
+from security import limiter
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/auth/session")
+@limiter.limit("10/minute")
 async def create_session(request: Request, response: Response):
     body = await request.json()
     session_id = body.get("session_id")
