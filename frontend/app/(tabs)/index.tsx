@@ -49,6 +49,12 @@ export default function DashboardScreen() {
   // ─── Load widget layout ────────────────
   useEffect(() => { loadWidgetLayout().then(setWidgets); }, []);
 
+  const onPullRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([clearCacheForKey(CacheKeys.dashboard), clearCacheForKey('payment_status')]);
+    fetchDashboard();
+  };
+
   // ─── Fetch Dashboard ───────────────────
   const fetchDashboard = async () => {
     try {
@@ -182,7 +188,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={s.container}>
       <ScrollView contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchDashboard(); }} tintColor="#00d4ff" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor="#00d4ff" />}
         showsVerticalScrollIndicator={false}>
 
         <Animated.View style={{ opacity: fadeAnim }}>
