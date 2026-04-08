@@ -1,12 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, KeyboardAvoidingView, Platform, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Modal, KeyboardAvoidingView, Platform, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
 import { useTheme } from '../src/ThemeContext';
 import EmptyState from '../src/components/EmptyState';
-import { hapticLight, hapticSuccess, hapticMedium } from '../src/haptics';
+import FormField from '../src/components/FormField';
+import { hapticLight, hapticSuccess, hapticMedium, hapticError } from '../src/haptics';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { weightSchema } from '../src/schemas';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width: SW } = Dimensions.get('window');
@@ -117,11 +121,16 @@ export default function WeightTrackingScreen() {
   const [stats, setStats] = useState<WeightStats>({ current: 70, first: 70, change: 0, min: 70, max: 70, avg: 70, total_entries: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newWeight, setNewWeight] = useState('');
-  const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState(30);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // ── react-hook-form ──
+  const { control, handleSubmit, reset, formState: { errors, touchedFields } } = useForm({
+    resolver: zodResolver(weightSchema),
+    defaultValues: { weight_kg: '', note: '' },
+    mode: 'onBlur',
+  });
 
   const getToken = async () => {
     try {
@@ -155,9 +164,8 @@ export default function WeightTrackingScreen() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
 
-  const handleLogWeight = async () => {
-    const weight = parseFloat(newWeight);
-    if (isNaN(weight) || weight < 20 || weight > 400) return;
+  const handleLogWeight = async (formData: { weight_kg: string; note?: string }) => {
+    const weight = parseFloat(formData.weight_kg);
     setLoading(true);
     try {
       const token = await getToken();
@@ -165,13 +173,12 @@ export default function WeightTrackingScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: token },
         credentials: 'include',
-        body: JSON.stringify({ weight_kg: weight, note: newNote || null }),
+        body: JSON.stringify({ weight_kg: weight, note: formData.note || null }),
       });
       if (res.ok) {
         hapticSuccess();
         setShowAddModal(false);
-        setNewWeight('');
-        setNewNote('');
+        reset();
         fetchHistory();
       }
     } catch (e) {
@@ -299,32 +306,48 @@ export default function WeightTrackingScreen() {
               <Text style={styles.modalTitle}>{t('weight_log_title')}</Text>
 
               <Text style={styles.inputLabel}>{t('weight_kg_label')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="70.5"
-                placeholderTextColor="#444"
-                keyboardType="decimal-pad"
-                value={newWeight}
-                onChangeText={setNewWeight}
-                autoFocus
+              <Controller
+                control={control}
+                name="weight_kg"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormField
+                    placeholder="70.5"
+                    keyboardType="decimal-pad"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.weight_kg?.message as string}
+                    touched={!!touchedFields.weight_kg || !!errors.weight_kg}
+                    icon="scale"
+                    autoFocus
+                  />
+                )}
               />
 
               <Text style={styles.inputLabel}>{t('weight_note_label')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('weight_note_placeholder')}
-                placeholderTextColor="#444"
-                value={newNote}
-                onChangeText={setNewNote}
+              <Controller
+                control={control}
+                name="note"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <FormField
+                    placeholder={t('weight_note_placeholder')}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.note?.message as string}
+                    touched={!!touchedFields.note || !!errors.note}
+                    icon="document-text"
+                  />
+                )}
               />
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => { hapticLight(); setShowAddModal(false); }}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { hapticLight(); setShowAddModal(false); reset(); }}>
                   <Text style={styles.cancelText}>{t('set_cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.saveBtn, loading && { opacity: 0.5 }]}
-                  onPress={handleLogWeight}
+                  onPress={handleSubmit(handleLogWeight)}
                   disabled={loading}
                 >
                   <Ionicons name="checkmark" size={20} color="#fff" />

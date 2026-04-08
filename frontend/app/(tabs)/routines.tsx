@@ -6,7 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
 import EmptyState from '../../src/components/EmptyState';
+import FormField from '../../src/components/FormField';
 import { hapticLight, hapticSuccess, hapticMedium } from '../../src/haptics';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { routineSchema } from '../../src/schemas';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -45,6 +49,7 @@ export default function RoutinesScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRoutine, setNewRoutine] = useState({ name: '', type: 'morning', time_start: '07:00', time_end: '08:00', days: [...DAYS], tasks: [] as Task[] });
   const [newTaskName, setNewTaskName] = useState('');
+  const [routineNameError, setRoutineNameError] = useState('');
 
   const fetchRoutines = async () => {
     try {
@@ -313,17 +318,17 @@ export default function RoutinesScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.inputLabel}>Routine Name</Text>
-                <TextInput
-                  style={styles.input}
+                <Text style={styles.inputLabel}>{t('rout_name')}</Text>
+                <FormField
                   value={newRoutine.name}
-                  onChangeText={(text) => setNewRoutine(prev => ({ ...prev, name: text }))}
-                  placeholder="e.g., Morning Workout"
-                  placeholderTextColor="#666"
+                  onChangeText={(text: string) => setNewRoutine(prev => ({ ...prev, name: text }))}
+                  placeholder={t('rout_name_placeholder')}
+                  error={newRoutine.name.length === 0 && newRoutine.type ? '' : newRoutine.name.length > 100 ? 'Name must be under 100 characters' : ''}
+                  icon="create"
                   onFocus={() => setTimeout(() => modalScrollRef.current?.scrollTo({ y: 0, animated: true }), 200)}
                 />
 
-                <Text style={styles.inputLabel}>Type</Text>
+                <Text style={styles.inputLabel}>{t('rout_type')}</Text>
                 <View style={styles.typeGrid}>
                   {ROUTINE_TYPES.map((type) => (
                     <TouchableOpacity
@@ -337,7 +342,7 @@ export default function RoutinesScreen() {
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Days</Text>
+                <Text style={styles.inputLabel}>{t('rout_days')}</Text>
                 <View style={styles.daysRow}>
                   {DAYS.map((day) => (
                     <TouchableOpacity
@@ -352,7 +357,7 @@ export default function RoutinesScreen() {
 
                 <View style={styles.timeRow}>
                   <View style={styles.timeInput}>
-                    <Text style={styles.inputLabel}>Start Time</Text>
+                    <Text style={styles.inputLabel}>{t('rout_start_time')}</Text>
                     <TextInput
                       style={styles.input}
                       value={newRoutine.time_start}
@@ -362,7 +367,7 @@ export default function RoutinesScreen() {
                     />
                   </View>
                   <View style={styles.timeInput}>
-                    <Text style={styles.inputLabel}>End Time</Text>
+                    <Text style={styles.inputLabel}>{t('rout_end_time')}</Text>
                     <TextInput
                       style={styles.input}
                       value={newRoutine.time_end}
@@ -373,7 +378,7 @@ export default function RoutinesScreen() {
                   </View>
                 </View>
 
-                <Text style={styles.inputLabel}>Tasks</Text>
+                <Text style={styles.inputLabel}>{t('rout_tasks')}</Text>
                 <View style={styles.addTaskRow}>
                   <TextInput
                     ref={taskInputRef}
