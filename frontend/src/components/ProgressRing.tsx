@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { useTheme } from '../ThemeContext';
 
 interface Props {
   size: number; strokeWidth: number; progress: number;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function ProgressRing({ size, strokeWidth, progress, colors, label, value, unit, icon }: Props) {
+  const { theme } = useTheme();
   const animatedValue = useRef(new Animated.Value(0)).current;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -31,24 +33,18 @@ export default function ProgressRing({ size, strokeWidth, progress, colors, labe
               <Stop offset="100%" stopColor={colors[1] || colors[0]} />
             </LinearGradient>
           </Defs>
-          <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} fill="none" />
+          <Circle cx={size / 2} cy={size / 2} r={radius} stroke={theme.border} strokeWidth={strokeWidth} fill="none" />
           <Circle cx={size / 2} cy={size / 2} r={radius} stroke={`url(#${gradientId})`} strokeWidth={strokeWidth} fill="none"
             strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
             rotation="-90" origin={`${size / 2}, ${size / 2}`} />
         </Svg>
         <View style={{ alignItems: 'center' }}>
           <Ionicons name={icon as any} size={size > 100 ? 22 : 16} color={colors[0]} />
-          <Text style={[s.val, { fontSize: size > 100 ? 20 : 14 }]}>{value}</Text>
-          <Text style={[s.unit, { fontSize: size > 100 ? 11 : 9 }]}>{unit}</Text>
+          <Text style={{ fontWeight: 'bold', color: theme.text, marginTop: 2, fontSize: size > 100 ? 20 : 14 }}>{value}</Text>
+          <Text style={{ color: theme.textDim, fontSize: size > 100 ? 11 : 9 }}>{unit}</Text>
         </View>
       </View>
-      {label ? <Text style={s.label}>{label}</Text> : null}
+      {label ? <Text style={{ color: theme.textMuted, fontSize: 11, marginTop: 6, fontWeight: '500' }}>{label}</Text> : null}
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  val: { fontWeight: 'bold', color: '#fff', marginTop: 2 },
-  unit: { color: '#666' },
-  label: { color: '#888', fontSize: 11, marginTop: 6, fontWeight: '500' },
-});

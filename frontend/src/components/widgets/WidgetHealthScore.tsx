@@ -1,17 +1,19 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useLanguage } from '../../LanguageContext';
+import { useTheme } from '../../ThemeContext';
 import ProgressRing from '../ProgressRing';
 
 function HealthScore({ score }: { score: number }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const getGrade = () => {
-    if (score >= 90) return { grade: 'A+', color: '#00ff88', msg: t('dash_outstanding') };
-    if (score >= 80) return { grade: 'A', color: '#00d4ff', msg: t('dash_excellent') };
-    if (score >= 70) return { grade: 'B+', color: '#4ecdc4', msg: t('dash_great') };
-    if (score >= 60) return { grade: 'B', color: '#ffd93d', msg: t('dash_good_progress') };
-    if (score >= 40) return { grade: 'C', color: '#ff9f43', msg: t('dash_keep_going') };
-    return { grade: 'D', color: '#ff6b6b', msg: t('dash_start_tracking') };
+    if (score >= 90) return { grade: 'A+', color: theme.success, msg: t('dash_outstanding') };
+    if (score >= 80) return { grade: 'A', color: theme.accent, msg: t('dash_excellent') };
+    if (score >= 70) return { grade: 'B+', color: theme.teal, msg: t('dash_great') };
+    if (score >= 60) return { grade: 'B', color: theme.warning, msg: t('dash_good_progress') };
+    if (score >= 40) return { grade: 'C', color: theme.orange, msg: t('dash_keep_going') };
+    return { grade: 'D', color: theme.danger, msg: t('dash_start_tracking') };
   };
   const { grade, color, msg } = getGrade();
   const pulseAnim = useRef(new Animated.Value(0.8)).current;
@@ -35,6 +37,7 @@ interface Props { dashboard: any; }
 
 export default function WidgetHealthScore({ dashboard }: Props) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const calcScore = () => {
     if (!dashboard) return 0;
     const n = dashboard.nutrition || {};
@@ -50,19 +53,19 @@ export default function WidgetHealthScore({ dashboard }: Props) {
 
   return (
     <View style={s.hero}>
-      <View style={s.heroGlow} />
+      <View style={[s.heroGlow, { backgroundColor: `${theme.accent}0f` }]} />
       <HealthScore score={calcScore()} />
       <View style={s.rings}>
         <ProgressRing size={90} strokeWidth={6} progress={dashboard?.nutrition?.calories?.percentage || 0}
-          colors={['#ff6b6b', '#ff9f43']} label={t('dash_calories')} icon="flame"
+          colors={[theme.danger, theme.orange]} label={t('dash_calories')} icon="flame"
           value={`${Math.round(dashboard?.nutrition?.calories?.current || 0)}`}
           unit={`/${dashboard?.nutrition?.calories?.goal || 2000}`} />
         <ProgressRing size={90} strokeWidth={6} progress={dashboard?.hydration?.percentage || 0}
-          colors={['#00d4ff', '#0099ff']} label={t('dash_water')} icon="water"
+          colors={[theme.accent, '#0099ff']} label={t('dash_water')} icon="water"
           value={`${((dashboard?.hydration?.current_ml || 0) / 1000).toFixed(1)}`}
           unit={`/${((dashboard?.hydration?.goal_ml || 2500) / 1000).toFixed(1)}L`} />
         <ProgressRing size={90} strokeWidth={6} progress={dashboard?.nutrition?.protein?.percentage || 0}
-          colors={['#00ff88', '#4ecdc4']} label={t('dash_protein')} icon="barbell"
+          colors={[theme.success, theme.teal]} label={t('dash_protein')} icon="barbell"
           value={`${Math.round(dashboard?.nutrition?.protein?.current || 0)}`}
           unit={`/${dashboard?.nutrition?.protein?.goal || 50}g`} />
       </View>
@@ -72,7 +75,7 @@ export default function WidgetHealthScore({ dashboard }: Props) {
 
 const s = StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: 16, position: 'relative' },
-  heroGlow: { position: 'absolute', top: 20, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(0, 212, 255, 0.06)' },
+  heroGlow: { position: 'absolute', top: 20, width: 200, height: 200, borderRadius: 100 },
   rings: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', paddingHorizontal: 16, marginTop: 16 },
   scoreContainer: { alignItems: 'center', position: 'relative' },
   scoreGlow: { position: 'absolute', width: 160, height: 160, borderRadius: 80 },
