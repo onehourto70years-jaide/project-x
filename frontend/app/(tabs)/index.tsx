@@ -378,7 +378,8 @@ export default function DashboardScreen() {
               <Text style={styles.greeting}>{getGreeting()},</Text>
               <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</Text>
             </View>
-            <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/settings')}>
+            <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/settings')}
+              accessibilityRole="button" accessibilityLabel={t('set_title')} accessibilityHint="Open settings screen">
               <View style={[styles.avatarSmall, paymentStatus?.is_premium && styles.avatarPro]}>
                 <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
               </View>
@@ -439,25 +440,29 @@ export default function DashboardScreen() {
 
           {/* ── Quick Actions ── */}
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickWaterBtn} onPress={() => quickAddWater(250)}>
+            <TouchableOpacity style={styles.quickWaterBtn} onPress={() => quickAddWater(250)}
+              accessibilityRole="button" accessibilityLabel={`${t('dash_water')}: +250ml`}>
               <View style={styles.quickBtnGlow}>
                 <Ionicons name="water" size={22} color="#00d4ff" />
               </View>
               <Text style={styles.quickBtnLabel}>+250ml</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickWaterBtn} onPress={() => quickAddWater(500)}>
+            <TouchableOpacity style={styles.quickWaterBtn} onPress={() => quickAddWater(500)}
+              accessibilityRole="button" accessibilityLabel={`${t('dash_water')}: +500ml`}>
               <View style={styles.quickBtnGlow}>
                 <Ionicons name="water" size={22} color="#0099ff" />
               </View>
               <Text style={styles.quickBtnLabel}>+500ml</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickMealBtn} onPress={() => setShowQuickMeal(true)}>
+            <TouchableOpacity style={styles.quickMealBtn} onPress={() => setShowQuickMeal(true)}
+              accessibilityRole="button" accessibilityLabel={t('dash_log_meal')}>
               <View style={[styles.quickBtnGlow, { backgroundColor: 'rgba(255, 107, 107, 0.15)' }]}>
                 <Ionicons name="add-circle" size={22} color="#ff6b6b" />
               </View>
               <Text style={styles.quickBtnLabel}>{t('dash_log_meal')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickMealBtn} onPress={() => router.push('/scanner')}>
+            <TouchableOpacity style={styles.quickMealBtn} onPress={() => router.push('/scanner')}
+              accessibilityRole="button" accessibilityLabel={t('dash_scan')}>
               <View style={[styles.quickBtnGlow, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
                 <Ionicons name="barcode" size={22} color="#ffd93d" />
               </View>
@@ -481,7 +486,8 @@ export default function DashboardScreen() {
               <Text style={styles.sectionTitle}>
                 <Ionicons name="flask" size={16} color="#00d4ff" /> {t('dash_elemental')}
               </Text>
-              <TouchableOpacity onPress={() => router.push('/progress')}>
+              <TouchableOpacity onPress={() => router.push('/progress')}
+                accessibilityRole="link" accessibilityLabel={t('dash_see_charts')}>
                 <Text style={styles.seeAll}>{t('dash_see_charts')}</Text>
               </TouchableOpacity>
             </View>
@@ -570,7 +576,8 @@ export default function DashboardScreen() {
               { label: t('dash_recipes'), icon: 'restaurant', color: '#4ecdc4', route: '/recipes' },
               { label: t('dash_ai_coach'), icon: 'sparkles', color: '#fd79a8', route: '/ai-home' },
             ].map((item) => (
-              <TouchableOpacity key={item.label} style={styles.navItem} onPress={() => router.push(item.route as any)}>
+              <TouchableOpacity key={item.label} style={styles.navItem} onPress={() => router.push(item.route as any)}
+                accessibilityRole="button" accessibilityLabel={item.label}>
                 <View style={[styles.navIcon, { backgroundColor: item.color + '15' }]}>
                   <Ionicons name={item.icon as any} size={24} color={item.color} />
                 </View>
@@ -585,14 +592,16 @@ export default function DashboardScreen() {
               <Ionicons name="share-social" size={16} color="#a29bfe" /> {t('dash_share_progress')}
             </Text>
             <View style={styles.shareRow}>
-              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareDailyReport}>
+              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareDailyReport}
+                accessibilityRole="button" accessibilityLabel={t('dash_daily_report')}>
                 <View style={[styles.shareIconBg, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
                   <Ionicons name="today" size={22} color="#00d4ff" />
                 </View>
                 <Text style={styles.shareCardLabel}>{t('dash_daily_report')}</Text>
                 <Text style={styles.shareCardSub}>{t('dash_share_today_desc')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareWeeklyReport}>
+              <TouchableOpacity style={styles.shareCardBtn} onPress={handleShareWeeklyReport}
+                accessibilityRole="button" accessibilityLabel={t('dash_weekly_report')}>
                 <View style={[styles.shareIconBg, { backgroundColor: 'rgba(162, 155, 254, 0.15)' }]}>
                   <Ionicons name="calendar" size={22} color="#a29bfe" />
                 </View>

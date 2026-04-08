@@ -115,7 +115,8 @@ export default function MoreScreen() {
             <View style={styles.sectionCard}>
               {section.items.map((item, idx) => (
                 <TouchableOpacity key={item.id} style={[styles.menuItem, idx < section.items.length - 1 && styles.menuItemBorder]}
-                  onPress={() => handleItemPress(item)}>
+                  onPress={() => handleItemPress(item)}
+                  accessibilityRole="button" accessibilityLabel={item.label}>
                   <View style={[styles.menuIcon, { backgroundColor: item.color + '15' }]}>
                     <Ionicons name={item.icon as any} size={20} color={item.color} />
                   </View>
@@ -128,7 +129,8 @@ export default function MoreScreen() {
         ))}
 
         {/* Sign Out */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}
+          accessibilityRole="button" accessibilityLabel={t('more_sign_out')}>
           <Ionicons name="log-out" size={20} color="#ff6b6b" />
           <Text style={styles.logoutText}>{t('set_logout')}</Text>
         </TouchableOpacity>

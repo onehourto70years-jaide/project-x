@@ -193,7 +193,8 @@ export default function WeightTrackingScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={styles.backBtn}>
+            <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={styles.backBtn}
+          accessibilityRole="button" accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>

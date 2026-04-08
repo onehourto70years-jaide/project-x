@@ -179,7 +179,8 @@ export default function BadgesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}
+          accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('badge_title')}</Text>

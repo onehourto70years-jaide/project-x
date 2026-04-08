@@ -340,7 +340,8 @@ export default function AIChatScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
+          accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -418,9 +419,11 @@ export default function AIChatScreen() {
             <TextInput style={[styles.input, { color: theme.text }]} value={input} onChangeText={setInput}
               placeholder={t('ai_placeholder')}
               placeholderTextColor={theme.textDim} multiline maxLength={500}
-              onSubmitEditing={() => sendMessage()} returnKeyType="send" />
+              onSubmitEditing={() => sendMessage()} returnKeyType="send"
+              accessibilityLabel={t('ai_placeholder')} />
             <TouchableOpacity style={[styles.sendBtn, (!input.trim() || loading) && [styles.sendBtnDisabled, { backgroundColor: theme.bgCard }]]}
-              onPress={() => sendMessage()} disabled={!input.trim() || loading}>
+              onPress={() => sendMessage()} disabled={!input.trim() || loading}
+              accessibilityRole="button" accessibilityLabel="Send message" accessibilityState={{ disabled: !input.trim() || loading }}>
               <Ionicons name="send" size={20} color={input.trim() && !loading ? '#fff' : theme.textDim} />
             </TouchableOpacity>
           </View>

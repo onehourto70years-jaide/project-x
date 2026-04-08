@@ -152,7 +152,8 @@ export default function UpgradeScreen() {
     <SafeAreaView style={styles.container}>
       {/* Back button - only when trial is still active */}
       {!isTrialExpired && (
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}
+          accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
       )}

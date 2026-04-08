@@ -222,7 +222,8 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
+          accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{t('set_title')}</Text>
@@ -245,7 +246,8 @@ export default function SettingsScreen() {
                 <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{isDark ? t('set_dark_desc') : t('set_light_desc')}</Text>
               </View>
             </View>
-            <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: theme.accent }} thumbColor="#fff" />
+            <Switch value={isDark} onValueChange={toggleTheme} trackColor={{ false: '#ddd', true: theme.accent }} thumbColor="#fff"
+              accessibilityLabel="Dark Mode" accessibilityRole="switch" accessibilityState={{ checked: isDark }} />
           </View>
 
           {/* Chemical Matrix Mode */}
@@ -259,7 +261,8 @@ export default function SettingsScreen() {
                 <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{t('set_matrix_desc')}</Text>
               </View>
             </View>
-            <Switch value={matrixEnabled} onValueChange={setMatrixEnabled} trackColor={{ false: '#333', true: '#00ff41' }} thumbColor="#fff" />
+            <Switch value={matrixEnabled} onValueChange={setMatrixEnabled} trackColor={{ false: '#333', true: '#00ff41' }} thumbColor="#fff"
+              accessibilityLabel={t('set_matrix_mode')} accessibilityRole="switch" accessibilityState={{ checked: matrixEnabled }} />
           </View>
 
           {/* Matrix sub-options (only show when enabled) */}
@@ -506,7 +509,8 @@ export default function SettingsScreen() {
             </View>
             <Switch value={settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, notifications_enabled: v }))}
-              trackColor={{ false: theme.bgInput, true: '#00ff88' }} thumbColor="#fff" />
+              trackColor={{ false: theme.bgInput, true: '#00ff88' }} thumbColor="#fff"
+              accessibilityLabel={t('set_all_notifs')} accessibilityRole="switch" accessibilityState={{ checked: settings.notifications_enabled }} />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
 
@@ -524,7 +528,8 @@ export default function SettingsScreen() {
             <Switch value={settings.water_reminder_enabled && settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, water_reminder_enabled: v }))}
               disabled={!settings.notifications_enabled}
-              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
+              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff"
+              accessibilityLabel={t('set_water_reminders')} accessibilityRole="switch" accessibilityState={{ checked: settings.water_reminder_enabled, disabled: !settings.notifications_enabled }} />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
 
@@ -542,7 +547,8 @@ export default function SettingsScreen() {
             <Switch value={settings.meal_reminder_enabled && settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, meal_reminder_enabled: v }))}
               disabled={!settings.notifications_enabled}
-              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
+              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff"
+              accessibilityLabel={t('set_meal_reminders')} accessibilityRole="switch" accessibilityState={{ checked: settings.meal_reminder_enabled, disabled: !settings.notifications_enabled }} />
           </View>
           <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
 
@@ -560,7 +566,8 @@ export default function SettingsScreen() {
             <Switch value={settings.routine_reminder_enabled && settings.notifications_enabled}
               onValueChange={(v) => setSettings(prev => ({ ...prev, routine_reminder_enabled: v }))}
               disabled={!settings.notifications_enabled}
-              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff" />
+              trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff"
+              accessibilityLabel={t('set_routine_reminders')} accessibilityRole="switch" accessibilityState={{ checked: settings.routine_reminder_enabled, disabled: !settings.notifications_enabled }} />
           </View>
           {/* Test Notification */}
           <TouchableOpacity

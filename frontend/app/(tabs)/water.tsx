@@ -161,6 +161,9 @@ export default function WaterScreen() {
                 style={[styles.quickAddBtn, adding && styles.quickAddBtnDisabled]}
                 onPress={() => addWater(item.amount)}
                 disabled={adding}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.label}: +${item.amount}ml`}
+                accessibilityState={{ disabled: adding }}
               >
                 <Ionicons name={item.icon as any} size={24} color="#00d4ff" />
                 <Text style={styles.quickAddAmount}>+{item.amount}ml</Text>

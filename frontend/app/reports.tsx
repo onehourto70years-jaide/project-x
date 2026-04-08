@@ -221,10 +221,11 @@ export default function ReportsScreen() {
     <SafeAreaView style={s.safe}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={s.back}>
+        <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={s.back}
+          accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.title}>{t('report_title')}</Text>
+        <Text style={s.title} accessibilityRole="header">{t('report_title')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -309,7 +310,8 @@ export default function ReportsScreen() {
           {/* Export Section */}
           <Text style={s.sectionTitle}>{t('report_export')}</Text>
           <View style={s.exportRow}>
-            <TouchableOpacity style={s.exportBtn} onPress={exportCSV} disabled={exporting !== null}>
+            <TouchableOpacity style={s.exportBtn} onPress={exportCSV} disabled={exporting !== null}
+              accessibilityRole="button" accessibilityLabel={t('report_csv')} accessibilityHint={t('report_csv_desc')} accessibilityState={{ disabled: exporting !== null }}>
               {exporting === 'csv' ? <ActivityIndicator size="small" color="#4ecdc4" /> : (
                 <>
                   <Ionicons name="document-text" size={24} color="#4ecdc4" />
@@ -318,7 +320,8 @@ export default function ReportsScreen() {
                 </>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={s.exportBtn} onPress={exportPDF} disabled={exporting !== null}>
+            <TouchableOpacity style={s.exportBtn} onPress={exportPDF} disabled={exporting !== null}
+              accessibilityRole="button" accessibilityLabel={t('report_pdf')} accessibilityHint={t('report_pdf_desc')} accessibilityState={{ disabled: exporting !== null }}>
               {exporting === 'pdf' ? <ActivityIndicator size="small" color="#ff6b6b" /> : (
                 <>
                   <Ionicons name="print" size={24} color="#ff6b6b" />

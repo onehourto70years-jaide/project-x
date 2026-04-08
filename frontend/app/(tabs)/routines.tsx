@@ -237,6 +237,9 @@ export default function RoutinesScreen() {
                         style={styles.taskItem}
                         onPress={() => !task.completed && completeTask(routine.id, task.id)}
                         disabled={task.completed}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={task.name}
+                        accessibilityState={{ checked: task.completed, disabled: task.completed }}
                       >
                         <View style={[styles.taskCheckbox, task.completed && styles.taskChecked]}>
                           {task.completed && <Ionicons name="checkmark" size={14} color="#fff" />}

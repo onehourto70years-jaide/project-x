@@ -239,7 +239,8 @@ export default function NutritionScreen() {
             <Text style={styles.title}>{t('nutr_title')}</Text>
             <Text style={styles.subtitle}>{t('nutr_subtitle')}</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => { hapticMedium(); setShowSearchModal(true); }}>
+          <TouchableOpacity style={styles.addBtn} onPress={() => { hapticMedium(); setShowSearchModal(true); }}
+            accessibilityRole="button" accessibilityLabel={t('nutr_add_food')}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -313,6 +314,7 @@ export default function NutritionScreen() {
           <TouchableOpacity
             style={[styles.viewToggleBtn, viewMode === 'type' && styles.viewToggleBtnActive]}
             onPress={() => { hapticLight(); setViewMode('type'); }}
+            accessibilityRole="button" accessibilityLabel={t('diary_by_type')} accessibilityState={{ selected: viewMode === 'type' }}
           >
             <Ionicons name="grid" size={16} color={viewMode === 'type' ? '#fff' : '#666'} />
             <Text style={[styles.viewToggleText, viewMode === 'type' && styles.viewToggleTextActive]}>{t('diary_by_type')}</Text>
@@ -320,6 +322,7 @@ export default function NutritionScreen() {
           <TouchableOpacity
             style={[styles.viewToggleBtn, viewMode === 'timeline' && styles.viewToggleBtnActive]}
             onPress={() => { hapticLight(); setViewMode('timeline'); }}
+            accessibilityRole="button" accessibilityLabel={t('diary_timeline')} accessibilityState={{ selected: viewMode === 'timeline' }}
           >
             <Ionicons name="time" size={16} color={viewMode === 'timeline' ? '#fff' : '#666'} />
             <Text style={[styles.viewToggleText, viewMode === 'timeline' && styles.viewToggleTextActive]}>{t('diary_timeline')}</Text>
