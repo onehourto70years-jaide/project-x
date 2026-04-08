@@ -166,7 +166,7 @@ export default function DashboardScreen() {
       case 'elements': content = <WidgetElements elements={dashboard?.elements} onViewCharts={() => router.push('/progress')} />; break;
       case 'streak': content = <WidgetStreak dashboard={dashboard} />; break;
       case 'macros': content = <WidgetMacros dashboard={dashboard} />; break;
-      case 'recent_meals': content = <WidgetRecentMeals meals={dashboard?.recent_meals || []} onViewAll={() => router.push('/(tabs)/track')} onRefresh={fetchDashboard} />; break;
+      case 'recent_meals': content = <WidgetRecentMeals meals={dashboard?.recent_meals || []} onViewAll={() => router.push('/(tabs)/nutrition')} onRefresh={fetchDashboard} />; break;
       case 'ai_insights': content = <WidgetAIInsights insights={dashboard?.insights || []} />; break;
       case 'quick_nav': content = <WidgetQuickNav />; break;
       case 'share_social': content = <WidgetShareSocial onShareDaily={handleShareDaily} onShareWeekly={handleShareWeekly} onViewBadges={() => router.push('/badges')} />; break;

@@ -18,7 +18,7 @@ export default function MoreScreen() {
     {
       title: t('more_tracking'),
       items: [
-        { id: 'track', label: t('more_nutrition_log'), icon: 'analytics', color: '#00d4ff', route: '/(tabs)/track' },
+        { id: 'track', label: t('more_nutrition_log'), icon: 'analytics', color: '#00d4ff', route: '/(tabs)/nutrition' },
         { id: 'favorites', label: t('more_food_favorites'), icon: 'heart', color: '#ff6b6b', route: '/favorites' },
         { id: 'scanner', label: t('more_barcode_scanner'), icon: 'barcode', color: '#ffd93d', route: '/scanner' },
         { id: 'progress', label: t('more_progress_charts'), icon: 'stats-chart', color: '#4ecdc4', route: '/progress' },

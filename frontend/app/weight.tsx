@@ -134,8 +134,7 @@ export default function WeightTrackingScreen() {
 
   const getToken = async () => {
     try {
-      const cookies = await AsyncStorage.getItem('session_cookies');
-      return cookies || '';
+      return await AsyncStorage.getItem('session_token') || '';
     } catch { return ''; }
   };
 
@@ -143,8 +142,7 @@ export default function WeightTrackingScreen() {
     try {
       const token = await getToken();
       const res = await fetch(`${BACKEND_URL}/api/weight/history?days=${period}`, {
-        headers: { Cookie: token },
-        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -171,8 +169,7 @@ export default function WeightTrackingScreen() {
       const token = await getToken();
       const res = await fetch(`${BACKEND_URL}/api/weight`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Cookie: token },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ weight_kg: weight, note: formData.note || null }),
       });
       if (res.ok) {

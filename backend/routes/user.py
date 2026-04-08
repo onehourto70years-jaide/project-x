@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from typing import Dict, Any
+from datetime import datetime, timezone
 from database import db
 from dependencies import require_user
 from models import User
@@ -9,6 +10,34 @@ from security import limiter, _sanitize_value
 import asyncio
 
 router = APIRouter(tags=["user"])
+
+
+@router.get("/user/stats")
+async def get_user_stats(user: User = Depends(require_user)):
+    """Return aggregate profile stats: days logged, foods tracked, water logs, badges earned."""
+    meals_count = await db.meals.count_documents({"user_id": user.user_id})
+    distinct_days = await db.meals.distinct("date", {"user_id": user.user_id})
+    water_count = await db.water_logs.count_documents({"user_id": user.user_id})
+    badges_earned = await db.user_badges.count_documents({"user_id": user.user_id, "earned": True})
+    recipes_count = await db.recipes.count_documents({"user_id": user.user_id})
+    weight_entries = await db.weight_logs.count_documents({"user_id": user.user_id})
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "created_at": 1})
+    member_since = ""
+    if user_doc and user_doc.get("created_at"):
+        created = user_doc["created_at"]
+        if isinstance(created, str):
+            created = datetime.fromisoformat(created)
+        member_since = created.strftime("%b %Y")
+
+    return {
+        "days_logged": len(distinct_days),
+        "foods_tracked": meals_count,
+        "water_logs": water_count,
+        "badges_earned": badges_earned,
+        "recipes_created": recipes_count,
+        "weight_entries": weight_entries,
+        "member_since": member_since,
+    }
 
 
 @router.get("/user/settings")
