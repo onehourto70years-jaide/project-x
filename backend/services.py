@@ -12,6 +12,8 @@ from config import (
 )
 from database import db
 from notification_i18n import get_notif_string
+from nutrition_tips import NUTRITION_TIPS
+import random
 
 # Initialize Resend
 resend.api_key = RESEND_API_KEY
@@ -856,3 +858,103 @@ async def check_streak_milestones():
                 logger.error(f"Streak milestone check error for {user_doc.get('user_id', '?')}: {e}")
     except Exception as e:
         logger.error(f"Streak milestone checker batch error: {e}")
+
+
+# ────────────────────────────────────────────────────────────
+#  "Did You Know?" Nutritional Tips — Contextual & Non-Repeating
+# ────────────────────────────────────────────────────────────
+
+def _pick_contextual_tip(lang: str, recent_meals: list, seen_ids: set) -> dict | None:
+    """Pick a tip relevant to the user's recent food intake, avoiding repeats."""
+    tips = NUTRITION_TIPS.get(lang, NUTRITION_TIPS["en"])
+    unseen = [t for t in tips if t["id"] not in seen_ids]
+    if not unseen:
+        # All tips seen — reset the cycle so user gets fresh round
+        unseen = tips
+
+    if recent_meals:
+        # Build a set of element / nutrient categories from recent meals
+        user_cats: set[str] = set()
+        for meal in recent_meals:
+            for el, val in (meal.get("elements") or {}).items():
+                if val and float(val) > 0:
+                    user_cats.add(el)
+            nutr = meal.get("nutrients") or {}
+            if nutr.get("protein_g", 0) > 15:
+                user_cats.add("protein")
+            if nutr.get("fat_g", 0) > 10:
+                user_cats.add("fat")
+            if nutr.get("fiber_g", 0) > 3:
+                user_cats.add("fiber")
+            cooking = (meal.get("cooking_method") or "").lower()
+            if cooking and cooking != "raw":
+                user_cats.add("cooking")
+
+        # Try contextual match first
+        contextual = [t for t in unseen if any(c in user_cats for c in t["cat"])]
+        if contextual:
+            return random.choice(contextual)
+
+    # Fallback: random unseen tip
+    return random.choice(unseen) if unseen else None
+
+
+async def send_nutrition_tips():
+    """Send contextual 'Did You Know?' nutritional tips to users (non-repeating, i18n)."""
+    try:
+        all_tokens = await db.push_tokens.find({}, {"_id": 0}).to_list(10000)
+        if not all_tokens:
+            return
+
+        for token_doc in all_tokens:
+            user_id = token_doc.get("user_id")
+            push_token = token_doc.get("push_token")
+            if not push_token:
+                continue
+
+            # Respect notification + tip settings
+            settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+            if not settings.get("notifications_enabled", True):
+                continue
+            if not settings.get("tips_enabled", True):
+                continue
+
+            lang = await _get_user_lang(user_id)
+
+            # Fetch recent meals for contextual matching
+            recent_meals = await db.meals.find(
+                {"user_id": user_id},
+                sort=[("created_at", -1)]
+            ).to_list(5)
+
+            # Load tip history
+            history = await db.user_tip_history.find_one({"user_id": user_id}) or {}
+            seen_ids = set(history.get("seen", []))
+
+            tip = _pick_contextual_tip(lang, recent_meals, seen_ids)
+            if not tip:
+                continue
+
+            await send_expo_push(
+                [push_token], tip["title"], tip["body"],
+                {"type": "tip", "screen": "(tabs)/ai"},
+            )
+            await _log_notification(user_id, "tip", tip["title"], tip["body"])
+
+            # Mark tip as seen (auto-reset happens inside _pick_contextual_tip
+            # when all tips have been seen)
+            if tip["id"] not in seen_ids:
+                await db.user_tip_history.update_one(
+                    {"user_id": user_id},
+                    {"$addToSet": {"seen": tip["id"]}},
+                    upsert=True,
+                )
+            else:
+                # Full cycle completed — reset
+                await db.user_tip_history.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"seen": [tip["id"]]}},
+                    upsert=True,
+                )
+    except Exception as e:
+        logger.error(f"Nutrition tip delivery error: {e}")

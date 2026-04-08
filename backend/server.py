@@ -32,6 +32,7 @@ from services import (
     send_inactivity_reminders,
     send_weekly_summary_emails,
     check_streak_milestones,
+    send_nutrition_tips,
 )
 
 # ── FastAPI App ──
@@ -157,6 +158,20 @@ scheduler.add_job(
     check_streak_milestones,
     "cron", hour=21, minute=0,
     id="streak_milestone_check",
+    replace_existing=True,
+)
+
+# ── "Did You Know?" Nutritional Tips ── (2x daily: 11:30am & 4:30pm UTC)
+scheduler.add_job(
+    send_nutrition_tips,
+    "cron", hour=11, minute=30,
+    id="nutrition_tip_midday",
+    replace_existing=True,
+)
+scheduler.add_job(
+    send_nutrition_tips,
+    "cron", hour=16, minute=30,
+    id="nutrition_tip_afternoon",
     replace_existing=True,
 )
 

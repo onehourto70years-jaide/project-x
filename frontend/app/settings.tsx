@@ -98,7 +98,7 @@ export default function SettingsScreen() {
   });
   const [settings, setSettings] = useState({
     daily_calorie_goal: 2000, daily_protein_goal: 50, daily_water_goal_ml: 2500,
-    notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true
+    notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true, tips_enabled: true
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -568,6 +568,25 @@ export default function SettingsScreen() {
               disabled={!settings.notifications_enabled}
               trackColor={{ false: theme.bgInput, true: theme.accent }} thumbColor="#fff"
               accessibilityLabel={t('set_routine_reminders')} accessibilityRole="switch" accessibilityState={{ checked: settings.routine_reminder_enabled, disabled: !settings.notifications_enabled }} />
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
+
+          {/* Nutrition Tips */}
+          <View style={[styles.switchRow, !settings.notifications_enabled && { opacity: 0.4 }]}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(255, 217, 61, 0.15)' }]}>
+                <Ionicons name="bulb" size={18} color="#ffd93d" />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>Nutrition Tips</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>"Did you know?" facts, twice daily</Text>
+              </View>
+            </View>
+            <Switch value={(settings as any).tips_enabled !== false && settings.notifications_enabled}
+              onValueChange={(v) => setSettings(prev => ({ ...prev, tips_enabled: v } as any))}
+              disabled={!settings.notifications_enabled}
+              trackColor={{ false: theme.bgInput, true: '#ffd93d' }} thumbColor="#fff"
+              accessibilityLabel="Nutrition tips" accessibilityRole="switch" />
           </View>
           {/* Test Notification */}
           <TouchableOpacity
