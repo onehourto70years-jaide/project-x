@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet, Animated, TouchableOpacity, 
 import { Redirect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from './_layout';
 import { useLanguage } from '../src/LanguageContext';
 import { SUPPORTED_LOCALES, Locale } from '../src/i18n';
@@ -73,6 +74,9 @@ function NutriOSSplash({ onFinish }: { onFinish: () => void }) {
   const exitOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // Hide the native splash now that our branded splash is rendering
+    SplashScreen.hideAsync().catch(() => {});
+
     // Staggered entrance: elements → logo → tagline → line → exit
     Animated.sequence([
       Animated.delay(400),

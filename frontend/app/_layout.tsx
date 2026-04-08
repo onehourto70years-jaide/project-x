@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-rout
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
 import { LanguageProvider } from '../src/LanguageContext';
 import { MatrixProvider, useMatrix } from '../src/MatrixContext';
@@ -10,6 +11,9 @@ import MatrixRainBackground from '../src/components/MatrixRain';
 import { clearCache } from '../src/cache';
 import { useImmersiveMode } from '../src/useImmersiveMode';
 import * as Notifications from 'expo-notifications';
+
+// Keep the native splash visible while we load auth + resources
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Configure notification handler
 Notifications.setNotificationHandler({
