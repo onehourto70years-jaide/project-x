@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, SafeAreaView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguage } from '../../src/LanguageContext';
 import { SkeletonSearch } from '../../src/components/Skeleton';
 
@@ -18,14 +18,24 @@ interface FoodItem {
 export default function SearchScreen() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const searchFoods = async () => {
-    if (!query.trim()) return;
-    
+  // Auto-fill and search when navigated with ?q=...
+  useEffect(() => {
+    if (q && q.trim()) {
+      setQuery(q.trim());
+      doSearch(q.trim());
+    }
+  }, [q]);
+
+  const doSearch = async (term?: string) => {
+    const searchTerm = (term || query).trim();
+    if (!searchTerm) return;
+
     Keyboard.dismiss();
     setLoading(true);
     setSearched(true);
@@ -34,7 +44,7 @@ export default function SearchScreen() {
       const response = await fetch(`${BACKEND_URL}/api/foods/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), page_size: 20 })
+        body: JSON.stringify({ query: searchTerm, page_size: 20 })
       });
 
       if (response.ok) {
@@ -47,6 +57,8 @@ export default function SearchScreen() {
       setLoading(false);
     }
   };
+
+  const searchFoods = () => doSearch();
 
   const handleFoodPress = (food: FoodItem) => {
     router.push({
