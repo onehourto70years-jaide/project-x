@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { useLanguage } from '../src/LanguageContext';
 import { hapticLight, hapticSuccess, hapticMedium } from '../src/haptics';
+import { SkeletonReports } from '../src/components/Skeleton';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -230,7 +231,7 @@ export default function ReportsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator size="large" color="#00d4ff" /></View>
+        <SkeletonReports />
       ) : (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 

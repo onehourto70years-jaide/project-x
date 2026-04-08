@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from './_layout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
+import { SkeletonUpgrade } from '../src/components/Skeleton';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -127,9 +128,9 @@ export default function UpgradeScreen() {
 
   if (statusLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00d4ff" />
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <SkeletonUpgrade />
+      </SafeAreaView>
     );
   }
 

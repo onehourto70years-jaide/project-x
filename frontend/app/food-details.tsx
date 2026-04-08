@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
+import { SkeletonFoodDetail } from '../src/components/Skeleton';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
@@ -135,10 +136,9 @@ export default function FoodDetailsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00d4ff" />
-        <Text style={styles.loadingText}>Analyzing molecular composition...</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <SkeletonFoodDetail />
+      </SafeAreaView>
     );
   }
 

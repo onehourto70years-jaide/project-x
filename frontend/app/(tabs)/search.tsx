@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, SafeAreaView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, SafeAreaView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '../../src/LanguageContext';
+import { SkeletonSearch } from '../../src/components/Skeleton';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -101,10 +102,7 @@ export default function SearchScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00d4ff" />
-          <Text style={styles.loadingText}>Searching...</Text>
-        </View>
+        <SkeletonSearch />
       ) : searched && results.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="search-outline" size={60} color="#444" />

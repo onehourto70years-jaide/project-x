@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../../src/LanguageContext';
+import { SkeletonAIInsights } from '../../src/components/Skeleton';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -278,10 +279,7 @@ export default function AIScreen() {
           </View>
 
           {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#00d4ff" />
-              <Text style={styles.loadingText}>Analyzing molecular synergies...</Text>
-            </View>
+            <SkeletonAIInsights />
           )}
 
           {!loading && recommendations.length > 0 && (

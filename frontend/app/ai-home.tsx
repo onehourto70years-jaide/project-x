@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearCacheForKey, CacheKeys, saveConversation, loadConversation, getConversationList, getCurrentConversationId, deleteConversation } from '../src/cache';
 import { useLanguage } from '../src/LanguageContext';
 import { useTheme } from '../src/ThemeContext';
+import { SkeletonAIChat } from '../src/components/Skeleton';
 
 import type { ConversationMeta } from '../src/cache';
 
@@ -442,9 +443,7 @@ export default function AIChatScreen() {
             </View>
 
             {loadingHistory ? (
-              <View style={styles.center}>
-                <ActivityIndicator size="large" color={theme.accent} />
-              </View>
+              <SkeletonAIChat />
             ) : (
               <ScrollView style={styles.historyList} showsVerticalScrollIndicator={false}>
                 {/* New Chat Button */}
