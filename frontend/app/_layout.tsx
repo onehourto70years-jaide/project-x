@@ -230,12 +230,13 @@ export default function RootLayout() {
 function RootContent() {
   const { isDark } = useTheme();
   const { matrixEnabled, adaptiveColor, matrixIntensity, matrixSpeed, matrixDensity, priorityElements } = useMatrix();
+  const { user } = useAuth();
 
   // Enforce fullscreen immersive mode (hides status bar + nav bar)
   useImmersiveMode();
 
   return (
-    <SleepModeProvider>
+    <SleepModeProvider enabled={!!user}>
       <View style={{ flex: 1, backgroundColor: matrixEnabled ? '#000' : 'transparent' }}>
         {matrixEnabled && (
           <MatrixRainBackground
