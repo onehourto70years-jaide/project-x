@@ -1,28 +1,37 @@
 {
   "expo": {
     "name": "NutriOS",
-    "slug": "frontend",
+    "slug": "nutrios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "nutrios",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.nutrios.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Scan food barcodes for nutrition data",
+        "NSUserNotificationUsageDescription": "Get meal reminders and hydration alerts",
         "UIStatusBarHidden": true,
         "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {
+      "package": "com.nutrios.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -57,7 +66,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#040410"
