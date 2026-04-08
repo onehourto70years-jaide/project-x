@@ -4,14 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
+import { hapticLight, hapticMedium } from '../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-const MEAL_TYPES = [
-  { id: 'breakfast', label: 'Breakfast', icon: 'sunny', color: '#ffd93d' },
-  { id: 'lunch', label: 'Lunch', icon: 'restaurant', color: '#4ecdc4' },
-  { id: 'dinner', label: 'Dinner', icon: 'moon', color: '#a29bfe' },
-  { id: 'snack', label: 'Snack', icon: 'cafe', color: '#ff6b6b' },
+const MEAL_TYPE_DEFS = [
+  { id: 'breakfast', labelKey: 'mp_breakfast', icon: 'sunny', color: '#ffd93d' },
+  { id: 'lunch', labelKey: 'mp_lunch', icon: 'restaurant', color: '#4ecdc4' },
+  { id: 'dinner', labelKey: 'mp_dinner', icon: 'moon', color: '#a29bfe' },
+  { id: 'snack', labelKey: 'mp_snack', icon: 'cafe', color: '#ff6b6b' },
 ];
 
 interface MealPlan {
@@ -25,7 +26,7 @@ interface MealPlan {
 
 export default function MealPlanScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [mealPlans, setMealPlans] = useState<Record<string, MealPlan[]>>({});
   const [recipes, setRecipes] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,6 +35,8 @@ export default function MealPlanScreen() {
   const [selectedMealType, setSelectedMealType] = useState('breakfast');
   const [selectedRecipeId, setSelectedRecipeId] = useState('');
   const [notes, setNotes] = useState('');
+
+  const LOCALE_MAP: Record<string, string> = { en: 'en-US', it: 'it-IT', es: 'es-ES', fr: 'fr-FR' };
 
   const getWeekDates = () => {
     const dates = [];
@@ -68,9 +71,10 @@ export default function MealPlanScreen() {
 
   const addMealPlan = async () => {
     if (!selectedRecipeId && !notes.trim()) {
-      Alert.alert('Error', 'Please select a recipe or add notes');
+      Alert.alert(t('common_error'), t('mp_error_empty'));
       return;
     }
+    hapticMedium();
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) return;
@@ -86,10 +90,11 @@ export default function MealPlanScreen() {
         setNotes('');
         fetchData();
       }
-    } catch (e) { Alert.alert('Error', 'Failed to add meal plan'); }
+    } catch (e) { Alert.alert(t('set_error'), t('mp_error_add')); }
   };
 
   const deletePlan = async (planId: string) => {
+    hapticLight();
     const token = await AsyncStorage.getItem('session_token');
     if (!token) return;
     await fetch(`${BACKEND_URL}/api/meal-plans/${planId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
@@ -99,11 +104,11 @@ export default function MealPlanScreen() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date().toISOString().split('T')[0];
-    if (dateStr === today) return 'Today';
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    if (dateStr === today) return t('mp_today');
+    return date.toLocaleDateString(LOCALE_MAP[locale] || 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  const getMealTypeInfo = (type: string) => MEAL_TYPES.find(m => m.id === type) || MEAL_TYPES[0];
+  const getMealTypeInfo = (type: string) => MEAL_TYPE_DEFS.find(m => m.id === type) || MEAL_TYPE_DEFS[0];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -112,7 +117,7 @@ export default function MealPlanScreen() {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>{t('plan_title')}</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)}>
+        <TouchableOpacity onPress={() => { hapticLight(); setShowAddModal(true); }}>
           <Ionicons name="add-circle" size={28} color="#00d4ff" />
         </TouchableOpacity>
       </View>
@@ -122,7 +127,7 @@ export default function MealPlanScreen() {
           <View key={date} style={styles.dayCard}>
             <Text style={styles.dayTitle}>{formatDate(date)}</Text>
             
-            {MEAL_TYPES.map((mealType) => {
+            {MEAL_TYPE_DEFS.map((mealType) => {
               const plans = (mealPlans[date] || []).filter(p => p.meal_type === mealType.id);
               return (
                 <View key={mealType.id} style={styles.mealSlot}>
@@ -130,7 +135,7 @@ export default function MealPlanScreen() {
                     <Ionicons name={mealType.icon as any} size={16} color={mealType.color} />
                   </View>
                   <View style={styles.mealContent}>
-                    <Text style={styles.mealTypeLabel}>{mealType.label}</Text>
+                    <Text style={styles.mealTypeLabel}>{t(mealType.labelKey)}</Text>
                     {plans.length > 0 ? (
                       plans.map((plan) => (
                         <View key={plan.id} style={styles.plannedMeal}>
@@ -141,9 +146,9 @@ export default function MealPlanScreen() {
                         </View>
                       ))
                     ) : (
-                      <TouchableOpacity style={styles.addMealBtn} onPress={() => { setSelectedDate(date); setSelectedMealType(mealType.id); setShowAddModal(true); }}>
+                      <TouchableOpacity style={styles.addMealBtn} onPress={() => { hapticLight(); setSelectedDate(date); setSelectedMealType(mealType.id); setShowAddModal(true); }}>
                         <Ionicons name="add" size={16} color="#666" />
-                        <Text style={styles.addMealText}>Add meal</Text>
+                        <Text style={styles.addMealText}>{t('mp_add_meal')}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -160,42 +165,42 @@ export default function MealPlanScreen() {
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => Keyboard.dismiss()}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Plan Meal</Text>
+                <Text style={styles.modalTitle}>{t('mp_plan_meal')}</Text>
                 <TouchableOpacity onPress={() => setShowAddModal(false)}>
                   <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-                <Text style={styles.inputLabel}>Date: {formatDate(selectedDate)}</Text>
+                <Text style={styles.inputLabel}>{t('mp_date')}: {formatDate(selectedDate)}</Text>
               
-                <Text style={styles.inputLabel}>Meal Type</Text>
+                <Text style={styles.inputLabel}>{t('mp_meal_type')}</Text>
                 <View style={styles.mealTypeRow}>
-                  {MEAL_TYPES.map((type) => (
-                    <TouchableOpacity key={type.id} style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]} onPress={() => setSelectedMealType(type.id)}>
+                  {MEAL_TYPE_DEFS.map((type) => (
+                    <TouchableOpacity key={type.id} style={[styles.mealTypeOption, selectedMealType === type.id && { backgroundColor: type.color + '30', borderColor: type.color }]} onPress={() => { hapticLight(); setSelectedMealType(type.id); }}>
                       <Ionicons name={type.icon as any} size={18} color={selectedMealType === type.id ? type.color : '#666'} />
                     </TouchableOpacity>
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Select Recipe</Text>
+                <Text style={styles.inputLabel}>{t('mp_select_recipe')}</Text>
                 {recipes.length > 0 ? (
                   recipes.map((recipe) => (
-                    <TouchableOpacity key={recipe.id} style={[styles.recipeOption, selectedRecipeId === recipe.id && styles.recipeOptionActive]} onPress={() => setSelectedRecipeId(recipe.id)}>
+                    <TouchableOpacity key={recipe.id} style={[styles.recipeOption, selectedRecipeId === recipe.id && styles.recipeOptionActive]} onPress={() => { hapticLight(); setSelectedRecipeId(recipe.id); }}>
                       <Ionicons name={selectedRecipeId === recipe.id ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedRecipeId === recipe.id ? '#00d4ff' : '#666'} />
                       <Text style={styles.recipeOptionText}>{recipe.name}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.noRecipes}>No recipes. Create one first!</Text>
+                  <Text style={styles.noRecipes}>{t('mp_no_recipes')}</Text>
                 )}
 
-                <Text style={styles.inputLabel}>Or add notes</Text>
-                <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder="e.g., Order salad from restaurant" placeholderTextColor="#666" />
+                <Text style={styles.inputLabel}>{t('mp_or_notes')}</Text>
+                <TextInput style={styles.input} value={notes} onChangeText={setNotes} placeholder={t('mp_notes_placeholder')} placeholderTextColor="#666" />
               </ScrollView>
 
               <TouchableOpacity style={styles.addBtn} onPress={addMealPlan}>
-                <Text style={styles.addBtnText}>Add to Plan</Text>
+                <Text style={styles.addBtnText}>{t('mp_add_to_plan')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

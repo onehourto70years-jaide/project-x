@@ -4,25 +4,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
+import { hapticLight, hapticSuccess } from '../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const { width } = Dimensions.get('window');
 
-const ACTIVITY_LEVELS = [
-  { id: 'sedentary', label: 'Sedentary', desc: 'Little or no exercise', icon: 'bed', emoji: '🛋️' },
-  { id: 'light', label: 'Light', desc: 'Exercise 1-3 days/week', icon: 'walk', emoji: '🚶' },
-  { id: 'moderate', label: 'Moderate', desc: 'Exercise 3-5 days/week', icon: 'bicycle', emoji: '🚴' },
-  { id: 'active', label: 'Active', desc: 'Exercise 6-7 days/week', icon: 'fitness', emoji: '🏋️' },
-  { id: 'very_active', label: 'Very Active', desc: 'Hard exercise daily', icon: 'flame', emoji: '🔥' },
+const ACTIVITY_LEVEL_DEFS = [
+  { id: 'sedentary', labelKey: 'ob_act_sedentary', descKey: 'ob_act_sedentary_desc', icon: 'bed', emoji: '🛋️' },
+  { id: 'light', labelKey: 'ob_act_light', descKey: 'ob_act_light_desc', icon: 'walk', emoji: '🚶' },
+  { id: 'moderate', labelKey: 'ob_act_moderate', descKey: 'ob_act_moderate_desc', icon: 'bicycle', emoji: '🚴' },
+  { id: 'active', labelKey: 'ob_act_active', descKey: 'ob_act_active_desc', icon: 'fitness', emoji: '🏋️' },
+  { id: 'very_active', labelKey: 'ob_act_very_active', descKey: 'ob_act_very_active_desc', icon: 'flame', emoji: '🔥' },
 ];
 
-const HEALTH_GOALS = [
-  { id: 'muscle_gain', label: 'Build Muscle', icon: 'barbell', color: '#ff6b6b' },
-  { id: 'weight_loss', label: 'Lose Weight', icon: 'trending-down', color: '#ffd93d' },
-  { id: 'energy', label: 'More Energy', icon: 'flash', color: '#00d4ff' },
-  { id: 'immune', label: 'Boost Immunity', icon: 'shield-checkmark', color: '#4ecdc4' },
-  { id: 'brain', label: 'Brain Health', icon: 'bulb', color: '#a29bfe' },
-  { id: 'gut_health', label: 'Gut Health', icon: 'leaf', color: '#00ff88' },
+const HEALTH_GOAL_DEFS = [
+  { id: 'muscle_gain', labelKey: 'ob_goal_muscle', icon: 'barbell', color: '#ff6b6b' },
+  { id: 'weight_loss', labelKey: 'ob_goal_weight_loss', icon: 'trending-down', color: '#ffd93d' },
+  { id: 'energy', labelKey: 'ob_goal_energy', icon: 'flash', color: '#00d4ff' },
+  { id: 'immune', labelKey: 'ob_goal_immune', icon: 'shield-checkmark', color: '#4ecdc4' },
+  { id: 'brain', labelKey: 'ob_goal_brain', icon: 'bulb', color: '#a29bfe' },
+  { id: 'gut_health', labelKey: 'ob_goal_gut', icon: 'leaf', color: '#00ff88' },
 ];
 
 export default function OnboardingScreen() {
@@ -36,6 +37,7 @@ export default function OnboardingScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const animateTransition = (next: number) => {
+    hapticLight();
     Animated.sequence([
       Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
@@ -44,6 +46,7 @@ export default function OnboardingScreen() {
   };
 
   const toggleGoal = (goalId: string) => {
+    hapticLight();
     setSelectedGoals(prev =>
       prev.includes(goalId) ? prev.filter(g => g !== goalId) : [...prev, goalId]
     );
@@ -68,6 +71,7 @@ export default function OnboardingScreen() {
         })
       ]);
 
+      hapticSuccess();
       await AsyncStorage.setItem('onboarding_completed', 'true');
       router.replace('/(tabs)');
     } catch (error) {
@@ -78,6 +82,13 @@ export default function OnboardingScreen() {
     }
   };
 
+  const FEATURES = [
+    { icon: 'analytics', textKey: 'ob_feat_elements', color: '#00d4ff' },
+    { icon: 'warning', textKey: 'ob_feat_allergens', color: '#ff6b6b' },
+    { icon: 'bulb', textKey: 'ob_feat_synergies', color: '#ffd93d' },
+    { icon: 'flame', textKey: 'ob_feat_cooking', color: '#4ecdc4' },
+  ];
+
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -86,23 +97,16 @@ export default function OnboardingScreen() {
             <View style={styles.welcomeIcon}>
               <Ionicons name="flask" size={64} color="#00d4ff" />
             </View>
-            <Text style={styles.stepTitle}>Welcome to NutriOS</Text>
-            <Text style={styles.stepSubtitle}>Your Personal Nutrition Operating System</Text>
-            <Text style={styles.stepDesc}>
-              We'll map your food to its exact atomic composition, flag allergens, and use AI to optimize your nutrition.
-            </Text>
+            <Text style={styles.stepTitle}>{t('ob_welcome_title')}</Text>
+            <Text style={styles.stepSubtitle}>{t('ob_welcome_sub')}</Text>
+            <Text style={styles.stepDesc}>{t('ob_welcome_desc')}</Text>
             <View style={styles.featureList}>
-              {[
-                { icon: 'analytics', text: 'Track C, H, O, N elemental intake', color: '#00d4ff' },
-                { icon: 'warning', text: 'Auto-detect allergens', color: '#ff6b6b' },
-                { icon: 'bulb', text: 'AI-powered food synergies', color: '#ffd93d' },
-                { icon: 'flame', text: 'Cooking method optimization', color: '#4ecdc4' },
-              ].map((f, i) => (
+              {FEATURES.map((f, i) => (
                 <View key={i} style={styles.featureItem}>
                   <View style={[styles.featureIconCircle, { backgroundColor: f.color + '20' }]}>
                     <Ionicons name={f.icon as any} size={20} color={f.color} />
                   </View>
-                  <Text style={styles.featureText}>{f.text}</Text>
+                  <Text style={styles.featureText}>{t(f.textKey)}</Text>
                 </View>
               ))}
             </View>
@@ -112,10 +116,10 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepEmoji}>⚖️</Text>
-            <Text style={styles.stepTitle}>What's your weight?</Text>
-            <Text style={styles.stepSubtitle}>This helps us calculate your optimal nutrition targets</Text>
+            <Text style={styles.stepTitle}>{t('ob_weight_title')}</Text>
+            <Text style={styles.stepSubtitle}>{t('ob_weight_sub')}</Text>
             <View style={styles.weightInputContainer}>
-              <TouchableOpacity style={styles.weightBtn} onPress={() => setWeight(String(Math.max(30, (parseFloat(weight) || 70) - 1)))}>
+              <TouchableOpacity style={styles.weightBtn} onPress={() => { hapticLight(); setWeight(String(Math.max(30, (parseFloat(weight) || 70) - 1))); }}>
                 <Ionicons name="remove" size={28} color="#fff" />
               </TouchableOpacity>
               <View style={styles.weightDisplay}>
@@ -126,34 +130,34 @@ export default function OnboardingScreen() {
                   keyboardType="numeric"
                   maxLength={5}
                 />
-                <Text style={styles.weightUnit}>kg</Text>
+                <Text style={styles.weightUnit}>{t('ob_weight_unit')}</Text>
               </View>
-              <TouchableOpacity style={styles.weightBtn} onPress={() => setWeight(String(Math.min(300, (parseFloat(weight) || 70) + 1)))}>
+              <TouchableOpacity style={styles.weightBtn} onPress={() => { hapticLight(); setWeight(String(Math.min(300, (parseFloat(weight) || 70) + 1))); }}>
                 <Ionicons name="add" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.hint}>This is used to personalize water goals and nutrient targets</Text>
+            <Text style={styles.hint}>{t('ob_weight_hint')}</Text>
           </View>
         );
       case 2:
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepEmoji}>🏃</Text>
-            <Text style={styles.stepTitle}>Activity Level</Text>
-            <Text style={styles.stepSubtitle}>How active are you on a typical week?</Text>
+            <Text style={styles.stepTitle}>{t('ob_activity_title')}</Text>
+            <Text style={styles.stepSubtitle}>{t('ob_activity_sub')}</Text>
             <View style={styles.activityList}>
-              {ACTIVITY_LEVELS.map((level) => (
+              {ACTIVITY_LEVEL_DEFS.map((level) => (
                 <TouchableOpacity
                   key={level.id}
                   style={[styles.activityCard, activityLevel === level.id && styles.activityCardActive]}
-                  onPress={() => setActivityLevel(level.id)}
+                  onPress={() => { hapticLight(); setActivityLevel(level.id); }}
                 >
                   <Text style={styles.activityEmoji}>{level.emoji}</Text>
                   <View style={styles.activityInfo}>
                     <Text style={[styles.activityLabel, activityLevel === level.id && styles.activityLabelActive]}>
-                      {level.label}
+                      {t(level.labelKey)}
                     </Text>
-                    <Text style={styles.activityDesc}>{level.desc}</Text>
+                    <Text style={styles.activityDesc}>{t(level.descKey)}</Text>
                   </View>
                   {activityLevel === level.id && (
                     <Ionicons name="checkmark-circle" size={24} color="#00d4ff" />
@@ -167,10 +171,10 @@ export default function OnboardingScreen() {
         return (
           <View style={styles.stepContent}>
             <Text style={styles.stepEmoji}>🎯</Text>
-            <Text style={styles.stepTitle}>Health Goals</Text>
-            <Text style={styles.stepSubtitle}>Select what matters most to you (pick any)</Text>
+            <Text style={styles.stepTitle}>{t('ob_goals_title')}</Text>
+            <Text style={styles.stepSubtitle}>{t('ob_goals_sub')}</Text>
             <View style={styles.goalsGrid}>
-              {HEALTH_GOALS.map((goal) => (
+              {HEALTH_GOAL_DEFS.map((goal) => (
                 <TouchableOpacity
                   key={goal.id}
                   style={[styles.goalCard, selectedGoals.includes(goal.id) && { borderColor: goal.color, backgroundColor: goal.color + '15' }]}
@@ -180,7 +184,7 @@ export default function OnboardingScreen() {
                     <Ionicons name={goal.icon as any} size={28} color={goal.color} />
                   </View>
                   <Text style={[styles.goalLabel, selectedGoals.includes(goal.id) && { color: goal.color }]}>
-                    {goal.label}
+                    {t(goal.labelKey)}
                   </Text>
                   {selectedGoals.includes(goal.id) && (
                     <Ionicons name="checkmark-circle" size={20} color={goal.color} style={styles.goalCheck} />
@@ -207,7 +211,7 @@ export default function OnboardingScreen() {
       {/* Skip button */}
       {step > 0 && (
         <TouchableOpacity style={styles.skipBtn} onPress={() => { AsyncStorage.setItem('onboarding_completed', 'true'); router.replace('/(tabs)'); }}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('ob_skip')}</Text>
         </TouchableOpacity>
       )}
 
@@ -238,7 +242,7 @@ export default function OnboardingScreen() {
           disabled={saving}
         >
           <Text style={styles.nextBtnText}>
-            {step === 0 ? "Let's Go!" : step === 3 ? (saving ? 'Saving...' : 'Finish Setup') : 'Continue'}
+            {step === 0 ? t('ob_lets_go') : step === 3 ? (saving ? t('ob_saving') : t('ob_finish')) : t('ob_continue')}
           </Text>
           {step < 3 && <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />}
         </TouchableOpacity>
