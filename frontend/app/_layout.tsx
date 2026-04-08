@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
 import { LanguageProvider } from '../src/LanguageContext';
 import { MatrixProvider, useMatrix } from '../src/MatrixContext';
+import { SleepModeProvider } from '../src/SleepModeContext';
 import MatrixRainBackground from '../src/components/MatrixRain';
 import { clearCache } from '../src/cache';
 import { useImmersiveMode } from '../src/useImmersiveMode';
@@ -234,41 +235,43 @@ function RootContent() {
   useImmersiveMode();
 
   return (
-    <View style={{ flex: 1, backgroundColor: matrixEnabled ? '#000' : 'transparent' }}>
-      {matrixEnabled && (
-        <MatrixRainBackground
-          colorTheme={adaptiveColor}
-          intensity={matrixIntensity}
-          speed={matrixSpeed}
-          density={matrixDensity}
-          priorityElements={priorityElements}
-          overlay={true}
-        />
-      )}
-      <View style={{ flex: 1, zIndex: 1 }}>
-        <StatusBar hidden={true} />
-        <Stack screenOptions={{ headerShown: false, contentStyle: matrixEnabled ? { backgroundColor: 'transparent' } : undefined }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
-          <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
-          {/* privacy-policy is now in (auth) group */}
-          <Stack.Screen name="upgrade" options={{ presentation: 'card', gestureEnabled: false }} />
-          <Stack.Screen name="payment-success" options={{ presentation: 'card', gestureEnabled: false }} />
-          <Stack.Screen name="molecular-engine" options={{ presentation: 'card' }} />
-          <Stack.Screen name="badges" options={{ presentation: 'card' }} />
-          <Stack.Screen name="settings" options={{ presentation: 'card' }} />
-          <Stack.Screen name="progress" options={{ presentation: 'card' }} />
-          <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
-          <Stack.Screen name="scanner" options={{ presentation: 'card' }} />
-          <Stack.Screen name="recipes" options={{ presentation: 'card' }} />
-          <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
-          <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
-          <Stack.Screen name="sequence-optimizer" options={{ presentation: 'card' }} />
-          <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
-        </Stack>
+    <SleepModeProvider>
+      <View style={{ flex: 1, backgroundColor: matrixEnabled ? '#000' : 'transparent' }}>
+        {matrixEnabled && (
+          <MatrixRainBackground
+            colorTheme={adaptiveColor}
+            intensity={matrixIntensity}
+            speed={matrixSpeed}
+            density={matrixDensity}
+            priorityElements={priorityElements}
+            overlay={true}
+          />
+        )}
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <StatusBar hidden={true} />
+          <Stack screenOptions={{ headerShown: false, contentStyle: matrixEnabled ? { backgroundColor: 'transparent' } : undefined }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="food-details" options={{ presentation: 'modal', headerShown: true, headerTitle: 'Food Analysis', headerStyle: { backgroundColor: '#1a1a2e' }, headerTintColor: '#fff' }} />
+            <Stack.Screen name="onboarding" options={{ presentation: 'card', gestureEnabled: false }} />
+            {/* privacy-policy is now in (auth) group */}
+            <Stack.Screen name="upgrade" options={{ presentation: 'card', gestureEnabled: false }} />
+            <Stack.Screen name="payment-success" options={{ presentation: 'card', gestureEnabled: false }} />
+            <Stack.Screen name="molecular-engine" options={{ presentation: 'card' }} />
+            <Stack.Screen name="badges" options={{ presentation: 'card' }} />
+            <Stack.Screen name="settings" options={{ presentation: 'card' }} />
+            <Stack.Screen name="progress" options={{ presentation: 'card' }} />
+            <Stack.Screen name="favorites" options={{ presentation: 'card' }} />
+            <Stack.Screen name="scanner" options={{ presentation: 'card' }} />
+            <Stack.Screen name="recipes" options={{ presentation: 'card' }} />
+            <Stack.Screen name="meal-plan" options={{ presentation: 'card' }} />
+            <Stack.Screen name="ai-home" options={{ presentation: 'card' }} />
+            <Stack.Screen name="sequence-optimizer" options={{ presentation: 'card' }} />
+            <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
+          </Stack>
+        </View>
       </View>
-    </View>
+    </SleepModeProvider>
   );
 }
