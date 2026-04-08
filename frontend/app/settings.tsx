@@ -257,24 +257,7 @@ export default function SettingsScreen() {
 
         </View>
 
-        {/* Language Section */}
-        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_language')}</Text>
-        <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
-          <TouchableOpacity style={styles.switchRow} onPress={() => setShowLangModal(true)}>
-            <View style={styles.switchLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: 'rgba(0,212,255,0.15)' }]}>
-                <Ionicons name="language" size={20} color="#00d4ff" />
-              </View>
-              <View>
-                <Text style={[styles.switchLabel, { color: theme.text }]}>{t('set_language')}</Text>
-                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>
-                  {SUPPORTED_LOCALES.find(l => l.code === locale)?.flag} {SUPPORTED_LOCALES.find(l => l.code === locale)?.nativeName}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+        {/* Language Section — HIDDEN (will return in future update) */}
 
         {/* Profile Section */}
         <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{t('set_profile')}</Text>

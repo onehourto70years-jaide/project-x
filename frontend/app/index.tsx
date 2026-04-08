@@ -146,7 +146,12 @@ export default function Index() {
       AsyncStorage.getItem('privacy_policy_accepted'),
       AsyncStorage.getItem('onboarding_completed'),
     ]).then(([langVal, policyVal, onboardingVal]) => {
-      setLanguageSelected(langVal === 'true');
+      // Language selection is hidden — always English, always selected
+      if (langVal !== 'true') {
+        setLocale('en' as Locale);
+        AsyncStorage.setItem('language_selected', 'true');
+      }
+      setLanguageSelected(true);
       setPolicyAccepted(policyVal === 'true');
       setOnboardingDone(onboardingVal === 'true');
     });
@@ -198,56 +203,7 @@ export default function Index() {
     );
   }
 
-  // ── LANGUAGE SELECTION (inline — no navigation needed) ──
-  if (!languageSelected) {
-    return (
-      <View style={styles.langContainer}>
-        <View style={styles.langContent}>
-          <View style={styles.langIconWrap}>
-            <View style={styles.langIconCircle}>
-              <Ionicons name="language" size={40} color="#00d4ff" />
-            </View>
-          </View>
-          <Text style={styles.langTitle}>{t('lang_title')}</Text>
-          <Text style={styles.langSubtitle}>Scegli · Elige · Choisissez</Text>
-
-          <View style={styles.langList}>
-            {SUPPORTED_LOCALES.map((lang) => {
-              const isActive = selectedLang === lang.code;
-              return (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[styles.langOption, isActive && styles.langOptionActive]}
-                  onPress={() => {
-                    setSelectedLang(lang.code);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.langFlag}>{lang.flag}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.langLabel, isActive && styles.langLabelActive]}>{lang.nativeName}</Text>
-                    <Text style={styles.langSub}>{lang.label}</Text>
-                  </View>
-                  {isActive && (
-                    <View style={styles.langCheck}>
-                      <Ionicons name="checkmark" size={18} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <Text style={styles.langNote}>{t('lang_subtitle')}</Text>
-
-          <TouchableOpacity style={styles.langContinueBtn} onPress={handleLanguageContinue} activeOpacity={0.8}>
-            <Text style={styles.langContinueText}>{t('lang_continue')}</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  // ── LANGUAGE SELECTION — HIDDEN (English only for now, will return in future) ──
 
   if (!policyAccepted) {
     return <Redirect href="/(auth)/privacy-policy" />;
