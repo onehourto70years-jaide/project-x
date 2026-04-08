@@ -21,6 +21,7 @@ import WidgetAIInsights from '../../src/components/widgets/WidgetAIInsights';
 import WidgetQuickNav from '../../src/components/widgets/WidgetQuickNav';
 import WidgetShareSocial from '../../src/components/widgets/WidgetShareSocial';
 import QuickMealModal from '../../src/components/QuickMealModal';
+import WidgetErrorBoundary from '../../src/components/WidgetErrorBoundary';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -149,21 +150,33 @@ export default function DashboardScreen() {
   const saveAndClose = async () => { setWidgets(editWidgets); await saveWidgetLayout(editWidgets); setShowCustomize(false); };
   const resetDefaults = () => setEditWidgets(DEFAULT_WIDGETS.map(w => ({ ...w })));
 
-  // ─── Widget Renderer ──────────────────
+  // ─── Widget Renderer (each wrapped in error boundary) ──
+  const WIDGET_LABELS: Record<string, string> = {
+    health_score: 'Health Score', quick_actions: 'Quick Actions', nutrient_gaps: 'Nutrient Gaps',
+    elements: 'Elements', streak: 'Streak', macros: 'Macros', recent_meals: 'Recent Meals',
+    ai_insights: 'AI Insights', quick_nav: 'Quick Nav', share_social: 'Share',
+  };
+
   const renderWidget = (w: WidgetItem) => {
+    let content: React.ReactNode = null;
     switch (w.id) {
-      case 'health_score': return <WidgetHealthScore key={w.id} dashboard={dashboard} />;
-      case 'quick_actions': return <WidgetQuickActions key={w.id} onAddWater={quickAddWater} onLogMeal={() => setShowQuickMeal(true)} onScan={() => router.push('/scanner')} />;
-      case 'nutrient_gaps': return <WidgetNutrientGaps key={w.id} nutrients={dashboard?.nutrition?.nutrients} />;
-      case 'elements': return <WidgetElements key={w.id} elements={dashboard?.elements} onViewCharts={() => router.push('/progress')} />;
-      case 'streak': return <WidgetStreak key={w.id} dashboard={dashboard} />;
-      case 'macros': return <WidgetMacros key={w.id} dashboard={dashboard} />;
-      case 'recent_meals': return <WidgetRecentMeals key={w.id} meals={dashboard?.recent_meals || []} onViewAll={() => router.push('/(tabs)/track')} />;
-      case 'ai_insights': return <WidgetAIInsights key={w.id} insights={dashboard?.insights || []} />;
-      case 'quick_nav': return <WidgetQuickNav key={w.id} />;
-      case 'share_social': return <WidgetShareSocial key={w.id} onShareDaily={handleShareDaily} onShareWeekly={handleShareWeekly} onViewBadges={() => router.push('/badges')} />;
+      case 'health_score': content = <WidgetHealthScore dashboard={dashboard} />; break;
+      case 'quick_actions': content = <WidgetQuickActions onAddWater={quickAddWater} onLogMeal={() => setShowQuickMeal(true)} onScan={() => router.push('/scanner')} />; break;
+      case 'nutrient_gaps': content = <WidgetNutrientGaps nutrients={dashboard?.nutrition?.nutrients} />; break;
+      case 'elements': content = <WidgetElements elements={dashboard?.elements} onViewCharts={() => router.push('/progress')} />; break;
+      case 'streak': content = <WidgetStreak dashboard={dashboard} />; break;
+      case 'macros': content = <WidgetMacros dashboard={dashboard} />; break;
+      case 'recent_meals': content = <WidgetRecentMeals meals={dashboard?.recent_meals || []} onViewAll={() => router.push('/(tabs)/track')} />; break;
+      case 'ai_insights': content = <WidgetAIInsights insights={dashboard?.insights || []} />; break;
+      case 'quick_nav': content = <WidgetQuickNav />; break;
+      case 'share_social': content = <WidgetShareSocial onShareDaily={handleShareDaily} onShareWeekly={handleShareWeekly} onViewBadges={() => router.push('/badges')} />; break;
       default: return null;
     }
+    return (
+      <WidgetErrorBoundary key={w.id} widgetName={WIDGET_LABELS[w.id] || w.id}>
+        {content}
+      </WidgetErrorBoundary>
+    );
   };
 
   return (
