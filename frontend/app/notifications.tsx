@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/ThemeContext';
 import { useLanguage } from '../src/LanguageContext';
 import { SkeletonNotifications } from '../src/components/Skeleton';
+import EmptyState from '../src/components/EmptyState';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -187,11 +188,14 @@ export default function NotificationCenterScreen() {
           </Text>
 
           {notifications.length === 0 ? (
-            <View style={[styles.emptyState, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
-              <Ionicons name="notifications-off-outline" size={48} color={theme.textDim} />
-              <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('notif_center_empty')}</Text>
-              <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>{t('notif_center_empty_desc')}</Text>
-            </View>
+            <EmptyState
+              icon="notifications-outline"
+              iconColor="#a29bfe"
+              title={t('notif_center_empty')}
+              subtitle="Your nutrition tips, water reminders, and streak alerts will appear here. Start tracking meals to get personalized notifications!"
+              ctaLabel="Go to Dashboard"
+              onCta={() => router.push('/(tabs)')}
+            />
           ) : (
             notifications.map((notif, index) => {
               const meta = getNotifMeta(notif.type);

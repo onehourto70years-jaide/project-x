@@ -9,6 +9,7 @@ import * as Print from 'expo-print';
 import { useLanguage } from '../src/LanguageContext';
 import { hapticLight, hapticSuccess, hapticMedium } from '../src/haptics';
 import { SkeletonReports } from '../src/components/Skeleton';
+import EmptyState from '../src/components/EmptyState';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
