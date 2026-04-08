@@ -10,6 +10,7 @@ All business logic lives in:
   routes/           → all API route modules
 """
 
+import os
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from slowapi.middleware import SlowAPIMiddleware
@@ -45,13 +46,18 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_middleware(SanitizeMiddleware)
 # 2. SlowAPI rate limiting
 app.add_middleware(SlowAPIMiddleware)
-# 3. CORS
+# 3. CORS — restrict to known origins
+ALLOWED_ORIGINS = [
+    os.getenv("CORS_ORIGIN", "https://meal-sync-test.preview.emergentagent.com"),
+    "http://localhost:3000",
+    "http://localhost:8081",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ── Mount all API routes ──
