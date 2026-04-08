@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../src/LanguageContext';
 import EmptyState from '../src/components/EmptyState';
+import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -66,7 +67,7 @@ function BadgeCardAnimated({ badge, index, isNewlyEarned, onShare, earnedLabel, 
             <Ionicons name="checkmark" size={12} color={badge.color} />
             <Text style={[styles.earnedText, { color: badge.color }]}>{earnedLabel}</Text>
           </View>
-          <TouchableOpacity style={styles.badgeShareBtn} onPress={() => onShare(badge)}>
+          <TouchableOpacity style={styles.badgeShareBtn} onPress={() => { hapticLight(); onShare(badge); }}>
             <Ionicons name="share-outline" size={14} color="#00d4ff" />
           </TouchableOpacity>
         </View>
@@ -180,12 +181,12 @@ export default function BadgesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}
+        <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={styles.backBtn}
           accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('badge_title')}</Text>
-        <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
+        <TouchableOpacity onPress={() => { hapticLight(); handleShare(); }} style={styles.shareBtn}>
           <Ionicons name="share-social" size={22} color="#00d4ff" />
         </TouchableOpacity>
       </View>
@@ -226,7 +227,7 @@ export default function BadgesScreen() {
           </View>
 
           {/* Share Button */}
-          <TouchableOpacity style={styles.shareCard} onPress={handleShareWeekly}>
+          <TouchableOpacity style={styles.shareCard} onPress={() => { hapticMedium(); handleShareWeekly(); }}>
             <LinearGradient colors={['rgba(0, 212, 255, 0.15)', 'rgba(162, 155, 254, 0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.shareGradient}>
               <Ionicons name="share-social" size={24} color="#00d4ff" />
               <View style={styles.shareInfo}>

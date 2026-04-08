@@ -7,6 +7,7 @@ import { useTheme } from '../src/ThemeContext';
 import { useLanguage } from '../src/LanguageContext';
 import { SkeletonNotifications } from '../src/components/Skeleton';
 import EmptyState from '../src/components/EmptyState';
+import { hapticLight, hapticSuccess } from '../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -115,7 +116,7 @@ export default function NotificationCenterScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
+        <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
           accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -128,7 +129,7 @@ export default function NotificationCenterScreen() {
           )}
         </View>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={markAllRead} style={[styles.markReadBtn, { backgroundColor: theme.bgCard }]}>
+          <TouchableOpacity onPress={() => { hapticSuccess(); markAllRead(); }} style={[styles.markReadBtn, { backgroundColor: theme.bgCard }]}>
             <Ionicons name="checkmark-done" size={18} color={theme.accent} />
           </TouchableOpacity>
         )}

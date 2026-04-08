@@ -8,6 +8,7 @@ import { useLanguage } from '../src/LanguageContext';
 import { useTheme } from '../src/ThemeContext';
 import { SkeletonAIChat } from '../src/components/Skeleton';
 import EmptyState from '../src/components/EmptyState';
+import { hapticLight, hapticMedium, hapticWarning } from '../src/haptics';
 
 import type { ConversationMeta } from '../src/cache';
 
@@ -139,6 +140,7 @@ export default function AIChatScreen() {
   };
 
   const handleDeleteConversation = (id: string) => {
+    hapticWarning();
     Alert.alert(
       t('common_delete') || 'Delete',
       t('ai_delete_convo') || 'Delete this conversation?',
@@ -342,7 +344,7 @@ export default function AIChatScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
+        <TouchableOpacity onPress={() => { hapticLight(); router.back(); }} style={[styles.backBtn, { backgroundColor: theme.bgCard }]}
           accessibilityRole="button" accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
@@ -362,10 +364,10 @@ export default function AIChatScreen() {
             </View>
           </View>
         </View>
-        <TouchableOpacity onPress={openHistory} style={[styles.historyBtn, { backgroundColor: theme.bgCard }]}>
+        <TouchableOpacity onPress={() => { hapticLight(); openHistory(); }} style={[styles.historyBtn, { backgroundColor: theme.bgCard }]}>
           <Ionicons name="time-outline" size={20} color={theme.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={startNewConversation} style={[styles.newChatBtn, { backgroundColor: theme.bgCard }]}>
+        <TouchableOpacity onPress={() => { hapticMedium(); startNewConversation(); }} style={[styles.newChatBtn, { backgroundColor: theme.bgCard }]}>
           <Ionicons name="add" size={20} color={theme.accent} />
         </TouchableOpacity>
       </View>
@@ -404,7 +406,7 @@ export default function AIChatScreen() {
               <View style={styles.quickPromptsSection}>
                 <Text style={[styles.quickPromptsTitle, { color: theme.textDim }]}>{t('ai_try_asking')}</Text>
                 {QUICK_PROMPTS.map((p, i) => (
-                  <TouchableOpacity key={i} style={[styles.quickPromptCard, { backgroundColor: theme.bgCard, borderColor: theme.border }]} onPress={() => sendMessage(p.text)}>
+                  <TouchableOpacity key={i} style={[styles.quickPromptCard, { backgroundColor: theme.bgCard, borderColor: theme.border }]} onPress={() => { hapticLight(); sendMessage(p.text); }}>
                     <Ionicons name={p.icon as any} size={18} color={theme.accent} />
                     <Text style={[styles.quickPromptText, { color: theme.textMuted }]}>{p.text}</Text>
                     <Ionicons name="arrow-forward" size={14} color={theme.textDim} />
@@ -424,7 +426,7 @@ export default function AIChatScreen() {
               onSubmitEditing={() => sendMessage()} returnKeyType="send"
               accessibilityLabel={t('ai_placeholder')} />
             <TouchableOpacity style={[styles.sendBtn, (!input.trim() || loading) && [styles.sendBtnDisabled, { backgroundColor: theme.bgCard }]]}
-              onPress={() => sendMessage()} disabled={!input.trim() || loading}
+              onPress={() => { hapticLight(); sendMessage(); }} disabled={!input.trim() || loading}
               accessibilityRole="button" accessibilityLabel="Send message" accessibilityState={{ disabled: !input.trim() || loading }}>
               <Ionicons name="send" size={20} color={input.trim() && !loading ? '#fff' : theme.textDim} />
             </TouchableOpacity>
