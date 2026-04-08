@@ -37,3 +37,9 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Signing credentials (NEVER commit)
+credentials.json
+android/nutrios-release.keystore
+*.keystore
+*.jks
