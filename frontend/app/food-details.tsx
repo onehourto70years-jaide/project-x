@@ -51,6 +51,7 @@ const COOKING_METHODS = ['raw', 'steaming', 'boiling', 'baking', 'frying'];
 export default function FoodDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { t } = useLanguage();
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [portionGrams, setPortionGrams] = useState(100);
@@ -93,7 +94,7 @@ export default function FoodDetailsScreen() {
     try {
       const token = await AsyncStorage.getItem('session_token');
       if (!token) {
-        Alert.alert('Error', 'Please login to track foods');
+        Alert.alert(t('alert_error'), t('alert_error'));
         return;
       }
 
@@ -116,14 +117,14 @@ export default function FoodDetailsScreen() {
       });
 
       if (response.ok) {
-        Alert.alert('Success', 'Food added to your log!');
+        Alert.alert(t('common_save'), t('common_save'));
         router.back();
       } else {
-        Alert.alert('Error', 'Failed to add food');
+        Alert.alert(t('alert_error'), t('alert_failed_meal_update'));
       }
     } catch (error) {
       console.error('Error saving entry:', error);
-      alert('Error saving entry');
+      Alert.alert(t('alert_error'), t('alert_failed_meal_update'));
     } finally {
       setSaving(false);
     }
