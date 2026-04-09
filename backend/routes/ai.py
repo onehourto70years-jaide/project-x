@@ -226,7 +226,7 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
         if user:
             await db.chat_history.insert_one({
                 "user_id": user.user_id,
-                "user_message": request.message,
+                "user_message": chat_request.message,
                 "ai_response": ai_text,
                 "actions_executed": actions_executed,
                 "timestamp": datetime.now(timezone.utc)
