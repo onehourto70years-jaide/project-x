@@ -8,7 +8,9 @@ import { ThemeProvider, useTheme } from '../src/ThemeContext';
 import { LanguageProvider } from '../src/LanguageContext';
 import { MatrixProvider, useMatrix } from '../src/MatrixContext';
 import { SleepModeProvider } from '../src/SleepModeContext';
+import { CelebrationProvider } from '../src/CelebrationContext';
 import MatrixRainBackground from '../src/components/MatrixRain';
+import CelebrationOverlay from '../src/components/CelebrationOverlay';
 import { clearCache } from '../src/cache';
 import { useImmersiveMode } from '../src/useImmersiveMode';
 import * as Notifications from 'expo-notifications';
@@ -218,9 +220,11 @@ export default function RootLayout() {
     <LanguageProvider>
       <ThemeProvider>
         <MatrixProvider>
-          <AuthProvider>
-            <RootContent />
-          </AuthProvider>
+          <CelebrationProvider>
+            <AuthProvider>
+              <RootContent />
+            </AuthProvider>
+          </CelebrationProvider>
         </MatrixProvider>
       </ThemeProvider>
     </LanguageProvider>
@@ -272,6 +276,7 @@ function RootContent() {
             <Stack.Screen name="notifications" options={{ presentation: 'card' }} />
           </Stack>
         </View>
+        <CelebrationOverlay />
       </View>
     </SleepModeProvider>
   );

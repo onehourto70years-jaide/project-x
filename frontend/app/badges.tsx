@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../src/LanguageContext';
+import { useCelebration } from '../src/CelebrationContext';
 import EmptyState from '../src/components/EmptyState';
 import { hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '../src/haptics';
 
@@ -90,6 +91,7 @@ function BadgeCardAnimated({ badge, index, isNewlyEarned, onShare, earnedLabel, 
 export default function BadgesScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { triggerCelebration } = useCelebration();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [stats, setStats] = useState<any>({});
   const [weeklySummary, setWeeklySummary] = useState<any>({});
@@ -97,6 +99,7 @@ export default function BadgesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [shareData, setShareData] = useState<any>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const celebrationTriggeredRef = useRef<Set<string>>(new Set());
 
   const fetchBadges = async () => {
     try {
@@ -110,8 +113,36 @@ export default function BadgesScreen() {
         setBadges(data.badges || []);
         setStats(data.stats || {});
         setWeeklySummary(data.weekly_summary || {});
-        setNewlyEarned(data.newly_earned || []);
+        const earned = data.newly_earned || [];
+        setNewlyEarned(earned);
         Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+
+        // Trigger celebration for newly earned badges (one at a time)
+        if (earned.length > 0) {
+          const firstNew = earned[0];
+          if (!celebrationTriggeredRef.current.has(firstNew)) {
+            celebrationTriggeredRef.current.add(firstNew);
+            const badgeDef = (data.badges || []).find((b: Badge) => b.id === firstNew);
+            if (badgeDef) {
+              // Check if celebrations are enabled in settings
+              let celebrationsEnabled = true;
+              try {
+                const settingsRes = await fetch(`${BACKEND_URL}/api/user/settings`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (settingsRes.ok) {
+                  const sData = await settingsRes.json();
+                  celebrationsEnabled = sData.celebrations_enabled !== false;
+                }
+              } catch (_) {}
+              if (celebrationsEnabled) {
+                setTimeout(() => {
+                  triggerCelebration(badgeDef, data.stats || {});
+                }, 800);
+              }
+            }
+          }
+        }
       }
     } catch (e) { console.error(e); }
     finally { setRefreshing(false); }

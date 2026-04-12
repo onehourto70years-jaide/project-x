@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useMatrix } from '../../src/MatrixContext';
 import { useTheme } from '../../src/ThemeContext';
+import { useCelebration } from '../../src/CelebrationContext';
 import { WidgetItem, DEFAULT_WIDGETS, loadWidgetLayout, saveWidgetLayout } from '../../src/widgetConfig';
 
 // ─── Widgets ──────────────────────────────
@@ -33,12 +34,15 @@ export default function DashboardScreen() {
   const { matrixEnabled, setPriorityElements, setAdaptiveColor, adaptiveColor } = useMatrix();
   const { theme } = useTheme();
 
+  const { triggerCelebration } = useCelebration();
+
   // ─── Data State ────────────────────────
   const [refreshing, setRefreshing] = useState(false);
   const [dashboard, setDashboard] = useState<any>(null);
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const celebrationCheckedRef = useRef<Set<string>>(new Set());
 
   // ─── Widget layout ─────────────────────
   const [widgets, setWidgets] = useState<WidgetItem[]>([]);
@@ -97,6 +101,34 @@ export default function DashboardScreen() {
         return res.json();
       }, CacheTTL.MEDIUM);
       setPaymentStatus(payResult.data);
+
+      // ── Background Badge Check (silent celebration trigger) ──
+      try {
+        const badgeRes = await fetch(`${BACKEND_URL}/api/badges`, { headers: authHeaders });
+        if (badgeRes.ok) {
+          const bData = await badgeRes.json();
+          const newlyEarned = bData.newly_earned || [];
+          if (newlyEarned.length > 0) {
+            const firstNew = newlyEarned[0];
+            if (!celebrationCheckedRef.current.has(firstNew)) {
+              celebrationCheckedRef.current.add(firstNew);
+              const badgeDef = (bData.badges || []).find((b: any) => b.id === firstNew);
+              if (badgeDef) {
+                // Check settings
+                let celebrationsOn = true;
+                try {
+                  const sRes = await fetch(`${BACKEND_URL}/api/user/settings`, { headers: authHeaders });
+                  if (sRes.ok) { const s = await sRes.json(); celebrationsOn = s.celebrations_enabled !== false; }
+                } catch (_) {}
+                if (celebrationsOn) {
+                  setTimeout(() => triggerCelebration(badgeDef, bData.stats || {}), 1200);
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {} // Silent — don't block dashboard
+
     } catch (e) { console.error('Dashboard fetch error:', e); }
     finally { setRefreshing(false); }
   };

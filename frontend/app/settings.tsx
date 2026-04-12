@@ -101,7 +101,8 @@ export default function SettingsScreen() {
   });
   const [settings, setSettings] = useState({
     daily_calorie_goal: 2000, daily_protein_goal: 50, daily_water_goal_ml: 2500,
-    notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true, tips_enabled: true
+    notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true, tips_enabled: true,
+    celebrations_enabled: true
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -478,6 +479,23 @@ export default function SettingsScreen() {
               disabled={!settings.notifications_enabled}
               trackColor={{ false: theme.bgInput, true: '#ffd93d' }} thumbColor="#fff"
               accessibilityLabel="Nutrition tips" accessibilityRole="switch" />
+          </View>
+          <View style={[styles.divider, { backgroundColor: theme.borderLight }]} />
+          {/* Achievement Celebrations Toggle */}
+          <View style={styles.switchRow}>
+            <View style={styles.switchLeft}>
+              <View style={[styles.settingIcon, { backgroundColor: 'rgba(0, 212, 255, 0.15)' }]}>
+                <Ionicons name="sparkles" size={18} color="#00d4ff" />
+              </View>
+              <View>
+                <Text style={[styles.switchLabel, { color: theme.text }]}>Achievement Celebrations</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>System celebration when badges are unlocked</Text>
+              </View>
+            </View>
+            <Switch value={settings.celebrations_enabled !== false}
+              onValueChange={(v) => setSettings(prev => ({ ...prev, celebrations_enabled: v }))}
+              trackColor={{ false: theme.bgInput, true: '#00d4ff' }} thumbColor="#fff"
+              accessibilityLabel="Achievement celebrations" accessibilityRole="switch" />
           </View>
           {/* Test Notification */}
           <TouchableOpacity
