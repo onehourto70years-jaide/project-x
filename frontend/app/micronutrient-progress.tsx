@@ -335,6 +335,52 @@ export default function MicronutrientProgressScreen() {
               <View style={styles.loadingContainer}><ActivityIndicator size="large" color={theme.accent} /></View>
             ) : gapData ? (
               <>
+                {/* ── Progress Summary Banner ── */}
+                {gapData.progress_summary && (
+                  <View style={[styles.progressBanner, {
+                    backgroundColor: gapData.progress_summary.overall_trend === 'improving' ? '#34c75912' : gapData.progress_summary.overall_trend === 'declining' ? '#ff453a12' : `${theme.accent}10`,
+                    borderColor: gapData.progress_summary.overall_trend === 'improving' ? '#34c75930' : gapData.progress_summary.overall_trend === 'declining' ? '#ff453a30' : `${theme.accent}25`,
+                  }]}>
+                    <View style={styles.progressBannerRow}>
+                      <Ionicons
+                        name={gapData.progress_summary.overall_trend === 'improving' ? 'trending-up' : gapData.progress_summary.overall_trend === 'declining' ? 'trending-down' : 'remove'}
+                        size={22}
+                        color={gapData.progress_summary.overall_trend === 'improving' ? '#34c759' : gapData.progress_summary.overall_trend === 'declining' ? '#ff453a' : theme.accent}
+                      />
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={[styles.progressBannerTitle, { color: theme.text }]}>
+                          {gapData.progress_summary.overall_trend === 'improving' ? 'Nutrition Improving' : gapData.progress_summary.overall_trend === 'declining' ? 'Gaps Increasing' : 'Nutrition Stable'}
+                        </Text>
+                        <Text style={[styles.progressBannerSub, { color: theme.textMuted }]}>
+                          {gapData.progress_summary.current_deficiencies} gaps now vs {gapData.progress_summary.previous_deficiencies} last week · {gapData.progress_summary.days_tracked_this_week} days tracked
+                        </Text>
+                      </View>
+                    </View>
+                    {(gapData.progress_summary.trend_improving > 0 || gapData.progress_summary.trend_declining > 0) && (
+                      <View style={styles.trendPills}>
+                        {gapData.progress_summary.trend_improving > 0 && (
+                          <View style={[styles.trendPill, { backgroundColor: '#34c75918' }]}>
+                            <Ionicons name="arrow-up" size={12} color="#34c759" />
+                            <Text style={{ color: '#34c759', fontSize: 11, fontWeight: '600', marginLeft: 3 }}>{gapData.progress_summary.trend_improving} improving</Text>
+                          </View>
+                        )}
+                        {gapData.progress_summary.trend_declining > 0 && (
+                          <View style={[styles.trendPill, { backgroundColor: '#ff453a18' }]}>
+                            <Ionicons name="arrow-down" size={12} color="#ff453a" />
+                            <Text style={{ color: '#ff453a', fontSize: 11, fontWeight: '600', marginLeft: 3 }}>{gapData.progress_summary.trend_declining} declining</Text>
+                          </View>
+                        )}
+                        {gapData.progress_summary.trend_stable > 0 && (
+                          <View style={[styles.trendPill, { backgroundColor: `${theme.accent}15` }]}>
+                            <Ionicons name="remove" size={12} color={theme.accent} />
+                            <Text style={{ color: theme.accent, fontSize: 11, fontWeight: '600', marginLeft: 3 }}>{gapData.progress_summary.trend_stable} stable</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 {gapData.top_gaps?.length === 0 ? (
                   <View style={[styles.emptyCard, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
                     <Ionicons name="checkmark-done-circle" size={48} color="#34c759" />
@@ -352,10 +398,32 @@ export default function MicronutrientProgressScreen() {
                           <Text style={[styles.gapName, { color: theme.text }]}>{gap.name}</Text>
                           <Text style={[styles.gapDetail, { color: theme.textMuted }]}>{gap.pct_rda}% of RDA · Missing {gap.deficit}{gap.unit}/day</Text>
                         </View>
+                        {/* Trend badge */}
+                        {gap.trend && (
+                          <View style={[styles.trendBadge, {
+                            backgroundColor: gap.trend === 'improving' ? '#34c75918' : gap.trend === 'declining' ? '#ff453a18' : `${theme.accent}12`
+                          }]}>
+                            <Ionicons
+                              name={gap.trend === 'improving' ? 'trending-up' : gap.trend === 'declining' ? 'trending-down' : 'remove'}
+                              size={14}
+                              color={gap.trend === 'improving' ? '#34c759' : gap.trend === 'declining' ? '#ff453a' : theme.accent}
+                            />
+                            <Text style={{
+                              fontSize: 10, fontWeight: '700', marginLeft: 3,
+                              color: gap.trend === 'improving' ? '#34c759' : gap.trend === 'declining' ? '#ff453a' : theme.accent,
+                            }}>
+                              {gap.delta_pct > 0 ? '+' : ''}{gap.delta_pct}%
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <Text style={[styles.gapRole, { color: theme.textMuted }]}>{gap.key_role}</Text>
                       <View style={[styles.gapBar, { backgroundColor: theme.bgSecondary }]}>
                         <View style={[styles.gapBarFill, { width: `${Math.min(gap.pct_rda, 100)}%`, backgroundColor: gap.pct_rda < 30 ? '#ff453a' : '#ffd60a' }]} />
+                        {/* Show previous week ghost bar */}
+                        {gap.prev_pct_rda > 0 && (
+                          <View style={[styles.gapBarGhost, { left: `${Math.min(gap.prev_pct_rda, 100)}%` }]} />
+                        )}
                       </View>
                     </View>
                   ))
@@ -622,8 +690,16 @@ const styles = StyleSheet.create({
   gapName: { fontSize: 15, fontWeight: '700' },
   gapDetail: { fontSize: 12, marginTop: 2 },
   gapRole: { fontSize: 12, marginBottom: 8, fontStyle: 'italic' },
-  gapBar: { height: 6, borderRadius: 3 },
+  gapBar: { height: 6, borderRadius: 3, position: 'relative' as const },
   gapBarFill: { height: 6, borderRadius: 3 },
+  gapBarGhost: { position: 'absolute' as const, top: -2, width: 2, height: 10, backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 1 },
+  progressBanner: { padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  progressBannerRow: { flexDirection: 'row' as const, alignItems: 'center' as const },
+  progressBannerTitle: { fontSize: 15, fontWeight: '700' as const, marginBottom: 2 },
+  progressBannerSub: { fontSize: 12 },
+  trendPills: { flexDirection: 'row' as const, marginTop: 10, gap: 8, flexWrap: 'wrap' as const },
+  trendPill: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  trendBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
   // AI Suggestions
   suggestionCard: { borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1 },
   suggestionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },

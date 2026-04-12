@@ -173,7 +173,7 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
                             from services import search_usda_foods, get_usda_food_details, extract_nutrients, apply_cooking_retention, calculate_elemental_composition, detect_allergens
                             search_results = await search_usda_foods(action.get("food_name", ""), 1)
                             if search_results:
-                                fdc_id = search_results[0].get("fdcId")
+                                fdc_id = search_results[0].get("fdc_id")
                                 food_data = await get_usda_food_details(fdc_id) if fdc_id else None
                                 if food_data:
                                     raw_nutrients = extract_nutrients(food_data, action.get("portion_grams", 100))
@@ -188,7 +188,13 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
                             logger.warning(f"AI meal enrichment failed: {enrich_err}")
 
                         await db.meals.insert_one(meal_doc)
-                        actions_executed.append({"type": "log_meal", "success": True, "food_name": meal_doc["food_name"], "portion_grams": meal_doc["portion_grams"], "meal_type": meal_doc["meal_type"]})
+                        # ── CRITICAL: Update daily summary so calories/nutrients are counted ──
+                        try:
+                            from services import update_daily_summary
+                            await update_daily_summary(user.user_id, today)
+                        except Exception as sum_err:
+                            logger.warning(f"AI meal daily summary update failed: {sum_err}")
+                        actions_executed.append({"type": "log_meal", "success": True, "food_name": meal_doc["food_name"], "portion_grams": meal_doc["portion_grams"], "meal_type": meal_doc["meal_type"], "nutrients": meal_doc.get("nutrients", {})})
                         logger.info(f"AI Coach logged meal '{meal_doc['food_name']}' for {user.user_id}")
 
                     elif action_type == "log_water":
@@ -199,9 +205,16 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
                             "user_id": user.user_id,
                             "date": today,
                             "amount_ml": amount_ml,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                             "logged_at": datetime.now(timezone.utc),
                             "source": "ai_coach"
                         })
+                        # ── CRITICAL: Update daily summary so water is counted ──
+                        try:
+                            from services import update_daily_summary
+                            await update_daily_summary(user.user_id, today)
+                        except Exception as sum_err:
+                            logger.warning(f"AI water daily summary update failed: {sum_err}")
                         actions_executed.append({"type": "log_water", "success": True, "amount_ml": amount_ml})
                         logger.info(f"AI Coach logged {amount_ml}ml water for {user.user_id}")
 

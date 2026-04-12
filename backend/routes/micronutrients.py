@@ -364,63 +364,129 @@ async def symptom_correlation(data: dict, user: User = Depends(require_user)):
 
 @router.get("/progress/gap-analysis")
 async def gap_analysis(user: User = Depends(require_user)):
-    """AI-powered gap filling: identify top deficiency and suggest foods."""
-    # Get 7-day data
-    end_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    start_str = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    """AI-powered gap filling: identify deficiencies, suggest foods, and SHOW PROGRESS over time."""
 
-    meals = await db.meals.find(
-        {"user_id": user.user_id, "date": {"$gte": start_str}},
-        {"_id": 0, "nutrients": 1, "food_name": 1}
+    now = datetime.now(timezone.utc)
+
+    # ── Current week (last 7 days) ──
+    cur_start = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    cur_meals = await db.meals.find(
+        {"user_id": user.user_id, "date": {"$gte": cur_start}},
+        {"_id": 0, "nutrients": 1, "food_name": 1, "date": 1}
     ).to_list(500)
 
-    totals = {}
+    cur_totals = {}
+    cur_days = set()
     food_library = set()
-    for meal in meals:
+    for meal in cur_meals:
         food_library.add(meal.get("food_name", ""))
+        cur_days.add(meal.get("date"))
         n = meal.get("nutrients", {})
         if isinstance(n, dict):
             for key, val in n.items():
                 if isinstance(val, (int, float)):
-                    totals[key] = totals.get(key, 0) + val
+                    cur_totals[key] = cur_totals.get(key, 0) + val
+    cur_num_days = max(len(cur_days), 1)
+    cur_avgs = {k: v / cur_num_days for k, v in cur_totals.items()}
 
-    daily_avgs = {k: v / 7 for k, v in totals.items()}
+    # ── Previous week (day 8 to 14 ago) — for trend comparison ──
+    prev_start = (now - timedelta(days=14)).strftime("%Y-%m-%d")
+    prev_end = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    prev_meals = await db.meals.find(
+        {"user_id": user.user_id, "date": {"$gte": prev_start, "$lt": prev_end}},
+        {"_id": 0, "nutrients": 1, "date": 1}
+    ).to_list(500)
 
-    # Find top 3 deficiencies
+    prev_totals = {}
+    prev_days = set()
+    for meal in prev_meals:
+        prev_days.add(meal.get("date"))
+        n = meal.get("nutrients", {})
+        if isinstance(n, dict):
+            for key, val in n.items():
+                if isinstance(val, (int, float)):
+                    prev_totals[key] = prev_totals.get(key, 0) + val
+    prev_num_days = max(len(prev_days), 1)
+    prev_avgs = {k: v / prev_num_days for k, v in prev_totals.items()}
+
+    # ── Find deficiencies with trend ──
     deficiencies = []
     for key, ref in MICRONUTRIENT_REF.items():
         rda = ref["rda"]
-        avg = daily_avgs.get(key, 0)
-        pct = (avg / rda) * 100 if rda else 100
-        if pct < 70:
+        cur_avg = cur_avgs.get(key, 0)
+        prev_avg = prev_avgs.get(key, 0)
+        cur_pct = (cur_avg / rda) * 100 if rda else 100
+        prev_pct = (prev_avg / rda) * 100 if rda else 100
+        delta_pct = round(cur_pct - prev_pct, 1)
+
+        # Determine trend
+        if delta_pct > 5:
+            trend = "improving"
+        elif delta_pct < -5:
+            trend = "declining"
+        else:
+            trend = "stable"
+
+        if cur_pct < 70:
             deficiencies.append({
                 "key": key,
                 "name": ref["name"],
-                "pct_rda": round(pct, 1),
-                "daily_avg": round(avg, 2),
+                "pct_rda": round(cur_pct, 1),
+                "prev_pct_rda": round(prev_pct, 1),
+                "daily_avg": round(cur_avg, 2),
                 "rda": rda,
                 "unit": ref["unit"],
-                "deficit": round(rda - avg, 2),
+                "deficit": round(rda - cur_avg, 2),
                 "key_role": ref["key_role"],
+                "trend": trend,
+                "delta_pct": delta_pct,
             })
 
     deficiencies.sort(key=lambda x: x["pct_rda"])
     top_gaps = deficiencies[:3]
 
-    # Use AI to suggest foods
+    # ── Overall progress summary ──
+    total_improving = sum(1 for d in deficiencies if d["trend"] == "improving")
+    total_declining = sum(1 for d in deficiencies if d["trend"] == "declining")
+    total_stable = sum(1 for d in deficiencies if d["trend"] == "stable")
+
+    # Previous week total deficiencies count
+    prev_deficiency_count = 0
+    for key, ref in MICRONUTRIENT_REF.items():
+        rda = ref["rda"]
+        prev_pct = (prev_avgs.get(key, 0) / rda) * 100 if rda else 100
+        if prev_pct < 70:
+            prev_deficiency_count += 1
+
+    progress_summary = {
+        "current_deficiencies": len(deficiencies),
+        "previous_deficiencies": prev_deficiency_count,
+        "trend_improving": total_improving,
+        "trend_declining": total_declining,
+        "trend_stable": total_stable,
+        "overall_trend": "improving" if len(deficiencies) < prev_deficiency_count else ("declining" if len(deficiencies) > prev_deficiency_count else "stable"),
+        "days_tracked_this_week": len(cur_days),
+        "days_tracked_last_week": len(prev_days),
+    }
+
+    # ── AI suggestions ──
     ai_suggestions = []
     if top_gaps and EMERGENT_LLM_KEY:
         try:
             from emergentintegrations.llm.chat import LlmChat, UserMessage
-            prompt = f"""You are a nutrition expert. The user has these nutrient deficiencies (7-day average):
+            trend_info = "\n".join(
+                f"- {g['name']}: {g['pct_rda']}% of RDA (trend: {g['trend']}, {'+' if g['delta_pct'] > 0 else ''}{g['delta_pct']}% vs last week)"
+                for g in top_gaps
+            )
+            prompt = f"""You are a nutrition expert. The user has these nutrient deficiencies (7-day avg vs previous week):
 
-{chr(10).join(f"- {g['name']}: {g['pct_rda']}% of RDA ({g['daily_avg']}{g['unit']} / {g['rda']}{g['unit']})" for g in top_gaps)}
+{trend_info}
 
-The user's food library includes: {', '.join(list(food_library)[:20])}
+Foods already eaten: {', '.join(list(food_library)[:20])}
 
-For EACH deficiency, suggest exactly 3 specific, common foods that are rich in that nutrient. 
-Format your response as JSON array:
-[{{"nutrient": "name", "foods": [{{"name": "food", "amount": "100g", "nutrient_content": "X mg"}}]}}]
+For EACH deficiency, suggest exactly 3 specific foods rich in that nutrient.
+Format as JSON array:
+[{{"nutrient": "name", "trend": "improving/declining/stable", "foods": [{{"name": "food", "amount": "100g", "nutrient_content": "X mg"}}]}}]
 Return ONLY the JSON, no markdown."""
 
             chat = LlmChat(
@@ -431,7 +497,6 @@ Return ONLY the JSON, no markdown."""
 
             response = await chat.send_message(UserMessage(text=prompt))
             import json
-            # Clean response
             clean = response.strip()
             if clean.startswith("```"):
                 clean = clean.split("\n", 1)[1].rsplit("```", 1)[0]
@@ -444,4 +509,5 @@ Return ONLY the JSON, no markdown."""
         "all_deficiencies": deficiencies,
         "ai_suggestions": ai_suggestions,
         "foods_in_library": len(food_library),
+        "progress_summary": progress_summary,
     }

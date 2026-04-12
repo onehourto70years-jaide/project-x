@@ -283,7 +283,9 @@ export default function AIChatScreen() {
     let label = '';
     if (action.type === 'log_meal') {
       icon = 'restaurant'; color = '#6c5ce7';
-      label = `Logged: ${action.food_name} (${action.portion_grams}g, ${action.meal_type})`;
+      const cals = action.nutrients?.energy_kcal ? ` · ${Math.round(action.nutrients.energy_kcal)} kcal` : '';
+      const prot = action.nutrients?.protein_g ? ` · ${Math.round(action.nutrients.protein_g)}g protein` : '';
+      label = `Logged: ${action.food_name} (${action.portion_grams}g, ${action.meal_type})${cals}${prot}`;
     } else if (action.type === 'log_water') {
       icon = 'water'; color = '#00b4d8';
       label = `Logged: ${action.amount_ml}ml water`;
