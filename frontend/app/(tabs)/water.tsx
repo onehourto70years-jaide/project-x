@@ -1,12 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Alert, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cachedFetch, CacheKeys, CacheTTL, clearCacheForKey } from '../../src/cache';
 import { useLanguage } from '../../src/LanguageContext';
 import { useTheme, ThemeColors } from '../../src/ThemeContext';
-import { hapticMedium, hapticSuccess } from '../../src/haptics';
+import { hapticMedium, hapticSuccess, hapticWarning } from '../../src/haptics';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -33,6 +33,13 @@ export default function WaterScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+
+  // ─── Undo Delete State ─────────────────
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; amount_ml: number; timestamp: string } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snackbarAnim = useRef(new Animated.Value(0)).current;
+  const undoCountdown = useRef(5);
+  const [undoSecondsLeft, setUndoSecondsLeft] = useState(5);
 
   const fetchWaterData = async () => {
     try {
@@ -111,6 +118,93 @@ export default function WaterScreen() {
       setAdding(false);
     }
   };
+
+  // ─── Delete Water Log (with Undo) ─────
+  const deleteWaterLog = async (logId: string, amount: number, timestamp: string) => {
+    hapticWarning();
+    // Cancel any previous pending delete first
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      // Commit the previous pending delete immediately
+      if (pendingDelete) {
+        commitDelete(pendingDelete.id);
+      }
+    }
+
+    // Optimistically remove from UI
+    if (waterData) {
+      setWaterData({
+        ...waterData,
+        logs: waterData.logs.filter(l => l.id !== logId),
+        total_ml: waterData.total_ml - amount,
+        percentage: Math.max(0, Math.round(((waterData.total_ml - amount) / waterData.goal_ml) * 1000) / 10),
+      });
+    }
+
+    // Set pending delete & show snackbar
+    setPendingDelete({ id: logId, amount_ml: amount, timestamp });
+    setUndoSecondsLeft(5);
+    undoCountdown.current = 5;
+
+    Animated.spring(snackbarAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }).start();
+
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      undoCountdown.current -= 1;
+      setUndoSecondsLeft(undoCountdown.current);
+      if (undoCountdown.current <= 0) clearInterval(countdownInterval);
+    }, 1000);
+
+    // Auto-commit after 5s
+    undoTimerRef.current = setTimeout(() => {
+      clearInterval(countdownInterval);
+      commitDelete(logId);
+      hideSnackbar();
+    }, 5000);
+  };
+
+  const commitDelete = async (logId: string) => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      await fetch(`${BACKEND_URL}/api/water/${logId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      await Promise.all([
+        clearCacheForKey(CacheKeys.waterToday),
+        clearCacheForKey('water_history_7'),
+        clearCacheForKey(CacheKeys.dashboard),
+      ]);
+    } catch (e) {
+      console.error('Error committing water delete:', e);
+    }
+  };
+
+  const undoDelete = () => {
+    hapticMedium();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    // Restore the log to UI by re-fetching
+    setPendingDelete(null);
+    hideSnackbar();
+    // Re-fetch fresh data
+    clearCacheForKey(CacheKeys.waterToday).then(() => {
+      clearCacheForKey('water_history_7').then(() => fetchWaterData());
+    });
+  };
+
+  const hideSnackbar = () => {
+    Animated.timing(snackbarAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
+      setPendingDelete(null);
+    });
+  };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   const getHydrationStatus = () => {
     const pct = waterData?.percentage || 0;
@@ -222,6 +316,15 @@ export default function WaterScreen() {
                 <Text style={styles.logTime}>
                   {new Date(log.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => deleteWaterLog(log.id, log.amount_ml, log.timestamp)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${log.amount_ml}ml water log`}
+                >
+                  <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                </TouchableOpacity>
               </View>
             ))
           ) : (
@@ -262,6 +365,30 @@ export default function WaterScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Undo Snackbar */}
+      {pendingDelete && (
+        <Animated.View style={[
+          styles.snackbar,
+          {
+            transform: [{ translateY: snackbarAnim.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }) }],
+            opacity: snackbarAnim,
+          },
+        ]}>
+          <View style={styles.snackbarContent}>
+            <View style={styles.snackbarLeft}>
+              <Ionicons name="trash" size={16} color={theme.danger} />
+              <Text style={styles.snackbarText}>
+                {pendingDelete.amount_ml}ml removed ({undoSecondsLeft}s)
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.undoBtn} onPress={undoDelete} activeOpacity={0.7}>
+              <Text style={styles.undoBtnText}>UNDO</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
     </SafeAreaView>
   );
 }
@@ -306,6 +433,7 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
   logIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: `${theme.accent}18`, justifyContent: 'center', alignItems: 'center' },
   logAmount: { flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: theme.text },
   logTime: { fontSize: 12, color: theme.textMuted },
+  deleteBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: `${theme.danger}12`, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   emptyLogs: { alignItems: 'center', padding: 30 },
   emptyText: { color: theme.textDim, marginTop: 12 },
   historySection: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16, marginBottom: 16 },
@@ -317,4 +445,10 @@ const makeStyles = (theme: ThemeColors) => StyleSheet.create({
   tipsCard: { backgroundColor: theme.bgCard, borderRadius: 16, padding: 16 },
   tipItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   tipText: { color: theme.textSecondary, fontSize: 13, marginLeft: 10, flex: 1 },
+  snackbar: { position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 100 },
+  snackbarContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.bgCard, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: `${theme.danger}30` },
+  snackbarLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  snackbarText: { fontSize: 14, color: theme.text, fontWeight: '500' },
+  undoBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: `${theme.accent}18` },
+  undoBtnText: { fontSize: 14, fontWeight: '700', color: theme.accent, letterSpacing: 1 },
 });

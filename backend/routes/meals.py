@@ -123,6 +123,20 @@ async def get_smart_water_goal(user: User = Depends(require_user)):
     return {"recommended_ml": int(base_ml * activity_mult), "weight_kg": user.weight_kg, "activity_level": user.activity_level}
 
 
+@router.delete("/water/{log_id}")
+async def delete_water_log(log_id: str, user: User = Depends(require_user)):
+    """Delete a water log entry. Returns the deleted log for potential undo."""
+    log = await db.water_logs.find_one({"id": log_id, "user_id": user.user_id}, {"_id": 0})
+    if not log:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Water log not found")
+    await db.water_logs.delete_one({"id": log_id, "user_id": user.user_id})
+    # Update daily summary for that date
+    log_date = log.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    await update_daily_summary(user.user_id, log_date)
+    return {"message": "Water log deleted", "deleted_log": {"id": log.get("id"), "amount_ml": log.get("amount_ml"), "timestamp": str(log.get("timestamp", "")), "date": log_date}}
+
+
 # Favorites
 @router.post("/favorites")
 async def add_favorite(fav: FavoriteCreate, user: User = Depends(require_user)):
