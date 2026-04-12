@@ -307,6 +307,23 @@ export default function NutritionScreen() {
               );
             })}
           </View>
+          {/* Deep Analysis Button */}
+          <TouchableOpacity
+            style={styles.deepAnalysisBtn}
+            onPress={() => { hapticMedium(); router.push('/micronutrient-progress'); }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.deepAnalysisBtnInner}>
+              <View style={styles.deepAnalysisIconWrap}>
+                <Ionicons name="analytics" size={20} color="#00d4ff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.deepAnalysisBtnTitle}>{t('nutr_smart_chart') || 'Smart Micronutrient Chart'}</Text>
+                <Text style={styles.deepAnalysisBtnSub}>{t('nutr_smart_chart_sub') || 'Radar chart · AI gap analysis · Symptoms'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#555" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* View Mode Toggle */}
@@ -662,6 +679,11 @@ const styles = StyleSheet.create({
   microValue: { fontSize: 13, color: '#fff', fontWeight: '500' },
   microBar: { height: 6, backgroundColor: '#2a2a4e', borderRadius: 3 },
   microFill: { height: 6, borderRadius: 3 },
+  deepAnalysisBtn: { marginTop: 14 },
+  deepAnalysisBtnInner: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(0, 212, 255, 0.06)', borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.15)' },
+  deepAnalysisIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(0, 212, 255, 0.12)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  deepAnalysisBtnTitle: { fontSize: 14, fontWeight: '700', color: '#00d4ff', marginBottom: 2 },
+  deepAnalysisBtnSub: { fontSize: 11, color: '#888' },
   mealSection: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 16, marginBottom: 12 },
   mealSectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   mealTypeIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },

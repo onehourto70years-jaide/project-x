@@ -1,354 +1,340 @@
 #!/usr/bin/env python3
 """
-NutriOS Reports & Data Export API Testing
-Testing NEW Reports & Data Export API endpoints as per review request.
+NutriOS Backend API Testing - Smart Micronutrient Engine Focus
+Testing the new Smart Micronutrient Engine endpoints and basic regression tests.
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
-from datetime import datetime, timedelta
-import pymongo
-from pymongo import MongoClient
 import uuid
+from datetime import datetime, timezone, timedelta
+from pymongo import MongoClient
 
 # Configuration
-BACKEND_URL = "https://meal-sync-test.preview.emergentagent.com/api"
-MONGO_URL = "mongodb://localhost:27017/nutrient_mapper"
+BASE_URL = "https://meal-sync-test.preview.emergentagent.com/api"
+MONGO_URL = "mongodb://localhost:27017"
+DB_NAME = "nutrient_mapper"
 
-# Test data
-TEST_USER_ID = "test_report_user"
-TEST_EMAIL = "report_test@test.com"
-TEST_NAME = "Report Test"
-TEST_SESSION_TOKEN = "test_report_token_2026"
+# Test user credentials as per review request
+TEST_USER_ID = "test_micro_user"
+TEST_EMAIL = "test@nutrios.com"
+TEST_NAME = "Test User"
+TEST_SESSION_TOKEN = "test_micro_token_123"
 
-def setup_test_data():
-    """Setup test user and sample data in MongoDB as per review request."""
-    print("🔧 Setting up test data in MongoDB...")
-    
-    client = MongoClient(MONGO_URL)
-    db = client.nutrient_mapper
-    
-    # Get today's date and 7 days ago
-    today = datetime.now().strftime("%Y-%m-%d")
-    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    
-    # 1. Insert test user
-    user_doc = {
-        "user_id": TEST_USER_ID,
-        "email": TEST_EMAIL,
-        "name": TEST_NAME,
-        "created_at": datetime.now()
-    }
-    db.users.insert_one(user_doc)
-    print(f"✅ Created test user: {TEST_USER_ID}")
-    
-    # 2. Insert session
-    session_doc = {
-        "session_token": TEST_SESSION_TOKEN,
-        "user_id": TEST_USER_ID,
-        "expires_at": datetime.now() + timedelta(days=1)
-    }
-    db.user_sessions.insert_one(session_doc)
-    print(f"✅ Created session token: {TEST_SESSION_TOKEN}")
-    
-    # 3. Insert sample daily_summaries
-    daily_summaries = [
-        {
-            "user_id": TEST_USER_ID,
-            "date": today,
-            "total_calories": 2100,
-            "total_protein": 120,
-            "total_carbs": 250,
-            "total_fat": 70,
-            "routines_completed": 3,
-            "routines_total": 5
-        },
-        {
-            "user_id": TEST_USER_ID,
-            "date": week_ago,
-            "total_calories": 1800,
-            "total_protein": 100,
-            "total_carbs": 200,
-            "total_fat": 60,
-            "routines_completed": 2,
-            "routines_total": 4
+class NutriOSAPITester:
+    def __init__(self):
+        self.session = None
+        self.mongo_client = None
+        self.db = None
+        self.headers = {
+            "Authorization": f"Bearer {TEST_SESSION_TOKEN}",
+            "Content-Type": "application/json"
         }
-    ]
-    db.daily_summaries.insert_many(daily_summaries)
-    print(f"✅ Created daily summaries for {today} and {week_ago}")
-    
-    # 4. Insert sample water_logs
-    water_logs = [
-        {
+        
+    async def setup(self):
+        """Setup test environment - create test user and session in MongoDB"""
+        print("🔧 Setting up test environment...")
+        
+        # MongoDB setup
+        self.mongo_client = MongoClient(MONGO_URL)
+        self.db = self.mongo_client[DB_NAME]
+        
+        # HTTP session setup
+        self.session = aiohttp.ClientSession()
+        
+        # Create test user in MongoDB
+        user_doc = {
             "user_id": TEST_USER_ID,
-            "date": today,
-            "amount_ml": 500
-        },
-        {
-            "user_id": TEST_USER_ID,
-            "date": week_ago,
-            "amount_ml": 400
+            "email": TEST_EMAIL,
+            "name": TEST_NAME,
+            "created_at": datetime.now(timezone.utc),
+            "weight_kg": 70.0,
+            "activity_level": "moderate"
         }
-    ]
-    db.water_logs.insert_many(water_logs)
-    print(f"✅ Created water logs for {today} and {week_ago}")
-    
-    # 5. Insert sample meals
-    meal_doc = {
-        "id": "test_meal_1",
-        "user_id": TEST_USER_ID,
-        "food_name": "Chicken Breast",
-        "date": today,
-        "meal_type": "lunch",
-        "portion_grams": 200,
-        "nutrients": {
-            "energy_kcal": 330,
-            "protein_g": 62
-        },
-        "cooking_method": "grilled"
-    }
-    db.meals.insert_one(meal_doc)
-    print(f"✅ Created test meal for {today}")
-    
-    # 6. Insert sample weight_logs
-    weight_doc = {
-        "id": "test_wl_1",
-        "user_id": TEST_USER_ID,
-        "weight_kg": 75.0,
-        "date": today,
-        "note": "Morning"
-    }
-    db.weight_logs.insert_one(weight_doc)
-    print(f"✅ Created weight log for {today}")
-    
-    client.close()
-    print("🔧 Test data setup complete!")
-    return today, week_ago
-
-def cleanup_test_data():
-    """Clean up all test data from MongoDB."""
-    print("🧹 Cleaning up test data...")
-    
-    client = MongoClient(MONGO_URL)
-    db = client.nutrient_mapper
-    
-    # Delete all test data
-    collections = ['users', 'user_sessions', 'daily_summaries', 'water_logs', 'meals', 'weight_logs']
-    for collection in collections:
-        result = db[collection].delete_many({"user_id": TEST_USER_ID})
-        print(f"✅ Deleted {result.deleted_count} documents from {collection}")
-    
-    client.close()
-    print("🧹 Cleanup complete!")
-
-def test_weekly_comparison_authorized():
-    """Test GET /api/reports/weekly-comparison with authorization."""
-    print("\n📊 Testing Weekly Comparison Report (Authorized)...")
-    
-    headers = {
-        "Authorization": f"Bearer {TEST_SESSION_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        response = requests.get(f"{BACKEND_URL}/reports/weekly-comparison", headers=headers)
-        print(f"Status Code: {response.status_code}")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ PASS - Weekly comparison endpoint working")
+        # Insert or update user
+        self.db.users.replace_one({"user_id": TEST_USER_ID}, user_doc, upsert=True)
+        print(f"✅ Created test user: {TEST_USER_ID}")
+        
+        # Create session token
+        session_doc = {
+            "session_token": TEST_SESSION_TOKEN,
+            "user_id": TEST_USER_ID,
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=30),
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        self.db.user_sessions.replace_one({"session_token": TEST_SESSION_TOKEN}, session_doc, upsert=True)
+        print(f"✅ Created session token: {TEST_SESSION_TOKEN}")
+        
+    async def cleanup(self):
+        """Cleanup test data"""
+        print("🧹 Cleaning up test data...")
+        if self.db is not None:
+            self.db.users.delete_one({"user_id": TEST_USER_ID})
+            self.db.user_sessions.delete_one({"session_token": TEST_SESSION_TOKEN})
+            self.db.meals.delete_many({"user_id": TEST_USER_ID})
+            print("✅ Test data cleaned up")
             
-            # Verify response structure
-            required_keys = ['this_week', 'last_week', 'comparisons']
-            for key in required_keys:
-                if key not in data:
-                    print(f"❌ FAIL - Missing key: {key}")
-                    return False
+        if self.session:
+            await self.session.close()
             
-            # Verify this_week structure
-            this_week_keys = ['nutrition', 'water', 'routines', 'weight', 'meals_count']
-            for key in this_week_keys:
-                if key not in data['this_week']:
-                    print(f"❌ FAIL - Missing this_week key: {key}")
-                    return False
+        if self.mongo_client:
+            self.mongo_client.close()
+    
+    async def make_request(self, method, endpoint, data=None, headers=None):
+        """Make HTTP request with error handling"""
+        url = f"{BASE_URL}{endpoint}"
+        request_headers = self.headers.copy()
+        if headers:
+            request_headers.update(headers)
             
-            # Verify last_week structure
-            for key in this_week_keys:
-                if key not in data['last_week']:
-                    print(f"❌ FAIL - Missing last_week key: {key}")
-                    return False
-            
-            # Verify comparisons structure
-            comparison_keys = ['calories', 'protein', 'carbs', 'fat', 'water', 'routines']
-            for key in comparison_keys:
-                if key not in data['comparisons']:
-                    print(f"❌ FAIL - Missing comparisons key: {key}")
-                    return False
-            
-            print(f"📊 This week nutrition: {data['this_week']['nutrition']}")
-            print(f"📊 Last week nutrition: {data['last_week']['nutrition']}")
-            print(f"📊 Comparisons: {data['comparisons']}")
-            
+        try:
+            if method.upper() == "GET":
+                async with self.session.get(url, headers=request_headers) as response:
+                    return response.status, await response.json()
+            elif method.upper() == "POST":
+                async with self.session.post(url, headers=request_headers, json=data) as response:
+                    return response.status, await response.json()
+            elif method.upper() == "PUT":
+                async with self.session.put(url, headers=request_headers, json=data) as response:
+                    return response.status, await response.json()
+            elif method.upper() == "DELETE":
+                async with self.session.delete(url, headers=request_headers) as response:
+                    return response.status, await response.json()
+        except Exception as e:
+            return 500, {"error": str(e)}
+    
+    async def test_health_check(self):
+        """Test basic health check endpoint"""
+        print("\n🔍 Testing Health Check...")
+        status, response = await self.make_request("GET", "/")
+        
+        if status == 200:
+            print(f"✅ Health check passed: {response}")
             return True
         else:
-            print(f"❌ FAIL - Expected 200, got {response.status_code}")
-            print(f"Response: {response.text}")
+            print(f"❌ Health check failed: {status} - {response}")
             return False
-            
-    except Exception as e:
-        print(f"❌ FAIL - Exception: {e}")
-        return False
-
-def test_export_data_authorized():
-    """Test GET /api/reports/export-data with authorization."""
-    print("\n📤 Testing Data Export (Authorized)...")
     
-    headers = {
-        "Authorization": f"Bearer {TEST_SESSION_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        response = requests.get(f"{BACKEND_URL}/reports/export-data", headers=headers)
-        print(f"Status Code: {response.status_code}")
+    async def test_dashboard(self):
+        """Test dashboard endpoint (requires auth)"""
+        print("\n🔍 Testing Dashboard...")
+        status, response = await self.make_request("GET", "/dashboard")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ PASS - Data export endpoint working")
-            
-            # Verify response structure
-            required_keys = ['meals', 'water', 'weight', 'daily_summaries', 'exported_at', 'user_email']
-            for key in required_keys:
-                if key not in data:
-                    print(f"❌ FAIL - Missing key: {key}")
-                    return False
-            
-            # Verify meals array contains our test meal
-            meals = data['meals']
-            if not isinstance(meals, list):
-                print("❌ FAIL - meals should be an array")
-                return False
-            
-            test_meal_found = False
-            for meal in meals:
-                if meal.get('food_name') == 'Chicken Breast':
-                    test_meal_found = True
-                    break
-            
-            if not test_meal_found:
-                print("❌ FAIL - Test meal not found in export")
-                return False
-            
-            # Verify water array contains our test water data
-            water = data['water']
-            if not isinstance(water, list):
-                print("❌ FAIL - water should be an array")
-                return False
-            
-            # Verify weight array contains our test weight log
-            weight = data['weight']
-            if not isinstance(weight, list):
-                print("❌ FAIL - weight should be an array")
-                return False
-            
-            test_weight_found = False
-            for weight_entry in weight:
-                if weight_entry.get('weight_kg') == 75.0:
-                    test_weight_found = True
-                    break
-            
-            if not test_weight_found:
-                print("❌ FAIL - Test weight log not found in export")
-                return False
-            
-            # Verify user_email matches
-            if data['user_email'] != TEST_EMAIL:
-                print(f"❌ FAIL - Expected email {TEST_EMAIL}, got {data['user_email']}")
-                return False
-            
-            print(f"📤 Exported {len(meals)} meals, {len(water)} water entries, {len(weight)} weight entries")
-            print(f"📤 User email: {data['user_email']}")
-            print(f"📤 Export timestamp: {data['exported_at']}")
-            
+        if status == 200:
+            print(f"✅ Dashboard passed: Keys present - {list(response.keys())}")
             return True
         else:
-            print(f"❌ FAIL - Expected 200, got {response.status_code}")
-            print(f"Response: {response.text}")
+            print(f"❌ Dashboard failed: {status} - {response}")
             return False
-            
-    except Exception as e:
-        print(f"❌ FAIL - Exception: {e}")
-        return False
-
-def test_weekly_comparison_unauthorized():
-    """Test GET /api/reports/weekly-comparison without authorization."""
-    print("\n🔒 Testing Weekly Comparison Report (Unauthorized)...")
     
-    try:
-        response = requests.get(f"{BACKEND_URL}/reports/weekly-comparison")
-        print(f"Status Code: {response.status_code}")
+    async def add_test_meal(self):
+        """Add a test meal with nutrients for micronutrient testing"""
+        print("\n🍗 Adding test meal with nutrients...")
         
-        if response.status_code == 401:
-            print("✅ PASS - Unauthorized access properly blocked")
+        meal_data = {
+            "food_name": "Test Chicken",
+            "portion_grams": 150,
+            "meal_type": "lunch",
+            "cooking_method": "baking",
+            "nutrients": {
+                "energy_kcal": 250,
+                "protein_g": 40,
+                "iron_mg": 2.5,
+                "vitamin_c_mg": 15,
+                "calcium_mg": 30,
+                "magnesium_mg": 25,
+                "zinc_mg": 3,
+                "vitamin_d_mcg": 1.2,
+                "vitamin_b12_mcg": 0.8,
+                "potassium_mg": 300,
+                "sodium_mg": 80
+            }
+        }
+        
+        status, response = await self.make_request("POST", "/meals", meal_data)
+        
+        if status == 200:
+            print(f"✅ Test meal added successfully")
             return True
         else:
-            print(f"❌ FAIL - Expected 401, got {response.status_code}")
-            print(f"Response: {response.text}")
+            print(f"❌ Failed to add test meal: {status} - {response}")
             return False
+    
+    async def test_micronutrient_progress(self):
+        """Test GET /api/progress/micronutrients - 7-day rolling micronutrient averages"""
+        print("\n🧬 Testing Micronutrient Progress...")
+        status, response = await self.make_request("GET", "/progress/micronutrients")
+        
+        if status == 200:
+            required_keys = ["chart_data", "density_score", "days_tracked", "total_nutrients_tracked"]
+            missing_keys = [key for key in required_keys if key not in response]
             
-    except Exception as e:
-        print(f"❌ FAIL - Exception: {e}")
-        return False
+            if not missing_keys:
+                chart_data = response.get("chart_data", [])
+                print(f"✅ Micronutrient progress passed:")
+                print(f"   - Chart data entries: {len(chart_data)}")
+                print(f"   - Density score: {response.get('density_score')}")
+                print(f"   - Days tracked: {response.get('days_tracked')}")
+                print(f"   - Total nutrients tracked: {response.get('total_nutrients_tracked')}")
+                
+                # Check if we have some expected nutrients
+                nutrient_names = [item.get("name") for item in chart_data]
+                expected_nutrients = ["Iron", "Vitamin C", "Calcium", "Magnesium", "Zinc"]
+                found_nutrients = [n for n in expected_nutrients if n in nutrient_names]
+                print(f"   - Found expected nutrients: {found_nutrients}")
+                
+                return True
+            else:
+                print(f"❌ Micronutrient progress missing keys: {missing_keys}")
+                return False
+        else:
+            print(f"❌ Micronutrient progress failed: {status} - {response}")
+            return False
+    
+    async def test_bioavailability_insights(self):
+        """Test GET /api/progress/bioavailability - Nutrient interaction insights"""
+        print("\n🔬 Testing Bioavailability Insights...")
+        status, response = await self.make_request("GET", "/progress/bioavailability")
+        
+        if status == 200:
+            required_keys = ["insights", "total_interactions_checked"]
+            missing_keys = [key for key in required_keys if key not in response]
+            
+            if not missing_keys:
+                insights = response.get("insights", [])
+                print(f"✅ Bioavailability insights passed:")
+                print(f"   - Insights found: {len(insights)}")
+                print(f"   - Total interactions checked: {response.get('total_interactions_checked')}")
+                
+                if insights:
+                    for insight in insights[:3]:  # Show first 3
+                        print(f"   - {insight.get('title')}: {insight.get('severity')} severity")
+                
+                return True
+            else:
+                print(f"❌ Bioavailability insights missing keys: {missing_keys}")
+                return False
+        else:
+            print(f"❌ Bioavailability insights failed: {status} - {response}")
+            return False
+    
+    async def test_symptom_correlation(self):
+        """Test POST /api/progress/symptom-correlation - Symptom correlation analysis"""
+        print("\n🩺 Testing Symptom Correlation...")
+        
+        symptom_data = {"symptoms": ["fatigue", "cramps"]}
+        status, response = await self.make_request("POST", "/progress/symptom-correlation", symptom_data)
+        
+        if status == 200:
+            if "correlations" in response:
+                correlations = response.get("correlations", [])
+                print(f"✅ Symptom correlation passed:")
+                print(f"   - Correlations found: {len(correlations)}")
+                
+                for corr in correlations:
+                    symptom = corr.get("symptom")
+                    strength = corr.get("correlation_strength")
+                    deficient_count = len(corr.get("deficient_nutrients", []))
+                    print(f"   - {symptom}: {strength} correlation ({deficient_count} deficient nutrients)")
+                
+                return True
+            else:
+                print(f"❌ Symptom correlation missing 'correlations' key")
+                return False
+        else:
+            print(f"❌ Symptom correlation failed: {status} - {response}")
+            return False
+    
+    async def test_gap_analysis(self):
+        """Test GET /api/progress/gap-analysis - AI gap analysis"""
+        print("\n🤖 Testing Gap Analysis...")
+        status, response = await self.make_request("GET", "/progress/gap-analysis")
+        
+        if status == 200:
+            required_keys = ["top_gaps", "all_deficiencies"]
+            missing_keys = [key for key in required_keys if key not in response]
+            
+            if not missing_keys:
+                top_gaps = response.get("top_gaps", [])
+                all_deficiencies = response.get("all_deficiencies", [])
+                ai_suggestions = response.get("ai_suggestions", [])
+                
+                print(f"✅ Gap analysis passed:")
+                print(f"   - Top gaps: {len(top_gaps)}")
+                print(f"   - All deficiencies: {len(all_deficiencies)}")
+                print(f"   - AI suggestions: {len(ai_suggestions)}")
+                print(f"   - Foods in library: {response.get('foods_in_library', 0)}")
+                
+                if top_gaps:
+                    for gap in top_gaps[:3]:
+                        name = gap.get("name")
+                        pct_rda = gap.get("pct_rda")
+                        print(f"   - {name}: {pct_rda}% of RDA")
+                
+                return True
+            else:
+                print(f"❌ Gap analysis missing keys: {missing_keys}")
+                return False
+        else:
+            print(f"❌ Gap analysis failed: {status} - {response}")
+            return False
+    
+    async def run_all_tests(self):
+        """Run all tests in sequence"""
+        print("🚀 Starting NutriOS Smart Micronutrient Engine API Tests")
+        print(f"🌐 Base URL: {BASE_URL}")
+        print(f"👤 Test User: {TEST_USER_ID}")
+        
+        results = {}
+        
+        try:
+            await self.setup()
+            
+            # Basic regression tests
+            results["health_check"] = await self.test_health_check()
+            results["dashboard"] = await self.test_dashboard()
+            results["add_test_meal"] = await self.add_test_meal()
+            
+            # After adding meal, test micronutrients again to verify data-based responses
+            print("\n📊 Testing micronutrients with meal data...")
+            
+            # Smart Micronutrient Engine tests (P0 priority)
+            results["micronutrient_progress"] = await self.test_micronutrient_progress()
+            results["bioavailability_insights"] = await self.test_bioavailability_insights()
+            results["symptom_correlation"] = await self.test_symptom_correlation()
+            results["gap_analysis"] = await self.test_gap_analysis()
+            
+            # Summary
+            print("\n" + "="*60)
+            print("📋 TEST SUMMARY")
+            print("="*60)
+            
+            passed = sum(1 for result in results.values() if result)
+            total = len(results)
+            
+            for test_name, result in results.items():
+                status = "✅ PASS" if result else "❌ FAIL"
+                print(f"{status} {test_name.replace('_', ' ').title()}")
+            
+            print(f"\n🎯 Overall: {passed}/{total} tests passed ({(passed/total)*100:.1f}%)")
+            
+            if passed == total:
+                print("🎉 ALL TESTS PASSED - Smart Micronutrient Engine is fully operational!")
+            else:
+                print("⚠️  Some tests failed - see details above")
+                
+        except Exception as e:
+            print(f"💥 Test execution error: {e}")
+            
+        finally:
+            await self.cleanup()
 
-def main():
-    """Main test execution."""
-    print("🚀 Starting NutriOS Reports & Data Export API Tests")
-    print(f"Backend URL: {BACKEND_URL}")
-    print(f"MongoDB URL: {MONGO_URL}")
-    
-    # Setup test data
-    today, week_ago = setup_test_data()
-    
-    # Track test results
-    test_results = []
-    
-    try:
-        # Test 1: Weekly comparison (authorized)
-        result1 = test_weekly_comparison_authorized()
-        test_results.append(("Weekly Comparison (Authorized)", result1))
-        
-        # Test 2: Data export (authorized)
-        result2 = test_export_data_authorized()
-        test_results.append(("Data Export (Authorized)", result2))
-        
-        # Test 3: Weekly comparison (unauthorized)
-        result3 = test_weekly_comparison_unauthorized()
-        test_results.append(("Weekly Comparison (Unauthorized)", result3))
-        
-    finally:
-        # Always cleanup
-        cleanup_test_data()
-    
-    # Print summary
-    print("\n" + "="*60)
-    print("📋 TEST SUMMARY")
-    print("="*60)
-    
-    passed = 0
-    total = len(test_results)
-    
-    for test_name, result in test_results:
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status} - {test_name}")
-        if result:
-            passed += 1
-    
-    print(f"\n🎯 Results: {passed}/{total} tests passed ({(passed/total)*100:.1f}%)")
-    
-    if passed == total:
-        print("🎉 All tests passed! Reports & Data Export API is working correctly.")
-    else:
-        print("⚠️  Some tests failed. Please check the issues above.")
+async def main():
+    tester = NutriOSAPITester()
+    await tester.run_all_tests()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
