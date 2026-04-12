@@ -17,6 +17,7 @@ from routes.sharing import router as sharing_router
 from routes.sequence_optimizer import router as sequence_router
 from routes.weight import router as weight_router
 from routes.reports import router as reports_router
+from routes.micronutrients import router as micronutrients_router
 
 
 def create_api_router() -> APIRouter:
@@ -38,4 +39,5 @@ def create_api_router() -> APIRouter:
     api.include_router(sequence_router)
     api.include_router(weight_router)
     api.include_router(reports_router)
+    api.include_router(micronutrients_router)
     return api
