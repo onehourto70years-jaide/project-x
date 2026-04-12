@@ -1,8 +1,21 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableWithoutFeedback, Animated, Easing, AppState, AppStateStatus } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableWithoutFeedback, Animated, Easing,
+  AppState, AppStateStatus, Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { enterImmersiveMode } from './useImmersiveMode';
 
-const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+/**
+ * Inactivity timeout: 2 minutes and 2 seconds = 122 000 ms.
+ * Tracks touch, scroll, and typing.
+ *
+ * Wake behaviour:
+ *   • Tap on overlay → instant wake
+ *   • Phone screen on (AppState → 'active') → auto wake
+ *   • On every wake → re-apply fullscreen immersive mode
+ */
+const INACTIVITY_TIMEOUT_MS = 122 * 1000; // 122 seconds
 
 interface SleepModeContextType {
   isSleeping: boolean;
@@ -19,6 +32,7 @@ export const useSleepMode = () => useContext(SleepModeContext);
 export function SleepModeProvider({ children, enabled = true }: { children: React.ReactNode; enabled?: boolean }) {
   const [isSleeping, setIsSleeping] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSleepingRef = useRef(false); // mirror for callbacks that close over stale state
 
   // ─── Animations ────────────────────────────
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -48,20 +62,20 @@ export function SleepModeProvider({ children, enabled = true }: { children: Reac
     if (!enabled) return;
     clearTimer();
     timerRef.current = setTimeout(() => {
+      isSleepingRef.current = true;
       setIsSleeping(true);
     }, INACTIVITY_TIMEOUT_MS);
   }, [enabled, clearTimer]);
 
   const resetTimer = useCallback(() => {
-    if (isSleeping) return; // don't reset while sleeping — wake handles that
+    if (isSleepingRef.current) return; // don't reset while sleeping — wake handles that
     startTimer();
-  }, [isSleeping, startTimer]);
+  }, [startTimer]);
 
   // ─── Sleep Entry Animation ─────────────────
   useEffect(() => {
     if (isSleeping) {
       updateClock();
-      // Start clock updates
       clockRef.current = setInterval(updateClock, 10_000);
 
       // Fade in overlay
@@ -72,85 +86,73 @@ export function SleepModeProvider({ children, enabled = true }: { children: Reac
         useNativeDriver: true,
       }).start();
 
-      // Breathing animation loop for the icon
+      // Breathing animation loop
       Animated.loop(
         Animated.sequence([
-          Animated.timing(breatheAnim, {
-            toValue: 0.8,
-            duration: 3000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(breatheAnim, {
-            toValue: 0.4,
-            duration: 3000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
+          Animated.timing(breatheAnim, { toValue: 0.8, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(breatheAnim, { toValue: 0.4, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ])
       ).start();
 
-      // Pulse animation for the tap hint
+      // Pulse animation for tap hint
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 0.3,
-            duration: 2000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 0.3, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ])
       ).start();
     } else {
-      // Cleanup when waking
-      if (clockRef.current) {
-        clearInterval(clockRef.current);
-        clockRef.current = null;
-      }
+      if (clockRef.current) { clearInterval(clockRef.current); clockRef.current = null; }
       fadeAnim.setValue(0);
       breatheAnim.setValue(0.4);
       pulseAnim.setValue(1);
     }
-
     return () => {
-      if (clockRef.current) {
-        clearInterval(clockRef.current);
-        clockRef.current = null;
-      }
+      if (clockRef.current) { clearInterval(clockRef.current); clockRef.current = null; }
     };
   }, [isSleeping]);
 
-  // ─── Wake Up ───────────────────────────────
-  const wakeUp = useCallback(() => {
-    // Fade out quickly then reset
+  // ─── Wake Up (shared logic) ────────────────
+  const performWake = useCallback(() => {
+    if (!isSleepingRef.current) return;
+
+    // Re-apply fullscreen immersive mode on every wake
+    enterImmersiveMode();
+
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
+      isSleepingRef.current = false;
       setIsSleeping(false);
-      startTimer();
+      startTimer(); // restart inactivity timer
     });
   }, [fadeAnim, startTimer]);
 
-  // ─── App State: pause timer in background ──
+  // ─── App State: auto-wake on unlock / re-apply immersive ──
   useEffect(() => {
     const handleAppState = (state: AppStateStatus) => {
       if (state === 'active') {
-        if (!isSleeping) startTimer();
+        // Phone was unlocked / app foregrounded
+        // ALWAYS re-apply fullscreen immersive mode
+        setTimeout(() => enterImmersiveMode(), 100);
+
+        if (isSleepingRef.current) {
+          // Auto-wake: user unlocked the phone → instantly restore app
+          performWake();
+        } else {
+          // Normal resume: just restart the inactivity timer
+          startTimer();
+        }
       } else {
+        // App going to background → pause timer (don't trigger sleep in BG)
         clearTimer();
       }
     };
     const sub = AppState.addEventListener('change', handleAppState);
     return () => sub.remove();
-  }, [isSleeping, startTimer, clearTimer]);
+  }, [startTimer, clearTimer, performWake]);
 
   // ─── Initialize timer on mount ─────────────
   useEffect(() => {
@@ -158,10 +160,10 @@ export function SleepModeProvider({ children, enabled = true }: { children: Reac
     return () => clearTimer();
   }, [enabled]);
 
-  // ─── Touch Interceptor ─────────────────────
-  // Captures every touch on the app to reset the inactivity timer.
-  // Returns false so the touch propagates normally to children.
-  const onTouchCapture = useCallback(() => {
+  // ─── Interaction Interceptors ──────────────
+  // Captures touch, scroll, and gestures to reset inactivity timer.
+  // Returns false so the event propagates normally to children.
+  const onInteractionCapture = useCallback(() => {
     resetTimer();
     return false;
   }, [resetTimer]);
@@ -170,15 +172,17 @@ export function SleepModeProvider({ children, enabled = true }: { children: Reac
     <SleepModeContext.Provider value={{ isSleeping, resetTimer }}>
       <View
         style={styles.root}
-        onStartShouldSetResponderCapture={onTouchCapture}
-        onMoveShouldSetResponderCapture={onTouchCapture}
+        // Touch start — taps, presses
+        onStartShouldSetResponderCapture={onInteractionCapture}
+        // Touch move — scroll, drag, swipe
+        onMoveShouldSetResponderCapture={onInteractionCapture}
       >
         {children}
 
         {/* ── Sleep Overlay ── */}
         {isSleeping && (
           <Animated.View style={[styles.overlay, { opacity: fadeAnim }]} pointerEvents="auto">
-            <TouchableWithoutFeedback onPress={wakeUp}>
+            <TouchableWithoutFeedback onPress={performWake}>
               <View style={styles.overlayContent}>
                 {/* Breathing moon icon */}
                 <Animated.View style={[styles.iconContainer, { opacity: breatheAnim }]}>

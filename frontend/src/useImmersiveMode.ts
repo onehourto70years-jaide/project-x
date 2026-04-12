@@ -4,8 +4,10 @@
  * Enforces true fullscreen immersive mode:
  * - Hides status bar (top) and navigation bar (bottom)
  * - Sticky immersive: bars auto-hide after user swipe
- * - Re-hides on app foregrounding
+ * - Re-hides on app foregrounding / unlock
  * - Works on Android; iOS hides status bar only (no software nav bar)
+ *
+ * EXPORTED: `enterImmersiveMode` for external callers (e.g. SleepMode wake).
  */
 
 import { useEffect, useRef } from 'react';
@@ -24,7 +26,7 @@ if (Platform.OS === 'android') {
 
 const AUTO_HIDE_DELAY = 2000; // ms before re-hiding after user swipe
 
-async function enterImmersiveMode() {
+export async function enterImmersiveMode() {
   try {
     // Hide status bar on all platforms
     StatusBar.setHidden(true, 'slide');
@@ -70,10 +72,11 @@ export function useImmersiveMode() {
       }
     }
 
-    // Re-enter immersive mode when app comes to foreground
+    // Re-enter immersive mode when app comes to foreground (unlock / resume)
     const appStateListener = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        enterImmersiveMode();
+        // Small delay to ensure the system UI has settled
+        setTimeout(() => enterImmersiveMode(), 150);
       }
     });
 
