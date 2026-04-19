@@ -655,6 +655,47 @@ async def send_scheduled_notifications(notification_type: str, title_key: str, b
         logger.error(f"Scheduled notification error ({notification_type}): {e}")
 
 
+
+async def send_ai_coach_reminders():
+    """Check and send AI Coach scheduled reminders that are due."""
+    try:
+        now = datetime.now(timezone.utc)
+        # Find unsent reminders that are due
+        due_reminders = await db.scheduled_notifications.find({
+            "sent": False,
+            "scheduled_at": {"$lte": now}
+        }).to_list(100)
+
+        if not due_reminders:
+            return
+
+        for reminder in due_reminders:
+            user_id = reminder.get("user_id")
+            title = reminder.get("title", "⏰ Reminder")
+            body = reminder.get("body", "Your AI coach reminder")
+
+            # Get user's push token
+            token_doc = await db.push_tokens.find_one({"user_id": user_id})
+            if token_doc and token_doc.get("push_token"):
+                push_token = token_doc["push_token"]
+                # Check if notifications are enabled
+                settings = await db.user_settings.find_one({"user_id": user_id}) or {}
+                if settings.get("notifications_enabled", True):
+                    await send_expo_push([push_token], title, body, {"type": "ai_reminder", "source": "ai_coach"})
+                    await _log_notification(user_id, "ai_reminder", title, body)
+
+            # Mark as sent
+            await db.scheduled_notifications.update_one(
+                {"_id": reminder["_id"]},
+                {"$set": {"sent": True, "sent_at": now}}
+            )
+            logger.info(f"AI reminder sent to {user_id}: {title}")
+
+    except Exception as e:
+        logger.error(f"AI Coach reminder error: {e}")
+
+
+
 async def send_smart_water_reminders():
     """Smart water reminder — checks actual intake before sending. Sends personalized messages."""
     try:

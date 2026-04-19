@@ -86,7 +86,7 @@ You specialize in food recommendations, nutrient synergies, cooking optimization
 Keep text responses concise (2-4 paragraphs), warm, and actionable. Use occasional emojis.
 
 IMPORTANT — ACTION CAPABILITIES:
-You can perform actions for the user. When the user asks you to log food, log water, or adjust their goals/settings, you MUST include an `actions` array in your response.
+You can perform actions for the user. When the user asks you to log food, log water, set reminders, modify recipes, or adjust their goals/settings, you MUST include an `actions` array in your response.
 
 You MUST respond with ONLY a valid JSON object (no markdown, no code fences) in this exact format:
 {"message": "Your friendly text response here", "actions": []}
@@ -100,6 +100,13 @@ Action types you can include in the actions array:
    - Convert cups/glasses to ml (1 glass ≈ 250ml, 1 cup ≈ 240ml, 1 liter = 1000ml)
 3. Update settings: {"type": "update_settings", "settings": {"daily_water_goal_ml": 3000}}
    - Supported settings: daily_water_goal_ml, daily_calorie_goal, daily_protein_goal
+4. Set reminder: {"type": "set_reminder", "title": "Time to eat!", "body": "Remember to have your afternoon snack", "delay_minutes": 60}
+   - Use delay_minutes for relative reminders (e.g., "in 30 minutes" = 30, "in 1 hour" = 60, "in 2 hours" = 120)
+   - For specific times: calculate delay from now. E.g., if user says "at 3pm" and it's 1pm, delay = 120
+   - You can set multiple reminders for recurring things
+5. Add to recipe: {"type": "add_to_recipe", "recipe_name": "Chicken Salad", "ingredient": {"food_name": "Spinach", "portion_grams": 50, "cooking_method": "raw"}}
+   - recipe_name should match the user's recipe name (partial match allowed)
+   - If the user doesn't specify a recipe, ask which recipe they want to modify
 
 EXAMPLES:
 User: "I just had 2 boiled eggs for breakfast"
@@ -110,6 +117,15 @@ User: "Log 500ml of water"
 
 User: "Set my water goal to 3 liters"
 {"message": "Updated! 🎯 Your daily water goal is now 3,000ml. That's a great target for active individuals!", "actions": [{"type": "update_settings", "settings": {"daily_water_goal_ml": 3000}}]}
+
+User: "Remind me to eat in 30 minutes"
+{"message": "Done! ⏰ I'll remind you to eat in 30 minutes. A small snack rich in protein and complex carbs is ideal for sustained energy!", "actions": [{"type": "set_reminder", "title": "🍽️ Time to eat!", "body": "Your AI coach reminds you: time for a meal!", "delay_minutes": 30}]}
+
+User: "Remind me to drink water every hour"
+{"message": "Great hydration habit! 💧 I've set a reminder for 1 hour from now. Tip: keeping a water bottle visible helps you remember!", "actions": [{"type": "set_reminder", "title": "💧 Drink water!", "body": "Stay hydrated — have a glass of water now", "delay_minutes": 60}]}
+
+User: "Add spinach to my chicken salad recipe"
+{"message": "Added! 🥬 50g of fresh spinach adds iron, folate, and vitamin K to your Chicken Salad. It's a nutritional powerhouse that pairs perfectly with chicken!", "actions": [{"type": "add_to_recipe", "recipe_name": "Chicken Salad", "ingredient": {"food_name": "Spinach, raw", "portion_grams": 50, "cooking_method": "raw"}}]}
 
 User: "What foods are high in iron?" (no action needed)
 {"message": "Here are some excellent iron-rich foods: ...", "actions": []}
@@ -230,6 +246,57 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
                             )
                             actions_executed.append({"type": "update_settings", "success": True, "updated": safe_update})
                             logger.info(f"AI Coach updated settings {safe_update} for {user.user_id}")
+
+                    elif action_type == "set_reminder":
+                        title = action.get("title", "⏰ Reminder")
+                        body = action.get("body", "Your AI coach reminder")
+                        delay_minutes = action.get("delay_minutes", 30)
+                        scheduled_at = datetime.now(timezone.utc) + timedelta(minutes=delay_minutes)
+                        reminder_doc = {
+                            "id": str(uuid.uuid4()),
+                            "user_id": user.user_id,
+                            "title": title,
+                            "body": body,
+                            "scheduled_at": scheduled_at,
+                            "delay_minutes": delay_minutes,
+                            "sent": False,
+                            "source": "ai_coach",
+                            "created_at": datetime.now(timezone.utc)
+                        }
+                        await db.scheduled_notifications.insert_one(reminder_doc)
+                        actions_executed.append({"type": "set_reminder", "success": True, "title": title, "delay_minutes": delay_minutes, "scheduled_at": scheduled_at.isoformat()})
+                        logger.info(f"AI Coach set reminder '{title}' in {delay_minutes}min for {user.user_id}")
+
+                    elif action_type == "add_to_recipe":
+                        recipe_name = action.get("recipe_name", "")
+                        ingredient = action.get("ingredient", {})
+                        if recipe_name and ingredient:
+                            # Find recipe by partial name match (case insensitive)
+                            recipe = await db.recipes.find_one({
+                                "user_id": user.user_id,
+                                "name": {"$regex": recipe_name, "$options": "i"}
+                            })
+                            if recipe:
+                                # Add ingredient to recipe
+                                new_ingredient = {
+                                    "food_name": ingredient.get("food_name", "Unknown"),
+                                    "portion_grams": ingredient.get("portion_grams", 100),
+                                    "cooking_method": ingredient.get("cooking_method", "raw")
+                                }
+                                await db.recipes.update_one(
+                                    {"id": recipe["id"], "user_id": user.user_id},
+                                    {"$push": {"ingredients": new_ingredient}}
+                                )
+                                actions_executed.append({
+                                    "type": "add_to_recipe", "success": True,
+                                    "recipe_name": recipe.get("name", recipe_name),
+                                    "ingredient_added": new_ingredient["food_name"]
+                                })
+                                logger.info(f"AI Coach added '{new_ingredient['food_name']}' to recipe '{recipe.get('name')}' for {user.user_id}")
+                            else:
+                                actions_executed.append({"type": "add_to_recipe", "success": False, "error": f"Recipe '{recipe_name}' not found"})
+                        else:
+                            actions_executed.append({"type": "add_to_recipe", "success": False, "error": "Missing recipe_name or ingredient"})
 
                 except Exception as action_err:
                     logger.error(f"AI action execution error: {action_err}")
