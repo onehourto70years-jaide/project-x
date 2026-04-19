@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException
 import httpx
 from config import logger, RETENTION_FACTORS, BIOLOGICAL_EFFECTS, ATOMIC_WEIGHTS
-from services import search_usda_foods, get_usda_food_details, extract_nutrients, apply_cooking_retention, calculate_elemental_composition, detect_allergens
+from services import search_usda_foods, get_usda_food_details, extract_nutrients, apply_cooking_retention, calculate_elemental_composition, detect_allergens, estimate_phytochemicals
 from security import limiter
 
 router = APIRouter(tags=["foods"])
@@ -23,7 +23,8 @@ async def analyze_food(request: Request):
         food_data = await get_usda_food_details(fdc_id)
         if not food_data:
             raise HTTPException(status_code=404, detail=f"Food not found (FDC ID: {fdc_id}). The USDA database may be temporarily unavailable.")
-        raw_nutrients = extract_nutrients(food_data, body.get("portion_grams", 100))
+        portion = body.get("portion_grams", 100)
+        raw_nutrients = extract_nutrients(food_data, portion)
         cooking_method = body.get("cooking_method", "raw")
         cooked_nutrients = apply_cooking_retention(raw_nutrients, cooking_method)
         elements = calculate_elemental_composition(cooked_nutrients)
@@ -32,7 +33,15 @@ async def analyze_food(request: Request):
         bio_effects = {el: BIOLOGICAL_EFFECTS[el] for el in elements["mass_grams"] if el in BIOLOGICAL_EFFECTS and elements["mass_grams"][el] > 0}
         method_scores = {m: sum(f.values())/len(f) for m, f in RETENTION_FACTORS.items() if m != "raw"}
         ranked = sorted(method_scores.items(), key=lambda x: x[1], reverse=True)
-        return {"fdc_id": fdc_id, "food_name": food_name, "portion_grams": body.get("portion_grams", 100), "cooking_method": cooking_method, "nutrients": {"raw": raw_nutrients, "cooked": cooked_nutrients, "retention_applied": cooking_method != "raw"}, "elements": elements, "allergens": allergens, "biological_effects": bio_effects, "cooking_recommendations": {"recommended_method": ranked[0][0], "method_rankings": [{"method": m, "avg_retention": round(s*100, 1)} for m, s in ranked]}, "data_source": "USDA FoodData Central"}
+        # AI-estimated phytochemicals (non-blocking, runs in background)
+        include_phyto = body.get("include_phytochemicals", True)
+        phyto_data = {}
+        if include_phyto:
+            try:
+                phyto_data = await estimate_phytochemicals(food_name, portion)
+            except Exception as pe:
+                logger.warning(f"Phytochemical estimation skipped: {pe}")
+        return {"fdc_id": fdc_id, "food_name": food_name, "portion_grams": portion, "cooking_method": cooking_method, "nutrients": {"raw": raw_nutrients, "cooked": cooked_nutrients, "retention_applied": cooking_method != "raw"}, "elements": elements, "allergens": allergens, "biological_effects": bio_effects, "phytochemicals": phyto_data.get("phytochemicals", {}), "cofactors": phyto_data.get("cofactors", {}), "glycemic_index": phyto_data.get("glycemic_index", 0), "glycemic_load": phyto_data.get("glycemic_load", 0), "cooking_recommendations": {"recommended_method": ranked[0][0], "method_rankings": [{"method": m, "avg_retention": round(s*100, 1)} for m, s in ranked]}, "data_source": "USDA FoodData Central + AI Phytochemical Analysis"}
     except HTTPException:
         raise
     except Exception as e:

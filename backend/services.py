@@ -121,6 +121,35 @@ def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str
         1109: "vitamin_e_mg",
         1185: "vitamin_k_mcg",
         1180: "choline_mg",
+        # ═══ Essential Amino Acids (9) ═══
+        1210: "tryptophan_mg",
+        1211: "threonine_mg",
+        1212: "isoleucine_mg",
+        1213: "leucine_mg",
+        1214: "lysine_mg",
+        1215: "methionine_mg",
+        1217: "phenylalanine_mg",
+        1219: "valine_mg",
+        1221: "histidine_mg",
+        # ═══ Semi-Essential Amino Acids ═══
+        1220: "arginine_mg",
+        1216: "cystine_mg",
+        1218: "tyrosine_mg",
+        1225: "glycine_mg",
+        1226: "proline_mg",
+        # ═══ Omega-3 Fatty Acids ═══
+        1404: "omega3_ala_g",
+        1278: "omega3_epa_g",
+        1272: "omega3_dha_g",
+        # ═══ Omega-6 Fatty Acids ═══
+        1269: "omega6_la_g",
+        1271: "omega6_aa_g",
+        # ═══ Carotenoids ═══
+        1107: "beta_carotene_mcg",
+        1108: "alpha_carotene_mcg",
+        1120: "beta_cryptoxanthin_mcg",
+        1121: "lycopene_mcg",
+        1123: "lutein_zeaxanthin_mcg",
     }
     for fn in food_data.get("foodNutrients", []):
         nutrient_id = fn.get("nutrient", {}).get("id") or fn.get("nutrientId")
@@ -128,6 +157,15 @@ def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str
         if nutrient_id in nutrient_mapping:
             key = nutrient_mapping[nutrient_id]
             calculated = round(amount * portion_factor, 3)
+            # Amino acids from USDA are in grams, convert to mg
+            if key.endswith("_mg") and key in (
+                "tryptophan_mg", "threonine_mg", "isoleucine_mg", "leucine_mg",
+                "lysine_mg", "methionine_mg", "phenylalanine_mg", "valine_mg",
+                "histidine_mg", "arginine_mg", "cystine_mg", "tyrosine_mg",
+                "glycine_mg", "proline_mg"
+            ):
+                # USDA reports amino acids in grams, convert to mg for display
+                calculated = round(amount * portion_factor * 1000, 1)
             # For duplicate IDs (e.g. folate, sugars), keep the higher value
             if key in nutrients:
                 nutrients[key] = max(nutrients[key], calculated)
@@ -136,7 +174,70 @@ def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str
     # Derived: Salt from sodium (salt = sodium * 2.5 / 1000)
     if "sodium_mg" in nutrients:
         nutrients["salt_g"] = round(nutrients["sodium_mg"] * 2.5 / 1000, 3)
+    # Derived: Total Omega-3
+    omega3_total = (nutrients.get("omega3_ala_g", 0) + nutrients.get("omega3_epa_g", 0) + nutrients.get("omega3_dha_g", 0))
+    if omega3_total > 0:
+        nutrients["omega3_total_g"] = round(omega3_total, 3)
+    # Derived: Total Omega-6
+    omega6_total = (nutrients.get("omega6_la_g", 0) + nutrients.get("omega6_aa_g", 0))
+    if omega6_total > 0:
+        nutrients["omega6_total_g"] = round(omega6_total, 3)
     return nutrients
+
+
+async def estimate_phytochemicals(food_name: str, portion_grams: float = 100.0) -> Dict[str, Any]:
+    """Use Gemini AI to estimate phytochemicals and bioactive compounds not in USDA data."""
+    from config import EMERGENT_LLM_KEY
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        system_prompt = """You are a nutrition science AI. Estimate phytochemical and bioactive compound content for foods.
+Return ONLY valid JSON (no markdown fences) with this exact structure:
+{
+  "phytochemicals": {
+    "flavonoids_mg": 0,
+    "polyphenols_mg": 0,
+    "quercetin_mg": 0,
+    "resveratrol_mg": 0,
+    "glucosinolates_mg": 0,
+    "terpenes_mg": 0,
+    "limonene_mg": 0,
+    "phytoestrogens_mg": 0,
+    "alkaloids_mg": 0
+  },
+  "cofactors": {
+    "coq10_mg": 0,
+    "carnitine_mg": 0,
+    "alpha_lipoic_acid_mg": 0,
+    "glutathione_mg": 0,
+    "nad_precursors_mg": 0
+  },
+  "glycemic_index": 0,
+  "glycemic_load": 0
+}
+Use scientific literature values. If a compound is not present in this food, use 0.
+Scale values for the given portion size. Be accurate - use peer-reviewed data."""
+
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"phyto_{uuid.uuid4().hex[:6]}",
+            system_message=system_prompt
+        ).with_model("gemini", "gemini-2.5-flash")
+
+        response = await chat.send_message(UserMessage(
+            text=f"Estimate phytochemicals and bioactive compounds in {portion_grams}g of '{food_name}'. Use scientific data."
+        ))
+
+        import json
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("```")[1]
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+        return json.loads(cleaned)
+    except Exception as e:
+        logger.warning(f"Phytochemical estimation failed for {food_name}: {e}")
+        return {"phytochemicals": {}, "cofactors": {}, "glycemic_index": 0, "glycemic_load": 0}
 
 
 def calculate_elemental_composition(nutrients: Dict[str, float]) -> Dict[str, Any]:

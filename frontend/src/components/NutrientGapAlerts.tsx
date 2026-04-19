@@ -32,41 +32,60 @@ const NUTRIENT_TARGETS: Record<string, { target: number; unit: string; icon: str
   fat_g: { target: 65, unit: 'g', icon: 'water', color: '#fd79a8', category: 'macro', foods: ['Olive Oil', 'Avocado', 'Nuts', 'Seeds', 'Fish'], tip: 'Focus on healthy unsaturated fats' },
   fiber_g: { target: 25, unit: 'g', icon: 'leaf', color: '#00ff88', category: 'macro', foods: ['Oats', 'Broccoli', 'Chia Seeds', 'Beans', 'Apples'], tip: 'Start breakfast with oats or add beans to lunch' },
   water_g: { target: 2500, unit: 'g', icon: 'water', color: '#74b9ff', category: 'macro', foods: ['Water', 'Cucumber', 'Watermelon', 'Soups', 'Herbal Tea'], tip: '8 glasses of water = ~2L daily' },
-  // ═══════ ZUCCHERI ═══════
-  sugars_g: { target: 50, unit: 'g', icon: 'cafe', color: '#e17055', category: 'sugar', foods: ['Fruit', 'Honey', 'Maple Syrup'], tip: 'Limit added sugars; fruit sugars are better' },
+  sugars_g: { target: 50, unit: 'g', icon: 'cafe', color: '#e17055', category: 'macro', foods: ['Fruit', 'Honey', 'Maple Syrup'], tip: 'Limit added sugars; fruit sugars are better' },
   // ═══════ GRASSI DETTAGLIATI ═══════
   saturated_fat_g: { target: 20, unit: 'g', icon: 'alert-circle', color: '#d63031', category: 'fats', foods: ['Butter', 'Cheese', 'Coconut Oil'], tip: 'Keep saturated fats under 10% of calories' },
   monounsaturated_fat_g: { target: 25, unit: 'g', icon: 'heart', color: '#00b894', category: 'fats', foods: ['Olive Oil', 'Avocado', 'Almonds', 'Peanuts'], tip: 'Monounsaturated fats protect your heart' },
   polyunsaturated_fat_g: { target: 15, unit: 'g', icon: 'fish', color: '#0984e3', category: 'fats', foods: ['Salmon', 'Walnuts', 'Flaxseed', 'Sunflower Seeds'], tip: 'Include omega-3 and omega-6 sources' },
   trans_fat_g: { target: 2, unit: 'g', icon: 'close-circle', color: '#636e72', category: 'fats', foods: [], tip: 'Avoid trans fats — they increase heart disease risk' },
   cholesterol_mg: { target: 300, unit: 'mg', icon: 'analytics', color: '#e84393', category: 'fats', foods: ['Eggs', 'Shrimp', 'Liver'], tip: 'Most people can have 1-2 eggs daily safely' },
+  // ═══════ OMEGA FATTY ACIDS ═══════
+  omega3_total_g: { target: 1.6, unit: 'g', icon: 'fish', color: '#0652DD', category: 'omega', foods: ['Salmon', 'Sardines', 'Walnuts', 'Flaxseed', 'Chia Seeds'], tip: 'Eat fatty fish 2-3x/week for optimal omega-3' },
+  omega3_ala_g: { target: 1.1, unit: 'g', icon: 'leaf', color: '#1289A7', category: 'omega', foods: ['Flaxseed', 'Chia Seeds', 'Walnuts', 'Hemp Seeds'], tip: 'Plant-based omega-3 — body converts to EPA/DHA' },
+  omega3_epa_g: { target: 0.25, unit: 'g', icon: 'pulse', color: '#0984e3', category: 'omega', foods: ['Salmon', 'Mackerel', 'Sardines', 'Algae Oil'], tip: 'EPA reduces inflammation and supports heart health' },
+  omega3_dha_g: { target: 0.25, unit: 'g', icon: 'brain', color: '#6c5ce7', category: 'omega', foods: ['Salmon', 'Tuna', 'Sardines', 'Algae Oil'], tip: 'DHA is critical for brain and eye health' },
+  omega6_total_g: { target: 11, unit: 'g', icon: 'flame', color: '#e17055', category: 'omega', foods: ['Sunflower Oil', 'Corn Oil', 'Soybean', 'Walnuts'], tip: 'Balance omega-6 with omega-3 (aim for 4:1 ratio)' },
   // ═══════ MINERALI ═══════
-  sodium_mg: { target: 2300, unit: 'mg', icon: 'cube', color: '#636e72', category: 'mineral', foods: ['Salt', 'Olives', 'Pickles', 'Soy Sauce'], tip: 'Too much sodium raises blood pressure — limit processed foods' },
+  sodium_mg: { target: 2300, unit: 'mg', icon: 'cube', color: '#636e72', category: 'mineral', foods: ['Salt', 'Olives', 'Pickles', 'Soy Sauce'], tip: 'Too much sodium raises blood pressure' },
   salt_g: { target: 5, unit: 'g', icon: 'cube', color: '#b2bec3', category: 'mineral', foods: ['Salt'], tip: 'WHO recommends less than 5g salt/day' },
-  calcium_mg: { target: 1000, unit: 'mg', icon: 'fitness', color: '#00d4ff', category: 'mineral', foods: ['Milk', 'Cheese', 'Kale', 'Sardines', 'Almonds'], tip: 'A glass of milk + a serving of kale covers 50%' },
-  iron_mg: { target: 18, unit: 'mg', icon: 'water', color: '#ff9f43', category: 'mineral', foods: ['Spinach', 'Red Meat', 'Lentils', 'Pumpkin Seeds', 'Quinoa'], tip: 'Pair iron-rich foods with vitamin C for 5x absorption' },
-  magnesium_mg: { target: 400, unit: 'mg', icon: 'diamond', color: '#fd79a8', category: 'mineral', foods: ['Dark Chocolate', 'Almonds', 'Avocado', 'Spinach', 'Pumpkin Seeds'], tip: 'A handful of almonds covers 20% of daily needs' },
-  phosphorus_mg: { target: 700, unit: 'mg', icon: 'flame', color: '#e17055', category: 'mineral', foods: ['Chicken', 'Fish', 'Dairy', 'Lentils', 'Sunflower Seeds'], tip: 'Most protein-rich foods provide phosphorus' },
-  potassium_mg: { target: 4700, unit: 'mg', icon: 'flash', color: '#a29bfe', category: 'mineral', foods: ['Bananas', 'Potatoes', 'Avocados', 'Spinach', 'Coconut Water'], tip: 'Avocados pack more potassium than bananas' },
-  zinc_mg: { target: 11, unit: 'mg', icon: 'shield', color: '#6c5ce7', category: 'mineral', foods: ['Oysters', 'Beef', 'Chickpeas', 'Pumpkin Seeds', 'Cashews'], tip: 'Pumpkin seeds are a quick zinc-rich snack' },
-  copper_mg: { target: 0.9, unit: 'mg', icon: 'color-palette', color: '#e67e22', category: 'mineral', foods: ['Liver', 'Oysters', 'Dark Chocolate', 'Cashews', 'Mushrooms'], tip: 'Dark chocolate is a delicious copper source' },
-  manganese_mg: { target: 2.3, unit: 'mg', icon: 'prism', color: '#2d3436', category: 'mineral', foods: ['Pecans', 'Oats', 'Brown Rice', 'Spinach', 'Pineapple'], tip: 'Whole grains and nuts are rich in manganese' },
-  selenium_mcg: { target: 55, unit: 'µg', icon: 'globe', color: '#00cec9', category: 'mineral', foods: ['Brazil Nuts', 'Tuna', 'Eggs', 'Sunflower Seeds', 'Mushrooms'], tip: 'Just 1 Brazil nut covers your daily selenium' },
-  fluoride_mcg: { target: 4000, unit: 'µg', icon: 'sparkles', color: '#81ecec', category: 'mineral', foods: ['Tea', 'Seafood', 'Tap Water'], tip: 'Fluoride supports strong teeth and bones' },
-  choline_mg: { target: 550, unit: 'mg', icon: 'brain', color: '#fdcb6e', category: 'mineral', foods: ['Eggs', 'Liver', 'Soybeans', 'Salmon', 'Cauliflower'], tip: 'One egg provides about 150mg of choline' },
+  calcium_mg: { target: 1000, unit: 'mg', icon: 'fitness', color: '#00d4ff', category: 'mineral', foods: ['Milk', 'Cheese', 'Kale', 'Sardines', 'Almonds'], tip: 'A glass of milk + kale covers 50%' },
+  iron_mg: { target: 18, unit: 'mg', icon: 'water', color: '#ff9f43', category: 'mineral', foods: ['Spinach', 'Red Meat', 'Lentils', 'Pumpkin Seeds'], tip: 'Pair iron with vitamin C for 5x absorption' },
+  magnesium_mg: { target: 400, unit: 'mg', icon: 'diamond', color: '#fd79a8', category: 'mineral', foods: ['Dark Chocolate', 'Almonds', 'Avocado', 'Spinach'], tip: 'Almonds cover 20% of daily needs' },
+  phosphorus_mg: { target: 700, unit: 'mg', icon: 'flame', color: '#e17055', category: 'mineral', foods: ['Chicken', 'Fish', 'Dairy', 'Lentils'], tip: 'Protein-rich foods provide phosphorus' },
+  potassium_mg: { target: 4700, unit: 'mg', icon: 'flash', color: '#a29bfe', category: 'mineral', foods: ['Bananas', 'Potatoes', 'Avocados', 'Spinach'], tip: 'Avocados have more potassium than bananas' },
+  zinc_mg: { target: 11, unit: 'mg', icon: 'shield', color: '#6c5ce7', category: 'mineral', foods: ['Oysters', 'Beef', 'Chickpeas', 'Pumpkin Seeds'], tip: 'Pumpkin seeds are a quick zinc snack' },
+  copper_mg: { target: 0.9, unit: 'mg', icon: 'color-palette', color: '#e67e22', category: 'mineral', foods: ['Liver', 'Dark Chocolate', 'Cashews', 'Mushrooms'], tip: 'Dark chocolate is a delicious copper source' },
+  manganese_mg: { target: 2.3, unit: 'mg', icon: 'prism', color: '#2d3436', category: 'mineral', foods: ['Pecans', 'Oats', 'Brown Rice', 'Pineapple'], tip: 'Whole grains are rich in manganese' },
+  selenium_mcg: { target: 55, unit: 'µg', icon: 'globe', color: '#00cec9', category: 'mineral', foods: ['Brazil Nuts', 'Tuna', 'Eggs', 'Mushrooms'], tip: '1 Brazil nut covers daily selenium' },
+  fluoride_mcg: { target: 4000, unit: 'µg', icon: 'sparkles', color: '#81ecec', category: 'mineral', foods: ['Tea', 'Seafood', 'Tap Water'], tip: 'Fluoride supports teeth and bones' },
+  choline_mg: { target: 550, unit: 'mg', icon: 'bulb', color: '#fdcb6e', category: 'mineral', foods: ['Eggs', 'Liver', 'Soybeans', 'Salmon'], tip: 'One egg provides ~150mg of choline' },
   // ═══════ VITAMINE ═══════
-  vitamin_a_mcg: { target: 900, unit: 'µg', icon: 'eye', color: '#ff7675', category: 'vitamin', foods: ['Sweet Potato', 'Carrots', 'Spinach', 'Liver', 'Cantaloupe'], tip: 'Orange & dark green veggies are rich in Vitamin A' },
-  vitamin_b1_mg: { target: 1.2, unit: 'mg', icon: 'battery-charging', color: '#ffeaa7', category: 'vitamin', foods: ['Pork', 'Sunflower Seeds', 'Lentils', 'Peas', 'Whole Grains'], tip: 'Thiamin helps convert food to energy' },
-  vitamin_b2_mg: { target: 1.3, unit: 'mg', icon: 'sunny', color: '#fab1a0', category: 'vitamin', foods: ['Milk', 'Eggs', 'Almonds', 'Mushrooms', 'Spinach'], tip: 'Riboflavin supports energy and skin health' },
-  vitamin_b3_mg: { target: 16, unit: 'mg', icon: 'pulse', color: '#e17055', category: 'vitamin', foods: ['Chicken', 'Tuna', 'Turkey', 'Mushrooms', 'Peanuts'], tip: 'Niacin supports metabolism and nervous system' },
-  vitamin_b5_mg: { target: 5, unit: 'mg', icon: 'medkit', color: '#00b894', category: 'vitamin', foods: ['Avocado', 'Chicken', 'Mushrooms', 'Sunflower Seeds', 'Eggs'], tip: 'Pantothenic acid is found in nearly all foods' },
-  vitamin_b6_mg: { target: 1.3, unit: 'mg', icon: 'trending-up', color: '#0984e3', category: 'vitamin', foods: ['Chickpeas', 'Banana', 'Potatoes', 'Tuna', 'Turkey'], tip: 'B6 supports brain function and immune health' },
-  folate_mcg: { target: 400, unit: 'µg', icon: 'leaf', color: '#55efc4', category: 'vitamin', foods: ['Lentils', 'Spinach', 'Asparagus', 'Broccoli', 'Avocado'], tip: 'Folate is crucial for cell growth and DNA' },
-  vitamin_b12_mcg: { target: 2.4, unit: 'µg', icon: 'nuclear', color: '#d63031', category: 'vitamin', foods: ['Clams', 'Liver', 'Tuna', 'Salmon', 'Fortified Cereals'], tip: 'B12 is mainly in animal foods — vegans need supplements' },
-  vitamin_c_mg: { target: 90, unit: 'mg', icon: 'sunny', color: '#ffd93d', category: 'vitamin', foods: ['Oranges', 'Strawberries', 'Bell Peppers', 'Kiwi', 'Broccoli'], tip: 'One bell pepper has 150% of your daily need' },
-  vitamin_d_mcg: { target: 15, unit: 'µg', icon: 'sunny', color: '#fdcb6e', category: 'vitamin', foods: ['Salmon', 'Fortified Milk', 'Egg Yolks', 'Mushrooms', 'Sunlight'], tip: '15 min of sunlight helps your body make vitamin D' },
-  vitamin_e_mg: { target: 15, unit: 'mg', icon: 'shield-checkmark', color: '#00b894', category: 'vitamin', foods: ['Almonds', 'Sunflower Seeds', 'Spinach', 'Avocado', 'Olive Oil'], tip: 'A handful of almonds covers 50% of daily vitamin E' },
-  vitamin_k_mcg: { target: 120, unit: 'µg', icon: 'bandage', color: '#2d3436', category: 'vitamin', foods: ['Kale', 'Spinach', 'Broccoli', 'Brussels Sprouts', 'Green Beans'], tip: 'Dark leafy greens are the best source of vitamin K' },
+  vitamin_a_mcg: { target: 900, unit: 'µg', icon: 'eye', color: '#ff7675', category: 'vitamin', foods: ['Sweet Potato', 'Carrots', 'Spinach', 'Liver'], tip: 'Orange & dark green veggies = Vitamin A' },
+  vitamin_b1_mg: { target: 1.2, unit: 'mg', icon: 'battery-charging', color: '#ffeaa7', category: 'vitamin', foods: ['Pork', 'Sunflower Seeds', 'Lentils', 'Whole Grains'], tip: 'Thiamin converts food to energy' },
+  vitamin_b2_mg: { target: 1.3, unit: 'mg', icon: 'sunny', color: '#fab1a0', category: 'vitamin', foods: ['Milk', 'Eggs', 'Almonds', 'Mushrooms'], tip: 'Riboflavin supports energy & skin' },
+  vitamin_b3_mg: { target: 16, unit: 'mg', icon: 'pulse', color: '#e17055', category: 'vitamin', foods: ['Chicken', 'Tuna', 'Turkey', 'Peanuts'], tip: 'Niacin supports metabolism' },
+  vitamin_b5_mg: { target: 5, unit: 'mg', icon: 'medkit', color: '#00b894', category: 'vitamin', foods: ['Avocado', 'Chicken', 'Mushrooms', 'Eggs'], tip: 'Pantothenic acid is in nearly all foods' },
+  vitamin_b6_mg: { target: 1.3, unit: 'mg', icon: 'trending-up', color: '#0984e3', category: 'vitamin', foods: ['Chickpeas', 'Banana', 'Potatoes', 'Tuna'], tip: 'B6 supports brain & immune function' },
+  folate_mcg: { target: 400, unit: 'µg', icon: 'leaf', color: '#55efc4', category: 'vitamin', foods: ['Lentils', 'Spinach', 'Asparagus', 'Broccoli'], tip: 'Folate is crucial for cell growth' },
+  vitamin_b12_mcg: { target: 2.4, unit: 'µg', icon: 'nuclear', color: '#d63031', category: 'vitamin', foods: ['Clams', 'Liver', 'Tuna', 'Salmon'], tip: 'B12 is mainly in animal foods' },
+  vitamin_c_mg: { target: 90, unit: 'mg', icon: 'sunny', color: '#ffd93d', category: 'vitamin', foods: ['Oranges', 'Bell Peppers', 'Kiwi', 'Broccoli'], tip: 'One bell pepper = 150% daily need' },
+  vitamin_d_mcg: { target: 15, unit: 'µg', icon: 'sunny', color: '#fdcb6e', category: 'vitamin', foods: ['Salmon', 'Fortified Milk', 'Egg Yolks', 'Sunlight'], tip: '15 min sunlight helps make vitamin D' },
+  vitamin_e_mg: { target: 15, unit: 'mg', icon: 'shield-checkmark', color: '#00b894', category: 'vitamin', foods: ['Almonds', 'Sunflower Seeds', 'Spinach', 'Avocado'], tip: 'Almonds cover 50% of daily vitamin E' },
+  vitamin_k_mcg: { target: 120, unit: 'µg', icon: 'bandage', color: '#2d3436', category: 'vitamin', foods: ['Kale', 'Spinach', 'Broccoli', 'Brussels Sprouts'], tip: 'Dark leafy greens = best vitamin K source' },
+  // ═══════ ESSENTIAL AMINO ACIDS ═══════
+  histidine_mg: { target: 700, unit: 'mg', icon: 'code-working', color: '#6c5ce7', category: 'amino', foods: ['Tuna', 'Chicken', 'Tofu', 'Lentils'], tip: 'Needed for histamine production and growth' },
+  isoleucine_mg: { target: 1400, unit: 'mg', icon: 'git-branch', color: '#00b894', category: 'amino', foods: ['Eggs', 'Chicken', 'Fish', 'Lentils', 'Cheese'], tip: 'Key for muscle repair and energy regulation' },
+  leucine_mg: { target: 2730, unit: 'mg', icon: 'trending-up', color: '#e17055', category: 'amino', foods: ['Chicken', 'Beef', 'Tuna', 'Tofu', 'Eggs'], tip: 'Master trigger for muscle protein synthesis' },
+  lysine_mg: { target: 2100, unit: 'mg', icon: 'construct', color: '#0984e3', category: 'amino', foods: ['Meat', 'Fish', 'Eggs', 'Quinoa', 'Lentils'], tip: 'Essential for collagen and immune function' },
+  methionine_mg: { target: 728, unit: 'mg', icon: 'shield-half', color: '#636e72', category: 'amino', foods: ['Brazil Nuts', 'Fish', 'Eggs', 'Sesame'], tip: 'Precursor to cysteine and important antioxidants' },
+  phenylalanine_mg: { target: 1750, unit: 'mg', icon: 'happy', color: '#fdcb6e', category: 'amino', foods: ['Soybeans', 'Cheese', 'Nuts', 'Beef', 'Fish'], tip: 'Precursor to dopamine and norepinephrine' },
+  threonine_mg: { target: 1050, unit: 'mg', icon: 'body', color: '#a29bfe', category: 'amino', foods: ['Lentils', 'Sesame', 'Chicken', 'Fish'], tip: 'Supports gut lining and collagen synthesis' },
+  tryptophan_mg: { target: 280, unit: 'mg', icon: 'moon', color: '#74b9ff', category: 'amino', foods: ['Turkey', 'Cheese', 'Oats', 'Bananas', 'Dark Chocolate'], tip: 'Precursor to serotonin and melatonin (sleep)' },
+  valine_mg: { target: 1820, unit: 'mg', icon: 'barbell', color: '#ff7675', category: 'amino', foods: ['Eggs', 'Cheese', 'Soy', 'Peanuts', 'Mushrooms'], tip: 'Supports muscle growth and tissue repair' },
+  // ═══════ CAROTENOIDS ═══════
+  beta_carotene_mcg: { target: 6000, unit: 'µg', icon: 'color-fill', color: '#e67e22', category: 'carotenoid', foods: ['Carrots', 'Sweet Potato', 'Spinach', 'Cantaloupe'], tip: 'Converted to Vitamin A in the body' },
+  lycopene_mcg: { target: 10000, unit: 'µg', icon: 'ellipse', color: '#d63031', category: 'carotenoid', foods: ['Tomatoes', 'Watermelon', 'Pink Grapefruit', 'Guava'], tip: 'Cooking tomatoes increases lycopene availability' },
+  lutein_zeaxanthin_mcg: { target: 6000, unit: 'µg', icon: 'eye', color: '#fdcb6e', category: 'carotenoid', foods: ['Kale', 'Spinach', 'Egg Yolks', 'Corn', 'Broccoli'], tip: 'Protects eyes from blue light and macular degeneration' },
 };
 
 function getStatus(pct: number): NutrientItem['status'] {
@@ -241,7 +260,7 @@ function SmartGapCard({ item, index }: { item: NutrientItem; index: number }) {
   );
 }
 
-type CategoryFilter = 'all' | 'macro' | 'vitamin' | 'mineral' | 'fats' | 'gaps' | 'optimized';
+type CategoryFilter = 'all' | 'macro' | 'vitamin' | 'mineral' | 'fats' | 'omega' | 'amino' | 'carotenoid' | 'gaps' | 'optimized';
 
 export default function NutrientGapAlerts({ nutrients }: { nutrients: Record<string, number> }) {
   const { t } = useLanguage();
@@ -287,10 +306,13 @@ export default function NutrientGapAlerts({ nutrients }: { nutrients: Record<str
       case 'all': return allItems;
       case 'gaps': return allItems.filter(i => i.status !== 'optimized');
       case 'optimized': return allItems.filter(i => i.status === 'optimized');
-      case 'macro': return allItems.filter(i => i.category === 'macro' || i.category === 'sugar');
+      case 'macro': return allItems.filter(i => i.category === 'macro');
       case 'vitamin': return allItems.filter(i => i.category === 'vitamin');
       case 'mineral': return allItems.filter(i => i.category === 'mineral');
       case 'fats': return allItems.filter(i => i.category === 'fats');
+      case 'omega': return allItems.filter(i => i.category === 'omega');
+      case 'amino': return allItems.filter(i => i.category === 'amino');
+      case 'carotenoid': return allItems.filter(i => i.category === 'carotenoid');
       default: return allItems;
     }
   };
@@ -309,10 +331,13 @@ export default function NutrientGapAlerts({ nutrients }: { nutrients: Record<str
   const FILTER_TABS: { key: CategoryFilter; label: string; count: number }[] = [
     { key: 'all', label: t('gap_all'), count: allItems.length },
     { key: 'gaps', label: t('gap_needs_work'), count: gapCount },
-    { key: 'macro', label: t('gap_cat_macro'), count: allItems.filter(i => i.category === 'macro' || i.category === 'sugar').length },
+    { key: 'macro', label: t('gap_cat_macro'), count: allItems.filter(i => i.category === 'macro').length },
     { key: 'vitamin', label: t('gap_cat_vitamins'), count: allItems.filter(i => i.category === 'vitamin').length },
     { key: 'mineral', label: t('gap_cat_minerals'), count: allItems.filter(i => i.category === 'mineral').length },
     { key: 'fats', label: t('gap_cat_fats'), count: allItems.filter(i => i.category === 'fats').length },
+    { key: 'omega', label: 'Omega', count: allItems.filter(i => i.category === 'omega').length },
+    { key: 'amino', label: t('gap_cat_amino'), count: allItems.filter(i => i.category === 'amino').length },
+    { key: 'carotenoid', label: t('gap_cat_carot'), count: allItems.filter(i => i.category === 'carotenoid').length },
     { key: 'optimized', label: '✓', count: optimizedCount },
   ];
 

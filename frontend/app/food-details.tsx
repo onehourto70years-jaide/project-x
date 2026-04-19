@@ -45,6 +45,10 @@ interface FoodAnalysis {
   };
   data_source: string;
   confidence: string;
+  phytochemicals?: Record<string, number>;
+  cofactors?: Record<string, number>;
+  glycemic_index?: number;
+  glycemic_load?: number;
 }
 
 const COOKING_METHODS = ['raw', 'steaming', 'boiling', 'baking', 'frying'];
@@ -405,6 +409,154 @@ export default function FoodDetailsScreen() {
             ))}
           </View>
         </View>
+
+        {/* Amino Acids */}
+        {(() => {
+          const aminoAcids = [
+            { key: 'histidine_mg', label: 'Histidine' },
+            { key: 'isoleucine_mg', label: 'Isoleucine' },
+            { key: 'leucine_mg', label: 'Leucine' },
+            { key: 'lysine_mg', label: 'Lysine' },
+            { key: 'methionine_mg', label: 'Methionine' },
+            { key: 'phenylalanine_mg', label: 'Phenylalanine' },
+            { key: 'threonine_mg', label: 'Threonine' },
+            { key: 'tryptophan_mg', label: 'Tryptophan' },
+            { key: 'valine_mg', label: 'Valine' },
+            { key: 'arginine_mg', label: 'Arginine*' },
+            { key: 'cystine_mg', label: 'Cystine*' },
+            { key: 'tyrosine_mg', label: 'Tyrosine*' },
+            { key: 'glycine_mg', label: 'Glycine*' },
+            { key: 'proline_mg', label: 'Proline*' },
+          ].filter(i => (analysis.nutrients.cooked[i.key] || 0) > 0);
+          if (aminoAcids.length === 0) return null;
+          return (
+            <View style={styles.vitaminsCard}>
+              <Text style={styles.cardTitle}>🧬 Amino Acids</Text>
+              <Text style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>*semi-essential</Text>
+              <View style={styles.vitaminsGrid}>
+                {aminoAcids.map(item => (
+                  <View key={item.key} style={styles.vitaminItem}>
+                    <Text style={styles.vitaminLabel}>{item.label}</Text>
+                    <Text style={styles.vitaminValue}>{formatNumber(analysis.nutrients.cooked[item.key])} mg</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Omega Fatty Acids */}
+        {(() => {
+          const omegas = [
+            { key: 'omega3_ala_g', label: 'Omega-3 ALA' },
+            { key: 'omega3_epa_g', label: 'Omega-3 EPA' },
+            { key: 'omega3_dha_g', label: 'Omega-3 DHA' },
+            { key: 'omega3_total_g', label: '∑ Omega-3 Total' },
+            { key: 'omega6_la_g', label: 'Omega-6 LA' },
+            { key: 'omega6_aa_g', label: 'Omega-6 AA' },
+            { key: 'omega6_total_g', label: '∑ Omega-6 Total' },
+          ].filter(i => (analysis.nutrients.cooked[i.key] || 0) > 0);
+          if (omegas.length === 0) return null;
+          return (
+            <View style={styles.vitaminsCard}>
+              <Text style={styles.cardTitle}>🐟 Essential Fatty Acids</Text>
+              <View style={styles.vitaminsGrid}>
+                {omegas.map(item => (
+                  <View key={item.key} style={styles.vitaminItem}>
+                    <Text style={styles.vitaminLabel}>{item.label}</Text>
+                    <Text style={styles.vitaminValue}>{formatNumber(analysis.nutrients.cooked[item.key])} g</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Carotenoids */}
+        {(() => {
+          const carotenoids = [
+            { key: 'beta_carotene_mcg', label: 'Beta-Carotene' },
+            { key: 'alpha_carotene_mcg', label: 'Alpha-Carotene' },
+            { key: 'lycopene_mcg', label: 'Lycopene' },
+            { key: 'lutein_zeaxanthin_mcg', label: 'Lutein + Zeaxanthin' },
+            { key: 'beta_cryptoxanthin_mcg', label: 'Beta-Cryptoxanthin' },
+          ].filter(i => (analysis.nutrients.cooked[i.key] || 0) > 0);
+          if (carotenoids.length === 0) return null;
+          return (
+            <View style={styles.vitaminsCard}>
+              <Text style={styles.cardTitle}>🌿 Carotenoids</Text>
+              <View style={styles.vitaminsGrid}>
+                {carotenoids.map(item => (
+                  <View key={item.key} style={styles.vitaminItem}>
+                    <Text style={styles.vitaminLabel}>{item.label}</Text>
+                    <Text style={styles.vitaminValue}>{formatNumber(analysis.nutrients.cooked[item.key])} µg</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* Phytochemicals & Cofactors (AI-estimated) */}
+        {analysis.phytochemicals && Object.keys(analysis.phytochemicals).some(k => (analysis.phytochemicals as any)[k] > 0) && (
+          <View style={styles.vitaminsCard}>
+            <Text style={styles.cardTitle}>🔬 Phytochemicals & Bioactives</Text>
+            <Text style={{ fontSize: 10, color: '#999', marginBottom: 8 }}>AI-estimated from scientific literature</Text>
+            <View style={styles.vitaminsGrid}>
+              {Object.entries(analysis.phytochemicals || {})
+                .filter(([_, v]) => v > 0)
+                .map(([key, value]) => (
+                  <View key={key} style={styles.vitaminItem}>
+                    <Text style={styles.vitaminLabel}>
+                      {key.replace(/_mg$/, '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </Text>
+                    <Text style={styles.vitaminValue}>{formatNumber(value)} mg</Text>
+                  </View>
+                ))}
+            </View>
+          </View>
+        )}
+
+        {/* Cellular Cofactors (AI-estimated) */}
+        {analysis.cofactors && Object.keys(analysis.cofactors).some(k => (analysis.cofactors as any)[k] > 0) && (
+          <View style={styles.vitaminsCard}>
+            <Text style={styles.cardTitle}>⚡ Cellular Cofactors</Text>
+            <Text style={{ fontSize: 10, color: '#999', marginBottom: 8 }}>AI-estimated from scientific literature</Text>
+            <View style={styles.vitaminsGrid}>
+              {Object.entries(analysis.cofactors || {})
+                .filter(([_, v]) => v > 0)
+                .map(([key, value]) => (
+                  <View key={key} style={styles.vitaminItem}>
+                    <Text style={styles.vitaminLabel}>
+                      {key.replace(/_mg$/, '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                    </Text>
+                    <Text style={styles.vitaminValue}>{formatNumber(value)} mg</Text>
+                  </View>
+                ))}
+            </View>
+          </View>
+        )}
+
+        {/* Glycemic Index */}
+        {(analysis.glycemic_index || 0) > 0 && (
+          <View style={styles.vitaminsCard}>
+            <Text style={styles.cardTitle}>📊 Glycemic Data</Text>
+            <View style={styles.vitaminsGrid}>
+              <View style={styles.vitaminItem}>
+                <Text style={styles.vitaminLabel}>Glycemic Index</Text>
+                <Text style={[styles.vitaminValue, { color: (analysis.glycemic_index || 0) > 70 ? '#ff6b6b' : (analysis.glycemic_index || 0) > 55 ? '#ffa502' : '#00b894' }]}>
+                  {analysis.glycemic_index}
+                </Text>
+              </View>
+              {(analysis.glycemic_load || 0) > 0 && (
+                <View style={styles.vitaminItem}>
+                  <Text style={styles.vitaminLabel}>Glycemic Load</Text>
+                  <Text style={styles.vitaminValue}>{analysis.glycemic_load}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Cooking Recommendations */}
         <View style={styles.cookingCard}>

@@ -62,6 +62,18 @@ DAILY_RECOMMENDED = {
     "vitamin_b3_mg": 16, "vitamin_b5_mg": 5, "vitamin_b6_mg": 1.3,
     "folate_mcg": 400, "vitamin_b12_mcg": 2.4,
     "vitamin_c_mg": 90, "vitamin_d_mcg": 15, "vitamin_e_mg": 15, "vitamin_k_mcg": 120,
+    # Essential Amino Acids (mg/day based on 70kg adult)
+    "histidine_mg": 700, "isoleucine_mg": 1400, "leucine_mg": 2730,
+    "lysine_mg": 2100, "methionine_mg": 728, "phenylalanine_mg": 1750,
+    "threonine_mg": 1050, "tryptophan_mg": 280, "valine_mg": 1820,
+    # Semi-Essential Amino Acids
+    "arginine_mg": 3500, "cystine_mg": 700, "tyrosine_mg": 1750,
+    "glycine_mg": 2000, "proline_mg": 2000,
+    # Essential Fatty Acids
+    "omega3_total_g": 1.6, "omega3_ala_g": 1.1, "omega3_epa_g": 0.25, "omega3_dha_g": 0.25,
+    "omega6_total_g": 11, "omega6_la_g": 11, "omega6_aa_g": 0.15,
+    # Carotenoids
+    "beta_carotene_mcg": 6000, "lycopene_mcg": 10000, "lutein_zeaxanthin_mcg": 6000,
 }
 
 IDEAL_ELEMENTAL_BALANCE = {
