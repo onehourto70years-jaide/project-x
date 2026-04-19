@@ -33,6 +33,7 @@ from services import (
     send_weekly_summary_emails,
     check_streak_milestones,
     send_nutrition_tips,
+    send_ai_coach_reminders,
 )
 
 # ── FastAPI App ──
@@ -172,6 +173,14 @@ scheduler.add_job(
     send_nutrition_tips,
     "cron", hour=16, minute=30,
     id="nutrition_tip_afternoon",
+    replace_existing=True,
+)
+
+# ── AI Coach Reminders ── (every 5 minutes — check for due AI-scheduled reminders)
+scheduler.add_job(
+    send_ai_coach_reminders,
+    "interval", minutes=5,
+    id="ai_coach_reminders",
     replace_existing=True,
 )
 

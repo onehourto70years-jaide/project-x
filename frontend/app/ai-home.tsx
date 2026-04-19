@@ -30,6 +30,12 @@ interface ActionResult {
   meal_type?: string;
   amount_ml?: number;
   updated?: Record<string, any>;
+  title?: string;
+  delay_minutes?: number;
+  scheduled_at?: string;
+  recipe_name?: string;
+  ingredient_added?: string;
+  nutrients?: Record<string, number>;
   error?: string;
 }
 
@@ -37,8 +43,8 @@ const QUICK_PROMPTS = [
   { text: "Log 2 boiled eggs for breakfast", icon: "restaurant" },
   { text: "Log 500ml of water", icon: "water" },
   { text: "I just had a banana as a snack", icon: "nutrition" },
+  { text: "Remind me to eat in 30 minutes", icon: "alarm" },
   { text: "Set my water goal to 3 liters", icon: "settings" },
-  { text: "What should I eat for dinner?", icon: "restaurant" },
   { text: "What foods boost immunity?", icon: "shield-checkmark" },
 ];
 
@@ -242,6 +248,7 @@ export default function AIChatScreen() {
             if (action.type === 'log_meal') keysToInvalidate.push(CacheKeys.mealsToday);
             if (action.type === 'log_water') keysToInvalidate.push(CacheKeys.waterToday);
             if (action.type === 'update_settings') keysToInvalidate.push(CacheKeys.userSettings);
+            if (action.type === 'add_to_recipe') keysToInvalidate.push(CacheKeys.recipes);
           }
           await Promise.all(keysToInvalidate.map(k => clearCacheForKey(k)));
         }
@@ -277,7 +284,21 @@ export default function AIChatScreen() {
   };
 
   const renderActionCard = (action: ActionResult, index: number) => {
-    if (!action.success) return null;
+    if (!action.success) {
+      // Show failed action with error
+      if (action.error) {
+        return (
+          <View key={`action-${index}`} style={[styles.actionCard, { borderLeftColor: '#e74c3c' }]}>
+            <Ionicons name="close-circle" size={18} color="#e74c3c" />
+            <Text style={[styles.actionText, { color: theme.textMuted }]}>
+              {action.type === 'add_to_recipe' ? `Recipe not found: ${action.error}` : action.error}
+            </Text>
+            <Ionicons name="alert-circle" size={16} color="#e74c3c" />
+          </View>
+        );
+      }
+      return null;
+    }
     let icon = 'checkmark-circle';
     let color = '#00d4ff';
     let label = '';
@@ -293,6 +314,14 @@ export default function AIChatScreen() {
       icon = 'settings'; color = '#00cec9';
       const keys = Object.keys(action.updated || {});
       label = `Updated: ${keys.map(k => k.replace(/_/g, ' ')).join(', ')}`;
+    } else if (action.type === 'set_reminder') {
+      icon = 'alarm'; color = '#fdcb6e';
+      const mins = action.delay_minutes || 0;
+      const timeStr = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60 > 0 ? `${mins % 60}min` : ''}` : `${mins}min`;
+      label = `⏰ Reminder set: "${action.title}" in ${timeStr}`;
+    } else if (action.type === 'add_to_recipe') {
+      icon = 'book'; color = '#a29bfe';
+      label = `🍳 Added "${action.ingredient_added}" to "${action.recipe_name}"`;
     }
     return (
       <View key={`action-${index}`} style={[styles.actionCard, { borderLeftColor: color }]}>

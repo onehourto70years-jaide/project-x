@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends
 from typing import Optional
 import uuid
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from database import db
 from dependencies import require_user, get_current_user_optional
 from models import User, AIRecommendationRequest, AIChatRequest
@@ -316,3 +316,40 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
     except Exception as e:
         logger.error(f"AI Chat error: {e}")
         return {"response": "I'm having trouble connecting right now. Please try again in a moment! In the meantime, remember to stay hydrated 💧", "actions": []}
+
+
+
+@router.get("/ai/reminders")
+async def get_reminders(user: User = Depends(require_user)):
+    """Get all upcoming (unsent) AI-scheduled reminders for the current user."""
+    try:
+        now = datetime.now(timezone.utc)
+        reminders = await db.scheduled_notifications.find(
+            {"user_id": user.user_id, "sent": False, "scheduled_at": {"$gt": now}},
+            {"_id": 0}
+        ).sort("scheduled_at", 1).to_list(50)
+        # Also get recent sent reminders (last 24h)
+        yesterday = now - timedelta(hours=24)
+        sent_reminders = await db.scheduled_notifications.find(
+            {"user_id": user.user_id, "sent": True, "sent_at": {"$gte": yesterday}},
+            {"_id": 0}
+        ).sort("sent_at", -1).to_list(20)
+        return {"upcoming": reminders, "recent": sent_reminders}
+    except Exception as e:
+        logger.error(f"Get reminders error: {e}")
+        return {"upcoming": [], "recent": []}
+
+
+@router.delete("/ai/reminders/{reminder_id}")
+async def cancel_reminder(reminder_id: str, user: User = Depends(require_user)):
+    """Cancel a scheduled AI reminder before it's sent."""
+    try:
+        result = await db.scheduled_notifications.delete_one(
+            {"id": reminder_id, "user_id": user.user_id, "sent": False}
+        )
+        if result.deleted_count > 0:
+            return {"success": True, "message": "Reminder cancelled"}
+        return {"success": False, "message": "Reminder not found or already sent"}
+    except Exception as e:
+        logger.error(f"Cancel reminder error: {e}")
+        return {"success": False, "message": str(e)}
