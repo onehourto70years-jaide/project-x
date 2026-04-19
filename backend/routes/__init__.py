@@ -19,6 +19,7 @@ from routes.weight import router as weight_router
 from routes.reports import router as reports_router
 from routes.micronutrients import router as micronutrients_router
 from routes.analytics import router as analytics_router
+from routes.photo_ai import router as photo_ai_router
 
 
 def create_api_router() -> APIRouter:
@@ -42,4 +43,5 @@ def create_api_router() -> APIRouter:
     api.include_router(reports_router)
     api.include_router(micronutrients_router)
     api.include_router(analytics_router)
+    api.include_router(photo_ai_router)
     return api

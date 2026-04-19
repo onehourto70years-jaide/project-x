@@ -1,328 +1,477 @@
 #!/usr/bin/env python3
 """
-NutriOS Encryption and Security System Tests
-Tests the encryption module, session token hashing, and PII encryption/decryption.
+NutriOS AI Photo Meal Analysis Backend Testing
+Tests the NEW AI Photo endpoints: analyze-photo and photo-log-meal
 """
 
 import asyncio
 import aiohttp
 import json
+import base64
+import uuid
 from datetime import datetime, timezone, timedelta
-from motor.motor_asyncio import AsyncIOMotorClient
+from PIL import Image, ImageDraw
+import io
 import sys
-import os
 
-# Add backend to path for imports
-sys.path.append('/app/backend')
-from encryption import hash_token, encrypt_field, decrypt_field, is_encrypted
+# Backend URL from frontend .env
+BACKEND_URL = "https://meal-sync-test.preview.emergentagent.com/api"
 
-# Test configuration
-BASE_URL = "https://meal-sync-test.preview.emergentagent.com/api"
-MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "nutrient_mapper"
-
-class EncryptionSecurityTester:
+class AIPhotoTester:
     def __init__(self):
         self.session = None
-        self.mongo_client = None
-        self.db = None
-        self.test_user_id = "test_enc_user"
-        self.test_session_token = "test_enc_token_999"
-        self.test_email = "test_enc@nutrios.com"
-        self.test_name = "Encryption Tester"
+        self.test_user_id = f"test_ai_photo_{uuid.uuid4().hex[:8]}"
+        self.test_session_token = f"test_ai_photo_token_{uuid.uuid4().hex[:8]}"
+        self.test_results = []
         
-    async def setup(self):
-        """Setup HTTP session and MongoDB connection"""
+    async def setup_session(self):
+        """Setup HTTP session"""
         self.session = aiohttp.ClientSession()
-        self.mongo_client = AsyncIOMotorClient(MONGO_URL)
-        self.db = self.mongo_client[DB_NAME]
-        print("✅ Setup complete - HTTP session and MongoDB connection established")
         
-    async def cleanup(self):
-        """Cleanup test data and close connections"""
-        try:
-            # Clean up test user and session
-            await self.db.users.delete_one({"user_id": self.test_user_id})
-            await self.db.user_sessions.delete_one({"user_id": self.test_user_id})
-            print("✅ Test data cleanup complete")
-        except Exception as e:
-            print(f"⚠️ Cleanup warning: {e}")
-        
+    async def cleanup_session(self):
+        """Cleanup HTTP session"""
         if self.session:
             await self.session.close()
-        if self.mongo_client:
-            self.mongo_client.close()
-        print("✅ Connections closed")
-    
-    async def test_1_health_check(self):
-        """Test 1: Verify encryption module loads correctly - health check should return 200"""
-        print("\n🔍 Test 1: Health Check (Encryption Module Load)")
-        try:
-            async with self.session.get(f"{BASE_URL}/") as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Health check passed: {response.status}")
-                    print(f"   Response: {data}")
-                    return True
-                else:
-                    print(f"❌ Health check failed: {response.status}")
-                    return False
-        except Exception as e:
-            print(f"❌ Health check error: {e}")
-            return False
-    
-    async def test_2_create_test_user_with_encryption(self):
-        """Test 2: Create test user with encrypted PII and hashed session token"""
-        print("\n🔍 Test 2: Session Creation with Hashed Tokens + Encrypted PII")
+            
+    def create_test_image(self) -> str:
+        """Create a test food image with visual features (not blank)"""
+        # Create a 400x300 image with food-like patterns
+        img = Image.new('RGB', (400, 300), color='white')
+        draw = ImageDraw.Draw(img)
         
+        # Draw a plate (circle)
+        draw.ellipse([50, 50, 350, 250], fill='lightgray', outline='gray', width=3)
+        
+        # Draw food items with different colors and shapes
+        # Chicken breast (beige rectangle)
+        draw.rectangle([100, 100, 200, 150], fill='#D2B48C', outline='#8B7355', width=2)
+        
+        # Vegetables (green circles for broccoli)
+        draw.ellipse([220, 90, 260, 130], fill='green', outline='darkgreen', width=2)
+        draw.ellipse([240, 110, 280, 150], fill='green', outline='darkgreen', width=2)
+        
+        # Rice (small white/yellow dots)
+        for x in range(120, 180, 8):
+            for y in range(160, 200, 8):
+                draw.ellipse([x, y, x+4, y+4], fill='#FFFACD')
+        
+        # Carrots (orange strips)
+        draw.rectangle([280, 120, 320, 140], fill='orange', outline='darkorange', width=1)
+        draw.rectangle([280, 145, 320, 165], fill='orange', outline='darkorange', width=1)
+        
+        # Convert to base64
+        buffer = io.BytesIO()
+        img.save(buffer, format='JPEG', quality=85)
+        img_bytes = buffer.getvalue()
+        return base64.b64encode(img_bytes).decode('utf-8')
+        
+    async def create_test_user(self):
+        """Create test user and session in MongoDB"""
         try:
-            # Test encryption functions directly first
-            print("   Testing encryption functions...")
-            encrypted_email = encrypt_field(self.test_email)
-            encrypted_name = encrypt_field(self.test_name)
-            hashed_token = hash_token(self.test_session_token)
+            # Connect to MongoDB directly
+            from motor.motor_asyncio import AsyncIOMotorClient
+            client = AsyncIOMotorClient("mongodb://localhost:27017")
+            db = client.nutrient_mapper
             
-            print(f"   Original email: {self.test_email}")
-            print(f"   Encrypted email: {encrypted_email}")
-            print(f"   Is encrypted: {is_encrypted(encrypted_email)}")
-            
-            print(f"   Original name: {self.test_name}")
-            print(f"   Encrypted name: {encrypted_name}")
-            print(f"   Is encrypted: {is_encrypted(encrypted_name)}")
-            
-            print(f"   Original token: {self.test_session_token}")
-            print(f"   Hashed token: {hashed_token}")
-            
-            # Verify decryption works
-            decrypted_email = decrypt_field(encrypted_email)
-            decrypted_name = decrypt_field(encrypted_name)
-            print(f"   Decrypted email: {decrypted_email}")
-            print(f"   Decrypted name: {decrypted_name}")
-            
-            if decrypted_email != self.test_email or decrypted_name != self.test_name:
-                print("❌ Encryption/decryption test failed")
-                return False
-            
-            print("✅ Encryption/decryption functions working correctly")
-            
-            # Insert test user with encrypted PII
+            # Create test user
             user_doc = {
                 "user_id": self.test_user_id,
-                "email": encrypted_email,  # Encrypted
-                "name": encrypted_name,    # Encrypted
-                "weight_kg": 70,
+                "email": f"ai_photo_test_{uuid.uuid4().hex[:8]}@test.com",
+                "name": "AI Photo Test User",
+                "created_at": datetime.now(timezone.utc),
+                "weight_kg": 70.0,
                 "activity_level": "moderate",
+                "language_preference": "en"
+            }
+            result = await db.users.insert_one(user_doc)
+            
+            # Create session
+            session_doc = {
+                "session_token": self.test_session_token,
+                "user_id": self.test_user_id,
+                "expires_at": datetime.now(timezone.utc) + timedelta(hours=24),
                 "created_at": datetime.now(timezone.utc)
             }
+            session_result = await db.user_sessions.insert_one(session_doc)
             
-            await self.db.users.insert_one(user_doc)
-            print("✅ Test user inserted with encrypted PII")
-            
-            # Insert session with hashed token
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-            session_doc = {
-                "session_token": hashed_token,  # Hashed
-                "user_id": self.test_user_id,
-                "expires_at": expires_at
-            }
-            
-            await self.db.user_sessions.insert_one(session_doc)
-            print("✅ Test session inserted with hashed token")
-            
+            client.close()
+            print(f"✅ Created test user: {self.test_user_id}")
+            print(f"✅ Created session token: {self.test_session_token}")
             return True
             
         except Exception as e:
-            print(f"❌ Test user creation failed: {e}")
+            print(f"❌ Failed to create test user: {e}")
+            import traceback
+            traceback.print_exc()
             return False
-    
-    async def test_3_auth_me_with_encrypted_data(self):
-        """Test 3: GET /api/auth/me with Authorization Bearer - should return decrypted user data"""
-        print("\n🔍 Test 3: Auth Me Endpoint with Encrypted Data")
-        
+            
+    async def cleanup_test_user(self):
+        """Clean up test user and related data"""
         try:
-            headers = {"Authorization": f"Bearer {self.test_session_token}"}
-            async with self.session.get(f"{BASE_URL}/auth/me", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Auth me endpoint passed: {response.status}")
-                    print(f"   User data: {data}")
+            from motor.motor_asyncio import AsyncIOMotorClient
+            client = AsyncIOMotorClient("mongodb://localhost:27017")
+            db = client.nutrient_mapper
+            
+            # Delete user data
+            await db.users.delete_many({"user_id": self.test_user_id})
+            await db.user_sessions.delete_many({"user_id": self.test_user_id})
+            await db.meals.delete_many({"user_id": self.test_user_id})
+            await db.photo_analyses.delete_many({"user_id": self.test_user_id})
+            
+            client.close()
+            print(f"✅ Cleaned up test user: {self.test_user_id}")
+            
+        except Exception as e:
+            print(f"⚠️ Cleanup warning: {e}")
+            
+    async def test_analyze_photo_valid(self):
+        """Test 1: POST /api/ai/analyze-photo with valid image"""
+        test_name = "Analyze Photo - Valid Image"
+        try:
+            image_base64 = self.create_test_image()
+            
+            payload = {
+                "image_base64": image_base64,
+                "mime_type": "image/jpeg",
+                "meal_type": "lunch",
+                "language": "en"
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.test_session_token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with self.session.post(
+                f"{BACKEND_URL}/ai/analyze-photo",
+                json=payload,
+                headers=headers
+            ) as response:
+                status = response.status
+                data = await response.json()
+                
+                if status == 200:
+                    # Verify response structure
+                    required_fields = ["foods", "meal_description", "total_calories", "health_score", "suggestions"]
+                    missing_fields = [field for field in required_fields if field not in data]
                     
-                    # Verify that the returned data is decrypted
-                    if data.get("email") == self.test_email and data.get("name") == self.test_name:
-                        print("✅ PII decryption working correctly - returned plaintext data")
+                    if not missing_fields and isinstance(data.get("foods"), list):
+                        self.test_results.append({
+                            "test": test_name,
+                            "status": "✅ PASS",
+                            "details": f"Status: {status}, Foods count: {len(data.get('foods', []))}, Calories: {data.get('total_calories', 0)}, Health score: {data.get('health_score', 0)}"
+                        })
+                        print(f"✅ {test_name}: PASS - {data.get('meal_description', 'No description')}")
                         return True
                     else:
-                        print(f"❌ PII decryption failed - expected {self.test_email}, got {data.get('email')}")
+                        self.test_results.append({
+                            "test": test_name,
+                            "status": "❌ FAIL",
+                            "details": f"Missing fields: {missing_fields}, Response: {data}"
+                        })
+                        print(f"❌ {test_name}: FAIL - Missing fields: {missing_fields}")
                         return False
                 else:
-                    error_text = await response.text()
-                    print(f"❌ Auth me endpoint failed: {response.status}")
-                    print(f"   Error: {error_text}")
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "❌ FAIL",
+                        "details": f"Status: {status}, Response: {data}"
+                    })
+                    print(f"❌ {test_name}: FAIL - Status {status}: {data}")
                     return False
+                    
         except Exception as e:
-            print(f"❌ Auth me endpoint error: {e}")
+            self.test_results.append({
+                "test": test_name,
+                "status": "❌ ERROR",
+                "details": f"Exception: {str(e)}"
+            })
+            print(f"❌ {test_name}: ERROR - {e}")
             return False
-    
-    async def test_4_analytics_endpoint_with_auth(self):
-        """Test 4: GET /api/analytics/celebrations/summary with auth"""
-        print("\n🔍 Test 4: Analytics Endpoint with Auth")
-        
-        try:
-            headers = {"Authorization": f"Bearer {self.test_session_token}"}
-            async with self.session.get(f"{BASE_URL}/analytics/celebrations/summary", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Analytics endpoint passed: {response.status}")
-                    print(f"   Analytics data: {data}")
-                    return True
-                else:
-                    error_text = await response.text()
-                    print(f"❌ Analytics endpoint failed: {response.status}")
-                    print(f"   Error: {error_text}")
-                    return False
-        except Exception as e:
-            print(f"❌ Analytics endpoint error: {e}")
-            return False
-    
-    async def test_5_dashboard_with_auth(self):
-        """Test 5: GET /api/dashboard with auth"""
-        print("\n🔍 Test 5: Dashboard Endpoint with Auth")
-        
-        try:
-            headers = {"Authorization": f"Bearer {self.test_session_token}"}
-            async with self.session.get(f"{BASE_URL}/dashboard", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Dashboard endpoint passed: {response.status}")
-                    print(f"   Dashboard data keys: {list(data.keys())}")
-                    return True
-                else:
-                    error_text = await response.text()
-                    print(f"❌ Dashboard endpoint failed: {response.status}")
-                    print(f"   Error: {error_text}")
-                    return False
-        except Exception as e:
-            print(f"❌ Dashboard endpoint error: {e}")
-            return False
-    
-    async def test_backward_compatibility(self):
-        """Test backward compatibility with plain text session tokens and PII"""
-        print("\n🔍 Bonus Test: Backward Compatibility")
-        
-        try:
-            # Create a user with plain text PII (simulating old data)
-            plain_user_id = "test_plain_user"
-            plain_token = "test_plain_token_999"
             
-            user_doc = {
-                "user_id": plain_user_id,
-                "email": "plain@nutrios.com",  # Plain text
-                "name": "Plain User",          # Plain text
-                "weight_kg": 65,
-                "activity_level": "active",
-                "created_at": datetime.now(timezone.utc)
+    async def test_analyze_photo_no_image(self):
+        """Test 2: POST /api/ai/analyze-photo without image_base64"""
+        test_name = "Analyze Photo - No Image"
+        try:
+            payload = {
+                "meal_type": "lunch",
+                "language": "en"
             }
             
-            await self.db.users.insert_one(user_doc)
-            
-            # Create session with plain text token (simulating old session)
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-            session_doc = {
-                "session_token": plain_token,  # Plain text
-                "user_id": plain_user_id,
-                "expires_at": expires_at
+            headers = {
+                "Authorization": f"Bearer {self.test_session_token}",
+                "Content-Type": "application/json"
             }
             
-            await self.db.user_sessions.insert_one(session_doc)
-            print("✅ Plain text user and session created")
-            
-            # Test auth with plain text token
-            headers = {"Authorization": f"Bearer {plain_token}"}
-            async with self.session.get(f"{BASE_URL}/auth/me", headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ Backward compatibility test passed: {response.status}")
-                    print(f"   Plain text user data: {data}")
-                    
-                    # Verify session was migrated to hashed format
-                    hashed_token = hash_token(plain_token)
-                    migrated_session = await self.db.user_sessions.find_one({"session_token": hashed_token})
-                    if migrated_session:
-                        print("✅ Session token automatically migrated to hashed format")
-                    else:
-                        print("⚠️ Session token migration may not have occurred")
-                    
-                    # Cleanup
-                    await self.db.users.delete_one({"user_id": plain_user_id})
-                    await self.db.user_sessions.delete_one({"user_id": plain_user_id})
-                    
+            async with self.session.post(
+                f"{BACKEND_URL}/ai/analyze-photo",
+                json=payload,
+                headers=headers
+            ) as response:
+                status = response.status
+                data = await response.json()
+                
+                if status == 400 and "image_base64 is required" in data.get("detail", ""):
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "✅ PASS",
+                        "details": f"Status: {status}, Error: {data.get('detail')}"
+                    })
+                    print(f"✅ {test_name}: PASS - Proper validation error")
                     return True
                 else:
-                    error_text = await response.text()
-                    print(f"❌ Backward compatibility test failed: {response.status}")
-                    print(f"   Error: {error_text}")
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "❌ FAIL",
+                        "details": f"Expected 400 with 'image_base64 is required', got {status}: {data}"
+                    })
+                    print(f"❌ {test_name}: FAIL - Expected 400 validation error")
                     return False
                     
         except Exception as e:
-            print(f"❌ Backward compatibility test error: {e}")
+            self.test_results.append({
+                "test": test_name,
+                "status": "❌ ERROR",
+                "details": f"Exception: {str(e)}"
+            })
+            print(f"❌ {test_name}: ERROR - {e}")
             return False
-    
+            
+    async def test_analyze_photo_small_image(self):
+        """Test 3: POST /api/ai/analyze-photo with too-small image"""
+        test_name = "Analyze Photo - Small Image"
+        try:
+            # Create a very small base64 string (less than 1000 bytes)
+            small_image = base64.b64encode(b"tiny").decode('utf-8')
+            
+            payload = {
+                "image_base64": small_image,
+                "mime_type": "image/jpeg",
+                "meal_type": "lunch"
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.test_session_token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with self.session.post(
+                f"{BACKEND_URL}/ai/analyze-photo",
+                json=payload,
+                headers=headers
+            ) as response:
+                status = response.status
+                data = await response.json()
+                
+                if status == 400 and "too small" in data.get("detail", "").lower():
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "✅ PASS",
+                        "details": f"Status: {status}, Error: {data.get('detail')}"
+                    })
+                    print(f"✅ {test_name}: PASS - Proper size validation")
+                    return True
+                else:
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "❌ FAIL",
+                        "details": f"Expected 400 with 'too small', got {status}: {data}"
+                    })
+                    print(f"❌ {test_name}: FAIL - Expected size validation error")
+                    return False
+                    
+        except Exception as e:
+            self.test_results.append({
+                "test": test_name,
+                "status": "❌ ERROR",
+                "details": f"Exception: {str(e)}"
+            })
+            print(f"❌ {test_name}: ERROR - {e}")
+            return False
+            
+    async def test_photo_log_meal_valid(self):
+        """Test 4: POST /api/ai/photo-log-meal with valid foods"""
+        test_name = "Photo Log Meal - Valid Foods"
+        try:
+            foods = [
+                {
+                    "food_name": "Grilled Chicken Breast",
+                    "portion_grams": 150,
+                    "nutrients": {
+                        "energy_kcal": 250,
+                        "protein_g": 31,
+                        "carbohydrate_g": 0,
+                        "fat_g": 14,
+                        "fiber_g": 0
+                    },
+                    "cooking_method": "grilled"
+                },
+                {
+                    "food_name": "Steamed Broccoli",
+                    "portion_grams": 100,
+                    "nutrients": {
+                        "energy_kcal": 34,
+                        "protein_g": 3,
+                        "carbohydrate_g": 7,
+                        "fat_g": 0,
+                        "fiber_g": 3
+                    },
+                    "cooking_method": "steamed"
+                }
+            ]
+            
+            payload = {
+                "foods": foods,
+                "meal_type": "lunch",
+                "analysis_id": f"test_analysis_{uuid.uuid4().hex[:8]}"
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.test_session_token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with self.session.post(
+                f"{BACKEND_URL}/ai/photo-log-meal",
+                json=payload,
+                headers=headers
+            ) as response:
+                status = response.status
+                data = await response.json()
+                
+                if status == 200 and data.get("logged_count", 0) > 0:
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "✅ PASS",
+                        "details": f"Status: {status}, Logged: {data.get('logged_count')} foods, Message: {data.get('message')}"
+                    })
+                    print(f"✅ {test_name}: PASS - Logged {data.get('logged_count')} foods")
+                    return True
+                else:
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "❌ FAIL",
+                        "details": f"Status: {status}, Response: {data}"
+                    })
+                    print(f"❌ {test_name}: FAIL - Status {status}: {data}")
+                    return False
+                    
+        except Exception as e:
+            self.test_results.append({
+                "test": test_name,
+                "status": "❌ ERROR",
+                "details": f"Exception: {str(e)}"
+            })
+            print(f"❌ {test_name}: ERROR - {e}")
+            return False
+            
+    async def test_photo_log_meal_empty(self):
+        """Test 5: POST /api/ai/photo-log-meal with empty foods array"""
+        test_name = "Photo Log Meal - Empty Foods"
+        try:
+            payload = {
+                "foods": [],
+                "meal_type": "lunch"
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.test_session_token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with self.session.post(
+                f"{BACKEND_URL}/ai/photo-log-meal",
+                json=payload,
+                headers=headers
+            ) as response:
+                status = response.status
+                data = await response.json()
+                
+                if status == 400 and "no foods" in data.get("detail", "").lower():
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "✅ PASS",
+                        "details": f"Status: {status}, Error: {data.get('detail')}"
+                    })
+                    print(f"✅ {test_name}: PASS - Proper validation error")
+                    return True
+                else:
+                    self.test_results.append({
+                        "test": test_name,
+                        "status": "❌ FAIL",
+                        "details": f"Expected 400 with 'no foods', got {status}: {data}"
+                    })
+                    print(f"❌ {test_name}: FAIL - Expected validation error")
+                    return False
+                    
+        except Exception as e:
+            self.test_results.append({
+                "test": test_name,
+                "status": "❌ ERROR",
+                "details": f"Exception: {str(e)}"
+            })
+            print(f"❌ {test_name}: ERROR - {e}")
+            return False
+            
     async def run_all_tests(self):
-        """Run all encryption and security tests"""
-        print("🚀 Starting NutriOS Encryption and Security System Tests")
-        print(f"   Backend URL: {BASE_URL}")
-        print(f"   MongoDB: {MONGO_URL}/{DB_NAME}")
+        """Run all AI Photo Meal Analysis tests"""
+        print("🧪 Starting AI Photo Meal Analysis Backend Tests")
+        print(f"📍 Backend URL: {BACKEND_URL}")
+        print("=" * 60)
         
-        await self.setup()
+        # Setup
+        await self.setup_session()
         
-        tests = [
-            ("Health Check", self.test_1_health_check),
-            ("Encrypted User Creation", self.test_2_create_test_user_with_encryption),
-            ("Auth Me with Decryption", self.test_3_auth_me_with_encrypted_data),
-            ("Analytics with Auth", self.test_4_analytics_endpoint_with_auth),
-            ("Dashboard with Auth", self.test_5_dashboard_with_auth),
-            ("Backward Compatibility", self.test_backward_compatibility),
-        ]
-        
-        results = []
-        for test_name, test_func in tests:
-            try:
-                result = await test_func()
-                results.append((test_name, result))
-            except Exception as e:
-                print(f"❌ {test_name} crashed: {e}")
-                results.append((test_name, False))
-        
-        await self.cleanup()
-        
-        # Summary
-        print("\n" + "="*60)
-        print("🏁 ENCRYPTION & SECURITY TEST SUMMARY")
-        print("="*60)
-        
-        passed = 0
-        total = len(results)
-        
-        for test_name, result in results:
-            status = "✅ PASS" if result else "❌ FAIL"
-            print(f"{status} {test_name}")
-            if result:
-                passed += 1
-        
-        print(f"\nSuccess Rate: {passed}/{total} ({passed/total*100:.1f}%)")
-        
-        if passed == total:
-            print("🎉 ALL ENCRYPTION & SECURITY TESTS PASSED!")
-        else:
-            print("⚠️ Some tests failed - check logs above")
-        
-        return passed == total
+        # Create test user
+        if not await self.create_test_user():
+            print("❌ Failed to create test user. Aborting tests.")
+            await self.cleanup_session()
+            return False
+            
+        try:
+            # Run tests
+            tests = [
+                self.test_analyze_photo_valid(),
+                self.test_analyze_photo_no_image(),
+                self.test_analyze_photo_small_image(),
+                self.test_photo_log_meal_valid(),
+                self.test_photo_log_meal_empty()
+            ]
+            
+            results = await asyncio.gather(*tests, return_exceptions=True)
+            
+            # Count results
+            passed = sum(1 for result in results if result is True)
+            total = len(tests)
+            
+            print("\n" + "=" * 60)
+            print("📊 TEST SUMMARY")
+            print("=" * 60)
+            
+            for test_result in self.test_results:
+                print(f"{test_result['status']} {test_result['test']}")
+                print(f"   {test_result['details']}")
+                print()
+                
+            print(f"🎯 OVERALL RESULT: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
+            
+            if passed == total:
+                print("✅ ALL AI PHOTO MEAL ANALYSIS TESTS PASSED")
+                return True
+            else:
+                print("❌ SOME TESTS FAILED")
+                return False
+                
+        finally:
+            # Cleanup
+            await self.cleanup_test_user()
+            await self.cleanup_session()
 
 async def main():
-    tester = EncryptionSecurityTester()
+    """Main test runner"""
+    tester = AIPhotoTester()
     success = await tester.run_all_tests()
-    return 0 if success else 1
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
-    exit_code = asyncio.run(main())
-    exit(exit_code)
+    asyncio.run(main())

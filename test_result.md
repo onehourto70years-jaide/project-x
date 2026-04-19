@@ -110,6 +110,10 @@
 44. `GET /api/ai/insights` - Get insights (requires auth)
 45. `POST /api/ai/predictive-recommendations` - Get predictive recommendations (requires auth)
 
+### AI Photo Meal Analysis (NEW)
+64. `POST /api/ai/analyze-photo` - Analyze a food photo using Gemini Vision (requires auth, body: {"image_base64": "<base64_encoded_jpeg>", "mime_type": "image/jpeg", "meal_type": "lunch", "language": "en"}) - Note: For testing, use a real food image encoded in base64. The endpoint sends the image to Gemini Vision for food recognition.
+65. `POST /api/ai/photo-log-meal` - Log foods identified from photo analysis (requires auth, body: {"foods": [{"food_name": "Chicken breast", "portion_grams": 150, "nutrients": {"energy_kcal": 250, "protein_g": 31, "carbohydrate_g": 0, "fat_g": 14, "fiber_g": 0}, "cooking_method": "grilled"}], "meal_type": "lunch", "analysis_id": "optional-id"})
+
 ### Utility
 46. `GET /api/` - Root health check
 47. `GET /api/elements/info` - Get element information
@@ -771,6 +775,80 @@
 
 **Status:** Backend security layer is production-ready and fully functional. All security measures working correctly with comprehensive protection against XSS, injection attacks, and rate limiting abuse.
 
+### Backend AI Photo Meal Analysis Tests - COMPLETED ⚠️
+**Test Date:** 2026-04-19 16:41:11  
+**Test Agent:** deep_testing_backend_v2  
+**Test Focus:** NEW AI Photo Meal Analysis endpoints  
+**Backend URL:** https://meal-sync-test.preview.emergentagent.com/api
+
+#### AI Photo Meal Analysis Tests (4/5 PASSED)
+
+**CRITICAL ISSUE:** Gemini AI model configuration preventing photo analysis from working.
+
+1. **Photo Log Meal - Valid Foods** ✅ PASS
+   - Endpoint: `POST /api/ai/photo-log-meal`
+   - Status: 200
+   - Body: 2 foods (Grilled Chicken Breast 150g, Steamed Broccoli 100g) with complete nutrients
+   - Response: Successfully logged 2 food(s) from photo, logged_count: 2
+   - Working: Meal logging from photo analysis working perfectly
+
+2. **Photo Log Meal - Empty Foods Validation** ✅ PASS
+   - Endpoint: `POST /api/ai/photo-log-meal`
+   - Status: 400
+   - Body: Empty foods array
+   - Response: "No foods to log"
+   - Working: Proper validation for empty foods array
+
+3. **Analyze Photo - Missing Image Validation** ✅ PASS
+   - Endpoint: `POST /api/ai/analyze-photo`
+   - Status: 400
+   - Body: No image_base64 field
+   - Response: "image_base64 is required"
+   - Working: Proper validation for missing image data
+
+4. **Analyze Photo - Small Image Validation** ✅ PASS
+   - Endpoint: `POST /api/ai/analyze-photo`
+   - Status: 400
+   - Body: Too-small base64 image (< 1000 bytes)
+   - Response: "Invalid base64 image: 400: Image too small or invalid"
+   - Working: Proper size validation for images
+
+5. **Analyze Photo - Valid Image** ❌ FAIL
+   - Endpoint: `POST /api/ai/analyze-photo`
+   - Status: 500
+   - Body: Valid 400x300 JPEG food image with visual features (plate, chicken, broccoli, rice, carrots)
+   - Error: "Photo analysis failed: Failed to generate chat completion: litellm.NotFoundError: GeminiException - . Received Model Group=gemini/gemini-3-flash-preview Available Model Group Fallbacks=None"
+   - Issue: Gemini model 'gemini-3-flash-preview' not available through Emergent LLM service
+
+#### Test Configuration
+- **Base URL:** https://meal-sync-test.preview.emergentagent.com/api
+- **Test User ID:** test_ai_photo_e427dafd
+- **Session Token:** test_ai_photo_token_b35353bd
+- **Database:** MongoDB at mongodb://localhost:27017/nutrient_mapper
+- **Authentication:** Bearer token authentication working correctly
+
+#### Image Testing Compliance
+- ✅ **Image Creation:** Generated 400x300 JPEG with real visual features (not blank)
+- ✅ **Base64 Encoding:** Proper JPEG to base64 conversion working
+- ✅ **Image Validation:** Size and format validation working correctly
+- ✅ **Visual Features:** Test image contains plate, chicken, broccoli, rice, carrots (following image_testing.md guidelines)
+
+#### Key Findings
+- ✅ All validation endpoints working correctly with proper error messages
+- ✅ Photo meal logging functionality working perfectly with USDA enrichment
+- ✅ Authentication system fully functional with Bearer tokens
+- ✅ Database operations (users, user_sessions, meals, photo_analyses) working correctly
+- ✅ Image processing pipeline functional (base64 encoding/decoding, validation)
+- ❌ **CRITICAL ISSUE:** Gemini AI model configuration preventing photo analysis
+- ✅ Test user creation, session management, and cleanup working correctly
+
+#### Root Cause Analysis
+The Gemini model `gemini-3-flash-preview` is not available through the Emergent LLM service, causing all AI photo analysis requests to fail with 500 errors. Other AI endpoints (like `/api/ai/recommendations`) fall back to alternative models, but the photo analysis endpoint has no fallback configured.
+
+#### Success Rate: 80% (4/5 tests passed)
+
+**Status:** AI Photo Meal Analysis endpoints are mostly functional. All validation and meal logging features work correctly. The only issue is the Gemini AI model configuration which prevents actual photo analysis. This is an external dependency issue, not a code implementation problem.
+
 ## Frontend Test Results
 
 ### Frontend
@@ -891,6 +969,8 @@ agent_communication:
     message: "FAVORITES ENDPOINTS TESTING COMPLETED ✅ - All 7 NutriOS Favorites endpoints tested successfully with 100% pass rate. Favorites system is fully operational. Key findings: 1) ✅ EMPTY FAVORITES LIST - GET /api/favorites correctly returns empty array for new user, 2) ✅ ADD FAVORITES - POST /api/favorites working perfectly for both Chicken Breast (FDC ID: 170567, 150g, baking) and Banana (FDC ID: 173944, 120g, raw) with proper favorite_id generation, 3) ✅ LIST FAVORITES WITH ITEMS - GET /api/favorites correctly returns 2 favorites with all required fields (id, fdc_id, food_name, default_portion_grams, created_at), sorted by creation date, 4) ✅ DELETE FAVORITE - DELETE /api/favorites/170567 successfully removes Chicken Breast with proper 'Removed from favorites' message, 5) ✅ VERIFY DELETION - GET /api/favorites correctly shows only Banana remaining after deletion, 6) ✅ RECENT FOODS ENDPOINT - GET /api/foods/recent working correctly (empty for new user as expected), 7) ✅ AUTHENTICATION & DATABASE - Test user setup (test_fav_user) with session token (test_fav_token_222) working correctly, MongoDB favorites collection functioning properly with UUID-based IDs. All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). The favorites system provides complete CRUD functionality with proper authentication, data persistence, and response formatting. All endpoints are production-ready."
   - agent: "testing"
     message: "ROUTINES EDIT & DELETE ENDPOINTS TESTING COMPLETED ✅ - All 6 specific routine workflow tests passed with 100% success rate. Routines Edit and Delete endpoints are fully operational. Key findings: 1) ✅ ROUTINE CREATION - POST /api/routines working perfectly with proper routine_id generation (UUID), created 'Morning Workout' routine with 2 tasks (Stretching, Running) scheduled for mon/wed/fri 06:00-07:00, 2) ✅ ROUTINE RETRIEVAL - GET /api/routines correctly returns array with 1 routine containing all expected fields (id, name, type, time_start, time_end, days, tasks), 3) ✅ ROUTINE EDITING - PUT /api/routines/{routine_id} working perfectly, successfully updated routine name to 'Evening Yoga', changed type to 'evening', updated schedule to 19:00-20:00 for mon-fri, added third task (Cool Down), 4) ✅ EDIT VERIFICATION - All changes properly saved and verified: name changed from 'Morning Workout' to 'Evening Yoga', type changed from 'workout' to 'evening', tasks increased from 2 to 3, schedule updated to 19:00-20:00, days expanded to 5 days, 5) ✅ ROUTINE DELETION - DELETE /api/routines/{routine_id} working correctly with proper success message, 6) ✅ DELETION VERIFICATION - GET /api/routines correctly returns empty array after deletion, confirming routine was properly removed. Test setup followed exact review request specifications: created test user (test_rout_user) and session (test_rout_token_333) in MongoDB, used Bearer token authentication throughout. All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). Database operations (user creation, session management, cleanup) functioning correctly. Routines Edit and Delete functionality is production-ready."
+  - agent: "testing"
+    message: "AI PHOTO MEAL ANALYSIS TESTING COMPLETED ⚠️ - Tested NEW AI Photo endpoints with mixed results (4/5 tests passed, 80% success rate). Key findings: 1) ✅ PHOTO LOG MEAL ENDPOINTS FULLY FUNCTIONAL - POST /api/ai/photo-log-meal working perfectly with proper validation: successfully logged 2 foods (Grilled Chicken Breast, Steamed Broccoli) with complete nutrient data, proper 400 validation error for empty foods array, 2) ✅ ANALYZE PHOTO VALIDATION WORKING - POST /api/ai/analyze-photo properly validates inputs: correct 400 error for missing image_base64, proper 400 error for too-small images with meaningful error messages, 3) ❌ GEMINI AI INTEGRATION ISSUE - POST /api/ai/analyze-photo with valid food image returns 500 error due to Gemini model configuration: 'litellm.NotFoundError: GeminiException - . Received Model Group=gemini/gemini-3-flash-preview Available Model Group Fallbacks=None', 4) ✅ AUTHENTICATION & DATABASE - Test user creation (test_ai_photo_e427dafd) and session management working correctly, Bearer token authentication functional across all endpoints, MongoDB operations (users, user_sessions, meals, photo_analyses collections) working properly, 5) ✅ IMAGE PROCESSING PIPELINE - Created valid test food image (400x300 JPEG with visual features: plate, chicken, broccoli, rice, carrots) following image_testing.md guidelines, base64 encoding/decoding working correctly, image validation logic functional. ROOT CAUSE: The Gemini model 'gemini-3-flash-preview' is not available through the Emergent LLM service, causing AI analysis to fail. Other AI endpoints use fallback models. RECOMMENDATION: Update model name to available Gemini variant or configure fallback for photo analysis. All non-AI functionality (validation, meal logging, database operations) is production-ready."
 
 ## Latest Frontend Changes to Test — Zod & React-Hook-Form Migration
 

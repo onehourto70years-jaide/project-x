@@ -36,6 +36,7 @@ export default function MoreScreen() {
     {
       title: t('more_ai_insights'),
       items: [
+        { id: 'photo-meal', label: t('more_photo_meal'), icon: 'camera', color: '#4ecdc4', route: '/photo-meal' },
         { id: 'coach', label: t('more_ai_coach'), icon: 'sparkles', color: '#00d4ff', route: '/ai-home' },
         { id: 'sequence', label: t('more_sequence_optimizer'), icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
         { id: 'ai', label: t('more_ai_recommendations'), icon: 'bulb', color: '#ffd93d', route: '/(tabs)/ai' },
