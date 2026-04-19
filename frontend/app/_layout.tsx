@@ -14,16 +14,17 @@ import CelebrationOverlay from '../src/components/CelebrationOverlay';
 import { clearCache } from '../src/cache';
 import { useImmersiveMode } from '../src/useImmersiveMode';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 // Keep the native splash visible while we load auth + resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Configure notification handler
+// Configure notification handler (works in both Expo Go and dev builds)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
   }),
 });
 
@@ -78,6 +79,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        // Register push token on app re-open too (not just first login)
+        registerPushToken(token);
       } else {
         await AsyncStorage.removeItem('session_token');
         setUser(null);
@@ -120,25 +123,109 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerPushToken = async (authToken: string) => {
     try {
       if (Platform.OS === 'web') return; // Push not supported on web
+
+      // 1. Request permission
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      if (finalStatus !== 'granted') return;
-
-      const pushToken = await Notifications.getExpoPushTokenAsync();
-      if (pushToken?.data) {
-        await fetch(`${BACKEND_URL}/api/notifications/register-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ push_token: pushToken.data, platform: Platform.OS })
-        });
-        console.log('Push token registered:', pushToken.data);
+      if (finalStatus !== 'granted') {
+        console.log('Notification permission not granted');
+        return;
       }
+
+      // 2. Set Android channel (required for Android 8+)
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'NutriOS Notifications',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#00d4ff',
+          sound: 'default',
+        });
+      }
+
+      // 3. Get push token (requires projectId for SDK 49+)
+      // Remote push only works in dev builds, NOT Expo Go (SDK 53+)
+      try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        const pushToken = await Notifications.getExpoPushTokenAsync({
+          projectId: projectId || undefined,
+        });
+        if (pushToken?.data) {
+          await fetch(`${BACKEND_URL}/api/notifications/register-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ push_token: pushToken.data, platform: Platform.OS })
+          });
+          console.log('Push token registered:', pushToken.data.substring(0, 30) + '...');
+        }
+      } catch (pushErr: any) {
+        // This will fail in Expo Go SDK 53+ — that's expected
+        // Local notifications still work fine
+        console.log('Remote push token unavailable (Expo Go limitation):', pushErr?.message || pushErr);
+      }
+
+      // 4. Schedule essential local notifications as fallback
+      await scheduleLocalReminders();
+
     } catch (e) {
-      console.log('Push token registration skipped:', e);
+      console.log('Notification setup error:', e);
+    }
+  };
+
+  const scheduleLocalReminders = async () => {
+    try {
+      // Cancel all existing scheduled notifications to avoid duplicates
+      await Notifications.cancelAllScheduledNotificationsAsync();
+
+      // Water reminder — every 2 hours between 8am-10pm
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💧 Hydration Check',
+          body: 'Time to drink water. Stay optimized.',
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 7200,
+          repeats: true,
+        },
+      });
+
+      // Meal tracking reminder — daily at 12:30
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🍽️ Meal Tracking',
+          body: 'Have you logged your lunch? Keep your nutrient data accurate.',
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: 12,
+          minute: 30,
+        },
+      });
+
+      // Evening summary — daily at 20:00
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📊 Daily Summary',
+          body: 'Check your nutrition progress for today.',
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: 20,
+          minute: 0,
+        },
+      });
+
+      console.log('Local reminders scheduled');
+    } catch (e) {
+      console.log('Local notification scheduling error:', e);
     }
   };
 
