@@ -493,7 +493,7 @@ Return ONLY the JSON, no markdown."""
                 api_key=EMERGENT_LLM_KEY,
                 session_id=f"gap_{user.user_id}",
                 system_message="You are a nutrition data expert. Return only valid JSON."
-            ).with_model("gemini", "gemini-3-flash-preview")
+            ).with_model("gemini", "gemini-2.5-flash")
 
             response = await chat.send_message(UserMessage(text=prompt))
             import json

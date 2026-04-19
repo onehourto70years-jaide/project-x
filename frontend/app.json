@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nutrios.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Scan food barcodes for nutrition data",
+        "NSCameraUsageDescription": "Scan barcodes and snap food photos",
+        "NSPhotoLibraryUsageDescription": "Choose food photos from your gallery",
         "NSUserNotificationUsageDescription": "Get meal reminders and hydration alerts",
         "UIStatusBarHidden": true,
         "UIViewControllerBasedStatusBarAppearance": false

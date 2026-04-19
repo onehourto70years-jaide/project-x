@@ -93,7 +93,7 @@ Common portions: rice/pasta serving = 150-200g, chicken breast = 150-180g, salad
             api_key=EMERGENT_LLM_KEY,
             session_id=f"photo_{uuid.uuid4().hex[:8]}",
             system_message=system_prompt
-        ).with_model("gemini", "gemini-3-flash-preview")
+        ).with_model("gemini", "gemini-2.5-flash")
 
         image_content = FileContentWithMimeType(
             file_path=tmp_file.name,

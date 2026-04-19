@@ -23,12 +23,12 @@ async def get_ai_recommendations(request: Request):
 For each: food name, key_nutrients (list), key_elements (list), health_benefit, best_cooking, synergistic_foods (list).
 Respond as JSON array only: [{{"food": "", "key_nutrients": [], "key_elements": [], "health_benefit": "", "best_cooking": "", "synergistic_foods": []}}]"""
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"rec_{uuid.uuid4().hex[:8]}", system_message="You are a molecular nutrition expert. Respond only with valid JSON.").with_model("gemini", "gemini-3-flash-preview")
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"rec_{uuid.uuid4().hex[:8]}", system_message="You are a molecular nutrition expert. Respond only with valid JSON.").with_model("gemini", "gemini-2.5-flash")
         response = await chat.send_message(UserMessage(text=prompt))
         response_text = response.strip()
         if "```" in response_text:
             response_text = response_text.split("```")[1].replace("json", "").strip()
-        return {"goal": goal, "recommendations": json.loads(response_text), "ai_model": "gemini-3-flash-preview"}
+        return {"goal": goal, "recommendations": json.loads(response_text), "ai_model": "gemini-2.5-flash"}
     except Exception as e:
         logger.error(f"AI error: {e}")
         fallback = [{"food": "Salmon", "key_nutrients": ["protein", "omega-3"], "key_elements": ["N", "P"], "health_benefit": "Complete protein", "best_cooking": "baking", "synergistic_foods": ["spinach"]}]
@@ -48,7 +48,7 @@ Water: {summary.get('total_water_ml', 0)}/{settings.get('daily_water_goal_ml', 2
 Deficiencies: {summary.get('deficiencies', [])}
 Respond as JSON: [{{"category": "nutrition|hydration|routine", "title": "", "message": "", "priority": "low|normal|high"}}]"""
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"ins_{uuid.uuid4().hex[:8]}", system_message="Generate health insights as JSON.").with_model("gemini", "gemini-3-flash-preview")
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"ins_{uuid.uuid4().hex[:8]}", system_message="Generate health insights as JSON.").with_model("gemini", "gemini-2.5-flash")
         response = await chat.send_message(UserMessage(text=prompt))
         response_text = response.strip()
         if "```" in response_text:
@@ -122,7 +122,7 @@ ALWAYS respond with valid JSON. Never use markdown code fences. The message fiel
         if chat_request.conversation_history:
             full_prompt = f"Previous conversation:\n{chat_request.conversation_history}\n\nNew message: {full_prompt}"
 
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"chat_{uuid.uuid4().hex[:8]}", system_message=system_prompt).with_model("gemini", "gemini-3-flash-preview")
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=f"chat_{uuid.uuid4().hex[:8]}", system_message=system_prompt).with_model("gemini", "gemini-2.5-flash")
         raw_response = await chat.send_message(UserMessage(text=full_prompt))
 
         # Parse the AI response for actions

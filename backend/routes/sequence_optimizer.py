@@ -603,7 +603,7 @@ Use 1-2 emojis. Be concise and actionable."""
             api_key=EMERGENT_LLM_KEY,
             session_id=f"seq_{uuid.uuid4().hex[:8]}",
             system_message="You are a molecular nutrition expert. Be concise, scientific, and friendly."
-        ).with_model("gemini", "gemini-3-flash-preview")
+        ).with_model("gemini", "gemini-2.5-flash")
 
         response = await chat.send_message(UserMessage(text=prompt))
         return response.strip()
