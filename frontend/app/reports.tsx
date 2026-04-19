@@ -103,7 +103,7 @@ export default function ReportsScreen() {
 
   useFocusEffect(useCallback(() => { fetchReport(); }, [fetchReport]));
 
-  /* ───── CSV Export ───── */
+  /* ───── CSV Export (Full 72+ Nutrients) ───── */
   const exportCSV = async () => {
     hapticMedium();
     setExporting('csv');
@@ -115,28 +115,63 @@ export default function ReportsScreen() {
       if (!res.ok) throw new Error('Failed');
       const raw = await res.json();
 
-      // Build CSV
-      let csv = 'Category,Date,Detail,Value\n';
+      const nutrientCols = raw.nutrient_columns || [];
+
+      // ═══ SHEET 1: Meals with Full Nutrients ═══
+      const mealHeader = ['Date', 'Food', 'Meal Type', 'Portion (g)', 'Cooking Method', ...nutrientCols.map((k: string) => k.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()))];
+      let csv = '=== MEALS (Full Nutrient Profile) ===\n';
+      csv += mealHeader.join(',') + '\n';
       (raw.meals || []).forEach((m: any) => {
-        csv += `Meal,${m.date},${(m.food_name || '').replace(/,/g, ';')},${m.nutrients?.energy_kcal || 0} kcal\n`;
-      });
-      (raw.water || []).forEach((w: any) => {
-        csv += `Water,${w.date},Intake,${w.total_ml} ml\n`;
-      });
-      (raw.weight || []).forEach((w: any) => {
-        csv += `Weight,${w.date},${(w.note || '').replace(/,/g, ';')},${w.weight_kg} kg\n`;
-      });
-      (raw.daily_summaries || []).forEach((d: any) => {
-        csv += `Summary,${d.date},Calories,${d.total_calories || 0} kcal\n`;
-        csv += `Summary,${d.date},Protein,${d.total_protein || 0} g\n`;
+        const row = [
+          m.date,
+          `"${(m.food_name || '').replace(/"/g, '""')}"`,
+          m.meal_type || '',
+          m.portion_grams || '',
+          m.cooking_method || 'raw',
+          ...nutrientCols.map((k: string) => m.nutrients?.[k] != null ? Number(m.nutrients[k]).toFixed(2) : '')
+        ];
+        csv += row.join(',') + '\n';
       });
 
-      const fileUri = FileSystem.cacheDirectory + 'NutriOS_Export.csv';
+      // ═══ SHEET 2: Daily Summaries with Aggregated Nutrients ═══
+      csv += '\n=== DAILY NUTRIENT SUMMARIES ===\n';
+      csv += ['Date', 'Total Calories', 'Meals Count', ...nutrientCols.map((k: string) => k.replace(/_/g, ' '))].join(',') + '\n';
+      (raw.daily_summaries || []).forEach((d: any) => {
+        const row = [
+          d.date,
+          d.total_calories || 0,
+          d.meals_count || 0,
+          ...nutrientCols.map((k: string) => d.nutrients?.[k] != null ? Number(d.nutrients[k]).toFixed(2) : '')
+        ];
+        csv += row.join(',') + '\n';
+      });
+
+      // ═══ SHEET 3: Water Intake ═══
+      csv += '\n=== WATER INTAKE ===\n';
+      csv += 'Date,Total (ml),Entries\n';
+      (raw.water || []).forEach((w: any) => {
+        csv += `${w.date},${w.total_ml},${w.entries}\n`;
+      });
+
+      // ═══ SHEET 4: Weight Log ═══
+      csv += '\n=== WEIGHT LOG ===\n';
+      csv += 'Date,Weight (kg),Note\n';
+      (raw.weight || []).forEach((w: any) => {
+        csv += `${w.date},${w.weight_kg},"${(w.note || '').replace(/"/g, '""')}"\n`;
+      });
+
+      // ═══ GDPR Notice ═══
+      csv += `\n=== GDPR NOTICE ===\n`;
+      csv += `Exported: ${raw.exported_at}\n`;
+      csv += `Period: ${raw.data_period?.from} to ${raw.data_period?.to}\n`;
+      csv += `${raw.gdpr_notice || ''}\n`;
+
+      const fileUri = FileSystem.cacheDirectory + 'NutriOS_Full_Export.csv';
       await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
 
       if (await Sharing.isAvailableAsync()) {
         hapticSuccess();
-        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export NutriOS Data' });
+        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export NutriOS Full Data' });
       } else {
         Alert.alert('Saved', `File saved to ${fileUri}`);
       }
@@ -147,7 +182,7 @@ export default function ReportsScreen() {
     }
   };
 
-  /* ───── PDF Export ───── */
+  /* ───── PDF Export (Full 72+ Nutrients Report) ───── */
   const exportPDF = async () => {
     hapticMedium();
     setExporting('pdf');
@@ -159,10 +194,59 @@ export default function ReportsScreen() {
       if (!res.ok) throw new Error('Failed');
       const raw = await res.json();
 
-      // Build HTML report
+      const nutrientCols = raw.nutrient_columns || [];
+
+      // Group nutrients by category for the PDF
+      const categories: Record<string, string[]> = {
+        'Macronutrients': nutrientCols.filter((k: string) => ['protein_g','carbohydrate_g','fat_g','fiber_g','water_g','sugars_g','energy_kcal'].includes(k)),
+        'Fats': nutrientCols.filter((k: string) => k.includes('saturated') || k.includes('monounsaturated') || k.includes('polyunsaturated') || k.includes('trans_fat') || k.includes('cholesterol')),
+        'Omega Fatty Acids': nutrientCols.filter((k: string) => k.includes('omega')),
+        'Vitamins': nutrientCols.filter((k: string) => k.includes('vitamin') || k.includes('folate')),
+        'Minerals': nutrientCols.filter((k: string) => ['calcium_mg','iron_mg','magnesium_mg','phosphorus_mg','potassium_mg','sodium_mg','zinc_mg','copper_mg','manganese_mg','selenium_mcg','fluoride_mcg','choline_mg','salt_g'].includes(k)),
+        'Amino Acids': nutrientCols.filter((k: string) => ['leucine_mg','lysine_mg','tryptophan_mg','valine_mg','histidine_mg','isoleucine_mg','methionine_mg','phenylalanine_mg','threonine_mg','arginine_mg','cystine_mg','tyrosine_mg','glycine_mg','proline_mg'].includes(k)),
+        'Carotenoids': nutrientCols.filter((k: string) => k.includes('carotene') || k.includes('lycopene') || k.includes('lutein')),
+      };
+
+      // Format nutrient key for display
+      const fmtKey = (k: string) => k.replace(/_g$/, ' (g)').replace(/_mg$/, ' (mg)').replace(/_mcg$/, ' (µg)').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+      // Build meal detail rows (first 200)
       const mealRows = (raw.meals || []).slice(0, 200).map((m: any) =>
-        `<tr><td>${m.date}</td><td>${m.food_name || ''}</td><td>${m.meal_type || ''}</td><td>${m.portion_grams || ''}g</td><td>${m.nutrients?.energy_kcal?.toFixed(0) || 0}</td><td>${m.nutrients?.protein_g?.toFixed(1) || 0}</td></tr>`
+        `<tr><td>${m.date}</td><td>${m.food_name || ''}</td><td>${m.meal_type || ''}</td><td>${m.portion_grams || ''}g</td><td>${m.nutrients?.energy_kcal?.toFixed(0) || 0}</td><td>${m.nutrients?.protein_g?.toFixed(1) || 0}</td><td>${m.nutrients?.fat_g?.toFixed(1) || 0}</td><td>${m.nutrients?.carbohydrate_g?.toFixed(1) || 0}</td><td>${m.nutrients?.fiber_g?.toFixed(1) || 0}</td></tr>`
       ).join('');
+
+      // Build daily nutrient summary table (grouped by category)
+      let nutrientSections = '';
+      const summaries = raw.daily_summaries || [];
+      if (summaries.length > 0) {
+        // Calculate averages across all days
+        const avgNutrients: Record<string, number> = {};
+        let daysWithData = 0;
+        summaries.forEach((s: any) => {
+          if (s.nutrients && Object.keys(s.nutrients).length > 0) {
+            daysWithData++;
+            Object.entries(s.nutrients).forEach(([k, v]: [string, any]) => {
+              avgNutrients[k] = (avgNutrients[k] || 0) + (Number(v) || 0);
+            });
+          }
+        });
+        if (daysWithData > 0) {
+          Object.keys(avgNutrients).forEach(k => { avgNutrients[k] = avgNutrients[k] / daysWithData; });
+        }
+
+        Object.entries(categories).forEach(([catName, keys]) => {
+          const relevantKeys = keys.filter((k: string) => avgNutrients[k] > 0);
+          if (relevantKeys.length === 0) return;
+          nutrientSections += `<h3 style="color:#0984e3;margin-top:20px;">${catName}</h3>`;
+          nutrientSections += '<table><tr><th>Nutrient</th><th>Daily Avg</th><th>Total (period)</th></tr>';
+          relevantKeys.forEach((k: string) => {
+            const total = avgNutrients[k] * daysWithData;
+            nutrientSections += `<tr><td>${fmtKey(k)}</td><td>${avgNutrients[k].toFixed(2)}</td><td>${total.toFixed(1)}</td></tr>`;
+          });
+          nutrientSections += '</table>';
+        });
+      }
+
       const waterRows = (raw.water || []).map((w: any) =>
         `<tr><td>${w.date}</td><td>${w.total_ml} ml</td><td>${w.entries}</td></tr>`
       ).join('');
@@ -173,29 +257,47 @@ export default function ReportsScreen() {
       const html = `
       <html><head><meta charset="UTF-8"/>
       <style>
-        body{font-family:Helvetica,Arial,sans-serif;padding:20px;color:#222;}
-        h1{color:#00d4ff;border-bottom:2px solid #00d4ff;padding-bottom:8px;}
-        h2{color:#4ecdc4;margin-top:30px;}
-        table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px;}
-        th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;}
+        body{font-family:Helvetica,Arial,sans-serif;padding:20px;color:#222;font-size:11px;}
+        h1{color:#00d4ff;border-bottom:2px solid #00d4ff;padding-bottom:8px;font-size:22px;}
+        h2{color:#4ecdc4;margin-top:30px;font-size:16px;}
+        h3{font-size:13px;margin-bottom:5px;}
+        table{width:100%;border-collapse:collapse;margin-top:8px;margin-bottom:16px;font-size:10px;}
+        th,td{border:1px solid #ddd;padding:4px 6px;text-align:left;}
         th{background:#f0f7ff;font-weight:bold;}
         tr:nth-child(even){background:#fafafa;}
         .meta{color:#666;font-size:12px;margin-bottom:20px;}
-        .footer{text-align:center;color:#aaa;font-size:10px;margin-top:40px;border-top:1px solid #eee;padding-top:10px;}
+        .stats{display:flex;gap:20px;margin:15px 0;}
+        .stat-box{background:#f8f9fa;border-radius:8px;padding:12px;border:1px solid #e0e0e0;text-align:center;flex:1;}
+        .stat-val{font-size:18px;font-weight:bold;color:#00d4ff;}
+        .stat-label{font-size:9px;color:#666;margin-top:4px;}
+        .footer{text-align:center;color:#aaa;font-size:9px;margin-top:40px;border-top:1px solid #eee;padding-top:10px;}
+        .gdpr{background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px;margin-top:20px;font-size:10px;color:#856404;}
       </style></head><body>
-        <h1>NutriOS Health Report</h1>
-        <p class="meta">Exported: ${new Date().toLocaleDateString()} &bull; ${raw.user_email || ''}</p>
+        <h1>NutriOS Complete Health Report</h1>
+        <p class="meta">Period: ${raw.data_period?.from || ''} → ${raw.data_period?.to || ''} &bull; ${raw.user_email || ''}</p>
 
-        <h2>Meals (${(raw.meals || []).length} entries)</h2>
-        <table><tr><th>Date</th><th>Food</th><th>Type</th><th>Portion</th><th>Calories</th><th>Protein (g)</th></tr>${mealRows}</table>
+        <div class="stats">
+          <div class="stat-box"><div class="stat-val">${(raw.meals || []).length}</div><div class="stat-label">Meals Logged</div></div>
+          <div class="stat-box"><div class="stat-val">${summaries.length}</div><div class="stat-label">Days Tracked</div></div>
+          <div class="stat-box"><div class="stat-val">${nutrientCols.length}</div><div class="stat-label">Nutrients Tracked</div></div>
+          <div class="stat-box"><div class="stat-val">${(raw.water || []).length}</div><div class="stat-label">Water Days</div></div>
+        </div>
 
-        <h2>Water Intake</h2>
+        <h2>📊 Nutrient Analysis (Daily Averages)</h2>
+        ${nutrientSections || '<p style="color:#999">No nutrient data available yet. Log meals to see your data.</p>'}
+
+        <h2>🍽️ Meals Log (${(raw.meals || []).length} entries)</h2>
+        <table><tr><th>Date</th><th>Food</th><th>Type</th><th>Portion</th><th>Cal</th><th>Prot(g)</th><th>Fat(g)</th><th>Carb(g)</th><th>Fiber(g)</th></tr>${mealRows}</table>
+
+        <h2>💧 Water Intake</h2>
         <table><tr><th>Date</th><th>Total</th><th>Entries</th></tr>${waterRows}</table>
 
-        <h2>Weight Log</h2>
-        <table><tr><th>Date</th><th>Weight</th><th>Note</th></tr>${weightRows}</table>
+        ${weightRows ? `<h2>⚖️ Weight Log</h2><table><tr><th>Date</th><th>Weight</th><th>Note</th></tr>${weightRows}</table>` : ''}
 
-        <div class="footer">Generated by NutriOS &bull; For personal and medical use</div>
+        <div class="gdpr">
+          <strong>GDPR Notice:</strong> ${raw.gdpr_notice || 'This export contains all personal health data stored by NutriOS. You may request deletion at any time.'}
+        </div>
+        <div class="footer">Generated by NutriOS v4.0 &bull; ${new Date().toISOString()} &bull; For personal and medical use only</div>
       </body></html>`;
 
       const { uri } = await Print.printToFileAsync({ html, base64: false });

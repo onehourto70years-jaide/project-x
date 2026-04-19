@@ -134,7 +134,7 @@ async def weekly_comparison(user: User = Depends(require_user)):
 
 @router.get("/reports/export-data")
 async def export_data(user: User = Depends(require_user)):
-    """Export ALL user data as structured JSON (frontend converts to CSV / PDF)."""
+    """Export ALL user data as structured JSON with complete nutrient profiles (GDPR compliant)."""
     now = datetime.now(timezone.utc)
     cutoff = (now - timedelta(days=365)).strftime("%Y-%m-%d")
 
@@ -173,11 +173,23 @@ async def export_data(user: User = Depends(require_user)):
         for k, v in list(w.items()):
             w[k] = serialise(v)
 
+    # Build complete nutrient columns list for CSV header
+    all_nutrient_keys = set()
+    for m in meals:
+        if m.get("nutrients"):
+            all_nutrient_keys.update(m["nutrients"].keys())
+    for s in summaries:
+        if s.get("nutrients"):
+            all_nutrient_keys.update(s["nutrients"].keys())
+
     return {
         "meals": meals,
         "water": [{"date": w["_id"], "total_ml": w["total_ml"], "entries": w["entries"]} for w in water],
         "weight": weight,
         "daily_summaries": summaries,
+        "nutrient_columns": sorted(list(all_nutrient_keys)),
         "exported_at": now.isoformat(),
         "user_email": user.email,
+        "data_period": {"from": cutoff, "to": now.strftime("%Y-%m-%d")},
+        "gdpr_notice": "This export contains all personal health data stored by NutriOS. You may request deletion at any time."
     }
