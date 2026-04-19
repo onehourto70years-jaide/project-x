@@ -3,7 +3,7 @@
  * Bio-system feedback moment — not a game reward.
  * Molecular particles, pulsing glow, system-style messaging.
  */
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Easing,
   Dimensions, Modal, Platform, Share,
@@ -14,36 +14,38 @@ import { useTheme } from '../ThemeContext';
 import { hapticSuccess } from '../haptics';
 
 const { width: W, height: H } = Dimensions.get('window');
-const NUM_PARTICLES = 18;
+const NUM_PARTICLES = 14;
 
 /* ── Single Molecular Particle ── */
 function Particle({ delay, color, size }: { delay: number; color: string; size: number }) {
-  const x = useRef(new Animated.Value(0)).current;
-  const y = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0)).current;
 
   const startX = useMemo(() => Math.random() * W, []);
-  const startY = useMemo(() => H * 0.4 + Math.random() * H * 0.3, []);
-  const driftX = useMemo(() => (Math.random() - 0.5) * 120, []);
-  const driftY = useMemo(() => -(40 + Math.random() * 100), []);
-  const duration = useMemo(() => 2000 + Math.random() * 1500, []);
+  const startY = useMemo(() => H * 0.35 + Math.random() * H * 0.3, []);
+  const driftX = useMemo(() => (Math.random() - 0.5) * 100, []);
+  const driftY = useMemo(() => -(30 + Math.random() * 80), []);
+  const dur = useMemo(() => 2200 + Math.random() * 1200, []);
 
   useEffect(() => {
     const anim = Animated.sequence([
       Animated.delay(delay),
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 0.7, duration: 400, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1, duration: 400, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.6, duration: 350, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 350, easing: Easing.out(Easing.quad), useNativeDriver: true }),
       ]),
       Animated.parallel([
-        Animated.timing(x, { toValue: driftX, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(y, { toValue: driftY, duration, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0, duration, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 0.3, duration, useNativeDriver: true }),
+        Animated.timing(translateX, { toValue: driftX, duration: dur, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: driftY, duration: dur, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0, duration: dur, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 0.2, duration: dur, useNativeDriver: true }),
       ]),
     ]);
-    Animated.loop(anim).start();
+    const looped = Animated.loop(anim);
+    looped.start();
+    return () => looped.stop();
   }, []);
 
   return (
@@ -56,7 +58,7 @@ function Particle({ delay, color, size }: { delay: number; color: string; size: 
           width: size, height: size, borderRadius: size / 2,
           backgroundColor: color,
           opacity,
-          transform: [{ translateX: x }, { translateY: y }, { scale }],
+          transform: [{ translateX }, { translateY }, { scale }],
         },
       ]}
     />
@@ -68,38 +70,56 @@ export default function CelebrationOverlay() {
   const { isVisible, currentBadge, dismiss, trackAction } = useCelebration();
   const { theme } = useTheme();
 
-  // Animations
+  // Animations — ALL hooks MUST be above any conditional return
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const badgeScale = useRef(new Animated.Value(0.3)).current;
   const badgeOpacity = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0.2)).current;
+  const glowOuterAnim = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const textTranslateY = useRef(new Animated.Value(20)).current;
   const ctaOpacity = useRef(new Animated.Value(0)).current;
   const ctaTranslateY = useRef(new Animated.Value(30)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  const glowRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Particles memo — MUST be above early return to respect hook ordering
+  const badgeColor = currentBadge?.color || '#00d4ff';
+  const particles = useMemo(() =>
+    Array.from({ length: NUM_PARTICLES }).map((_, i) => ({
+      key: `p-${i}`,
+      delay: 150 + i * 130,
+      color: i % 3 === 0 ? badgeColor : i % 3 === 1 ? `${badgeColor}88` : (theme?.accent || '#00d4ff'),
+      size: 3 + Math.random() * 5,
+    })), [badgeColor, theme?.accent]);
 
   useEffect(() => {
     if (isVisible && currentBadge) {
-      hapticSuccess();
+      try { hapticSuccess(); } catch (_) {}
 
-      // Reset
+      // Reset all values
       overlayOpacity.setValue(0);
       badgeScale.setValue(0.3);
       badgeOpacity.setValue(0);
       glowAnim.setValue(0.2);
+      glowOuterAnim.setValue(0);
       textOpacity.setValue(0);
       textTranslateY.setValue(20);
       ctaOpacity.setValue(0);
       ctaTranslateY.setValue(30);
 
-      // Sequence: overlay -> badge -> glow pulse -> text -> CTA
-      Animated.sequence([
+      // Main animation sequence
+      animRef.current = Animated.sequence([
         // 1. Fade in overlay
         Animated.timing(overlayOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        // 2. Badge appears
+        // 2. Badge appears (timing instead of spring for sequence reliability)
         Animated.parallel([
-          Animated.spring(badgeScale, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }),
-          Animated.timing(badgeOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(badgeScale, {
+            toValue: 1, duration: 500,
+            easing: Easing.out(Easing.back(1.4)),
+            useNativeDriver: true,
+          }),
+          Animated.timing(badgeOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
         ]),
         // 3. Text appears
         Animated.parallel([
@@ -111,47 +131,55 @@ export default function CelebrationOverlay() {
           Animated.timing(ctaOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
           Animated.timing(ctaTranslateY, { toValue: 0, duration: 400, easing: Easing.out(Easing.quad), useNativeDriver: true }),
         ]),
-      ]).start();
+      ]);
+      animRef.current.start();
 
-      // Continuous glow pulse
-      Animated.loop(
+      // Continuous glow pulse (separate from sequence)
+      glowRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 0.7, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.2, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.parallel([
+            Animated.timing(glowAnim, { toValue: 0.7, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+            Animated.timing(glowOuterAnim, { toValue: 0.3, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(glowAnim, { toValue: 0.2, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+            Animated.timing(glowOuterAnim, { toValue: 0.05, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          ]),
         ])
-      ).start();
+      );
+      glowRef.current.start();
+    } else {
+      // Stop animations when hidden
+      animRef.current?.stop();
+      glowRef.current?.stop();
     }
+    return () => {
+      animRef.current?.stop();
+      glowRef.current?.stop();
+    };
   }, [isVisible, currentBadge]);
 
-  const handleContinue = () => {
-    trackAction('continued');
-    Animated.timing(overlayOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => dismiss());
+  const fadeOutAndDismiss = (action: string) => {
+    trackAction(action);
+    animRef.current?.stop();
+    glowRef.current?.stop();
+    Animated.timing(overlayOpacity, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => dismiss());
   };
+
+  const handleContinue = () => fadeOutAndDismiss('continued');
+  const handleSkip = () => fadeOutAndDismiss('skipped');
 
   const handleShare = async () => {
     trackAction('shared');
     if (!currentBadge) return;
     try {
-      const shareText = `\u2022 System Update: ${currentBadge.name}\n\u2022 ${currentBadge.systemMessage}\n\u2022 ${currentBadge.statLabel}: ${currentBadge.statValue}\n\nOptimized with NutriOS \u{1F9EC}`;
+      const shareText = `• System Update: ${currentBadge.name}\n• ${currentBadge.systemMessage}\n• ${currentBadge.statLabel}: ${currentBadge.statValue}\n\nOptimized with NutriOS 🧬`;
       await Share.share({ message: shareText, title: `NutriOS — ${currentBadge.name}` });
-    } catch (e) { /* user cancelled */ }
+    } catch (_) { /* user cancelled */ }
   };
 
-  const handleSkip = () => {
-    trackAction('skipped');
-    Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => dismiss());
-  };
-
-  if (!currentBadge) return null;
-
-  const badgeColor = currentBadge.color;
-  const particles = useMemo(() =>
-    Array.from({ length: NUM_PARTICLES }).map((_, i) => ({
-      key: `p-${i}`,
-      delay: 200 + i * 120,
-      color: i % 3 === 0 ? badgeColor : i % 3 === 1 ? `${badgeColor}88` : theme.accent,
-      size: 4 + Math.random() * 6,
-    })), [badgeColor, theme.accent]);
+  // Early return AFTER all hooks
+  if (!currentBadge || !isVisible) return null;
 
   return (
     <Modal visible={isVisible} transparent animationType="none" statusBarTranslucent>
@@ -166,14 +194,14 @@ export default function CelebrationOverlay() {
           <Particle key={p.key} delay={p.delay} color={p.color} size={p.size} />
         ))}
 
-        {/* Pulsing Glow behind badge */}
+        {/* Pulsing Glow behind badge — using separate animated values */}
         <Animated.View style={[
           styles.glowRing,
           { opacity: glowAnim, borderColor: badgeColor, shadowColor: badgeColor },
         ]} />
         <Animated.View style={[
           styles.glowRingOuter,
-          { opacity: Animated.multiply(glowAnim, 0.4), borderColor: badgeColor },
+          { opacity: glowOuterAnim, borderColor: badgeColor },
         ]} />
 
         {/* Badge Icon — "System Unlock" */}
@@ -183,7 +211,7 @@ export default function CelebrationOverlay() {
         ]}>
           <View style={[styles.badgeCircle, { borderColor: `${badgeColor}60`, backgroundColor: `${badgeColor}12` }]}>
             <View style={[styles.badgeInner, { backgroundColor: `${badgeColor}20` }]}>
-              <Ionicons name={currentBadge.icon as any} size={36} color={badgeColor} />
+              <Ionicons name={(currentBadge.icon || 'trophy') as any} size={36} color={badgeColor} />
             </View>
           </View>
         </Animated.View>
