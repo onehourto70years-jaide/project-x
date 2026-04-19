@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,11 +47,12 @@ export default function RoutinesScreen() {
   const [streak, setStreak] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [newRoutine, setNewRoutine] = useState({ type: 'morning', days: [...DAYS], tasks: [] as Task[] });
   const [newTaskName, setNewTaskName] = useState('');
 
   // ── react-hook-form ──
-  const { control, handleSubmit, reset: resetFormFields, formState: { errors, touchedFields } } = useForm({
+  const { control, handleSubmit, reset: resetFormFields, setValue: setFormValue, formState: { errors, touchedFields } } = useForm({
     resolver: zodResolver(routineSchema),
     defaultValues: { name: '', time_start: '07:00', time_end: '08:00' },
     mode: 'onBlur',
@@ -140,25 +141,83 @@ export default function RoutinesScreen() {
         tasks: newRoutine.tasks,
       };
 
-      const response = await fetch(`${BACKEND_URL}/api/routines`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        setShowCreateModal(false);
-        setNewRoutine({ type: 'morning', days: [...DAYS], tasks: [] });
-        resetFormFields();
-        await Promise.all([
-          clearCacheForKey(CacheKeys.routines),
-          clearCacheForKey(CacheKeys.routinesToday),
-        ]);
-        fetchRoutines();
+      if (editingRoutine) {
+        // ── UPDATE existing routine ──
+        const response = await fetch(`${BACKEND_URL}/api/routines/${editingRoutine.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          closeModal();
+          await Promise.all([clearCacheForKey(CacheKeys.routines), clearCacheForKey(CacheKeys.routinesToday)]);
+          fetchRoutines();
+        }
+      } else {
+        // ── CREATE new routine ──
+        const response = await fetch(`${BACKEND_URL}/api/routines`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          closeModal();
+          await Promise.all([clearCacheForKey(CacheKeys.routines), clearCacheForKey(CacheKeys.routinesToday)]);
+          fetchRoutines();
+        }
       }
     } catch (error) {
-      console.error('Error creating routine:', error);
+      console.error('Error saving routine:', error);
     }
+  };
+
+  const deleteRoutine = async (routineId: string, routineName: string) => {
+    hapticMedium();
+    Alert.alert(
+      'Delete Routine',
+      `Are you sure you want to delete "${routineName}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('session_token');
+              if (!token) return;
+              const res = await fetch(`${BACKEND_URL}/api/routines/${routineId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              if (res.ok) {
+                hapticSuccess();
+                await Promise.all([clearCacheForKey(CacheKeys.routines), clearCacheForKey(CacheKeys.routinesToday), clearCacheForKey(CacheKeys.dashboard)]);
+                fetchRoutines();
+              }
+            } catch (error) {
+              console.error('Error deleting routine:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const openEditModal = (routine: Routine) => {
+    hapticLight();
+    setEditingRoutine(routine);
+    setNewRoutine({ type: routine.type, days: [...routine.days], tasks: [...routine.tasks] });
+    setFormValue('name', routine.name);
+    setFormValue('time_start', routine.time_start);
+    setFormValue('time_end', routine.time_end);
+    setShowCreateModal(true);
+  };
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setEditingRoutine(null);
+    resetFormFields();
+    setNewRoutine({ type: 'morning', days: [...DAYS], tasks: [] });
+    setNewTaskName('');
   };
 
   const addTask = () => {
@@ -291,9 +350,23 @@ export default function RoutinesScreen() {
                   </View>
                   <View style={styles.routineItemInfo}>
                     <Text style={styles.routineItemName}>{routine.name}</Text>
-                    <Text style={styles.routineItemDays}>{routine.days.map(d => d.charAt(0).toUpperCase()).join(' ')}</Text>
+                    <Text style={styles.routineItemDays}>{routine.days.map(d => d.charAt(0).toUpperCase()).join(' ')} · {routine.time_start}-{routine.time_end}</Text>
                   </View>
                   <Text style={styles.routineItemTasks}>{routine.tasks.length} {t('rout_tasks')}</Text>
+                  <TouchableOpacity
+                    style={styles.routineEditBtn}
+                    onPress={() => openEditModal(routine)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="create-outline" size={18} color="#00d4ff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.routineDeleteBtn}
+                    onPress={() => deleteRoutine(routine.id, routine.name)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -310,14 +383,14 @@ export default function RoutinesScreen() {
         )}
       </ScrollView>
 
-      {/* Create Modal */}
+      {/* Create/Edit Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => Keyboard.dismiss()}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('rout_create')}</Text>
-                <TouchableOpacity onPress={() => { setShowCreateModal(false); resetFormFields(); setNewRoutine({ type: 'morning', days: [...DAYS], tasks: [] }); }}>
+                <Text style={styles.modalTitle}>{editingRoutine ? 'Edit Routine' : t('rout_create')}</Text>
+                <TouchableOpacity onPress={closeModal}>
                   <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -442,7 +515,7 @@ export default function RoutinesScreen() {
               </ScrollView>
 
               <TouchableOpacity style={styles.createRoutineBtn} onPress={handleSubmit(createRoutine)}>
-                <Text style={styles.createRoutineBtnText}>Create Routine</Text>
+                <Text style={styles.createRoutineBtnText}>{editingRoutine ? 'Save Changes' : 'Create Routine'}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -491,7 +564,9 @@ const styles = StyleSheet.create({
   routineItemInfo: { flex: 1, marginLeft: 12 },
   routineItemName: { fontSize: 14, fontWeight: '500', color: '#fff' },
   routineItemDays: { fontSize: 11, color: '#888', marginTop: 2 },
-  routineItemTasks: { fontSize: 12, color: '#666' },
+  routineItemTasks: { fontSize: 12, color: '#666', marginRight: 6 },
+  routineEditBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(0, 212, 255, 0.12)', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  routineDeleteBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255, 107, 107, 0.12)', justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#2a2a4e' },
