@@ -75,12 +75,67 @@ async def get_usda_food_details(fdc_id: int) -> Optional[Dict]:
 def extract_nutrients(food_data: Dict, portion_grams: float = 100.0) -> Dict[str, float]:
     nutrients = {}
     portion_factor = portion_grams / 100.0
-    nutrient_mapping = {1008: "energy_kcal", 1003: "protein_g", 1004: "fat_g", 1005: "carbohydrate_g", 1079: "fiber_g", 1087: "calcium_mg", 1089: "iron_mg", 1090: "magnesium_mg", 1092: "potassium_mg", 1093: "sodium_mg", 1095: "zinc_mg", 1162: "vitamin_c_mg", 1106: "vitamin_a_mcg", 1114: "vitamin_d_mcg", 1178: "vitamin_b12_mcg"}
+    nutrient_mapping = {
+        # Energy
+        1008: "energy_kcal",
+        # Macronutrients
+        1003: "protein_g",
+        1004: "fat_g",
+        1005: "carbohydrate_g",
+        1079: "fiber_g",
+        1051: "water_g",
+        1018: "alcohol_g",
+        # Sugars
+        2000: "sugars_g",
+        1063: "sugars_g",
+        # Fats detailed
+        1258: "saturated_fat_g",
+        1292: "monounsaturated_fat_g",
+        1293: "polyunsaturated_fat_g",
+        1257: "trans_fat_g",
+        1253: "cholesterol_mg",
+        # Minerals
+        1087: "calcium_mg",
+        1089: "iron_mg",
+        1090: "magnesium_mg",
+        1091: "phosphorus_mg",
+        1092: "potassium_mg",
+        1093: "sodium_mg",
+        1095: "zinc_mg",
+        1098: "copper_mg",
+        1099: "fluoride_mcg",
+        1101: "manganese_mg",
+        1103: "selenium_mcg",
+        # Vitamins
+        1106: "vitamin_a_mcg",
+        1165: "vitamin_b1_mg",
+        1166: "vitamin_b2_mg",
+        1167: "vitamin_b3_mg",
+        1170: "vitamin_b5_mg",
+        1175: "vitamin_b6_mg",
+        1177: "folate_mcg",
+        1190: "folate_mcg",
+        1178: "vitamin_b12_mcg",
+        1162: "vitamin_c_mg",
+        1114: "vitamin_d_mcg",
+        1109: "vitamin_e_mg",
+        1185: "vitamin_k_mcg",
+        1180: "choline_mg",
+    }
     for fn in food_data.get("foodNutrients", []):
         nutrient_id = fn.get("nutrient", {}).get("id") or fn.get("nutrientId")
         amount = fn.get("amount", 0) or 0
         if nutrient_id in nutrient_mapping:
-            nutrients[nutrient_mapping[nutrient_id]] = round(amount * portion_factor, 3)
+            key = nutrient_mapping[nutrient_id]
+            calculated = round(amount * portion_factor, 3)
+            # For duplicate IDs (e.g. folate, sugars), keep the higher value
+            if key in nutrients:
+                nutrients[key] = max(nutrients[key], calculated)
+            else:
+                nutrients[key] = calculated
+    # Derived: Salt from sodium (salt = sodium * 2.5 / 1000)
+    if "sodium_mg" in nutrients:
+        nutrients["salt_g"] = round(nutrients["sodium_mg"] * 2.5 / 1000, 3)
     return nutrients
 
 

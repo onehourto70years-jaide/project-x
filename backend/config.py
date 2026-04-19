@@ -49,7 +49,20 @@ ALLERGENS = ["peanut", "peanuts", "tree nut", "almond", "walnut", "milk", "dairy
 
 BIOLOGICAL_EFFECTS = {"C": ["Energy metabolism", "Cell structure"], "H": ["Cellular hydration"], "O": ["Cellular respiration"], "N": ["Protein synthesis"], "S": ["Protein structure"], "Fe": ["Oxygen transport"], "Ca": ["Bone health"], "K": ["Heart rhythm"], "Mg": ["Enzyme activation"], "Zn": ["Immune function"]}
 
-DAILY_RECOMMENDED = {"energy_kcal": 2000, "protein_g": 50, "carbohydrate_g": 275, "fat_g": 78, "fiber_g": 28, "vitamin_a_mcg": 900, "vitamin_c_mg": 90, "iron_mg": 18, "calcium_mg": 1000, "magnesium_mg": 400, "potassium_mg": 4700, "zinc_mg": 11}
+DAILY_RECOMMENDED = {
+    "energy_kcal": 2000, "protein_g": 50, "carbohydrate_g": 275, "fat_g": 65, "fiber_g": 25,
+    "water_g": 2500, "sugars_g": 50,
+    "saturated_fat_g": 20, "monounsaturated_fat_g": 25, "polyunsaturated_fat_g": 15,
+    "trans_fat_g": 2, "cholesterol_mg": 300,
+    "sodium_mg": 2300, "salt_g": 5,
+    "calcium_mg": 1000, "iron_mg": 18, "magnesium_mg": 400, "phosphorus_mg": 700,
+    "potassium_mg": 4700, "zinc_mg": 11, "copper_mg": 0.9, "manganese_mg": 2.3,
+    "selenium_mcg": 55, "fluoride_mcg": 4000, "choline_mg": 550,
+    "vitamin_a_mcg": 900, "vitamin_b1_mg": 1.2, "vitamin_b2_mg": 1.3,
+    "vitamin_b3_mg": 16, "vitamin_b5_mg": 5, "vitamin_b6_mg": 1.3,
+    "folate_mcg": 400, "vitamin_b12_mcg": 2.4,
+    "vitamin_c_mg": 90, "vitamin_d_mcg": 15, "vitamin_e_mg": 15, "vitamin_k_mcg": 120,
+}
 
 IDEAL_ELEMENTAL_BALANCE = {
     "C": {"min_pct": 45, "max_pct": 55, "ideal_pct": 50, "role": "Energy backbone"},

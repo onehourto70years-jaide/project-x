@@ -366,15 +366,36 @@ export default function FoodDetailsScreen() {
           <Text style={styles.cardTitle}>{t('fd_vitamins')}</Text>
           <View style={styles.vitaminsGrid}>
             {[
-              { key: 'vitamin_a_mcg', label: 'Vitamin A', unit: 'mcg' },
+              { key: 'vitamin_a_mcg', label: 'Vitamin A', unit: 'µg' },
+              { key: 'vitamin_b1_mg', label: 'Vitamin B1', unit: 'mg' },
+              { key: 'vitamin_b2_mg', label: 'Vitamin B2', unit: 'mg' },
+              { key: 'vitamin_b3_mg', label: 'Vitamin B3', unit: 'mg' },
+              { key: 'vitamin_b5_mg', label: 'Vitamin B5', unit: 'mg' },
+              { key: 'vitamin_b6_mg', label: 'Vitamin B6', unit: 'mg' },
+              { key: 'folate_mcg', label: 'Folate (B9)', unit: 'µg' },
+              { key: 'vitamin_b12_mcg', label: 'Vitamin B12', unit: 'µg' },
               { key: 'vitamin_c_mg', label: 'Vitamin C', unit: 'mg' },
-              { key: 'vitamin_d_mcg', label: 'Vitamin D', unit: 'mcg' },
+              { key: 'vitamin_d_mcg', label: 'Vitamin D', unit: 'µg' },
+              { key: 'vitamin_e_mg', label: 'Vitamin E', unit: 'mg' },
+              { key: 'vitamin_k_mcg', label: 'Vitamin K', unit: 'µg' },
+              { key: 'calcium_mg', label: 'Calcium', unit: 'mg' },
               { key: 'iron_mg', label: 'Iron', unit: 'mg' },
               { key: 'magnesium_mg', label: 'Magnesium', unit: 'mg' },
+              { key: 'phosphorus_mg', label: 'Phosphorus', unit: 'mg' },
               { key: 'potassium_mg', label: 'Potassium', unit: 'mg' },
+              { key: 'sodium_mg', label: 'Sodium', unit: 'mg' },
               { key: 'zinc_mg', label: 'Zinc', unit: 'mg' },
-              { key: 'calcium_mg', label: 'Calcium', unit: 'mg' },
-            ].map((item) => (
+              { key: 'copper_mg', label: 'Copper', unit: 'mg' },
+              { key: 'manganese_mg', label: 'Manganese', unit: 'mg' },
+              { key: 'selenium_mcg', label: 'Selenium', unit: 'µg' },
+              { key: 'choline_mg', label: 'Choline', unit: 'mg' },
+              { key: 'cholesterol_mg', label: 'Cholesterol', unit: 'mg' },
+              { key: 'saturated_fat_g', label: 'Saturated Fat', unit: 'g' },
+              { key: 'monounsaturated_fat_g', label: 'Monounsat. Fat', unit: 'g' },
+              { key: 'polyunsaturated_fat_g', label: 'Polyunsat. Fat', unit: 'g' },
+              { key: 'trans_fat_g', label: 'Trans Fat', unit: 'g' },
+            ].filter(item => analysis.nutrients.cooked[item.key] != null && analysis.nutrients.cooked[item.key] > 0)
+            .map((item) => (
               <View key={item.key} style={styles.vitaminItem}>
                 <Text style={styles.vitaminLabel}>{item.label}</Text>
                 <Text style={styles.vitaminValue}>
