@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-rout
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureSet, secureGet, secureDelete, migrateToSecure } from '../src/secureStorage';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider, useTheme } from '../src/ThemeContext';
 import { LanguageProvider } from '../src/LanguageContext';
@@ -65,7 +66,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('session_token');
+      // Migrate token from AsyncStorage to SecureStore (one-time)
+      await migrateToSecure('session_token');
+      const token = await secureGet('session_token');
       if (!token) {
         setUser(null);
         setIsLoading(false);
@@ -82,7 +85,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
         // Register push token on app re-open too (not just first login)
         registerPushToken(token);
       } else {
-        await AsyncStorage.removeItem('session_token');
+        await secureDelete('session_token');
         setUser(null);
       }
     } catch (error) {
@@ -107,7 +110,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await response.json();
       // Use the actual session_token from the backend response (not the session_id)
       const token = userData.session_token || sessionId;
-      await AsyncStorage.setItem('session_token', token);
+      await secureSet('session_token', token);
       setUser(userData);
 
       // Register push token after successful login
@@ -231,7 +234,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const token = await AsyncStorage.getItem('session_token');
+      const token = await secureGet('session_token');
       if (token) {
         // Unregister push token
         await fetch(`${BACKEND_URL}/api/notifications/unregister-token`, {
@@ -246,7 +249,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      await AsyncStorage.removeItem('session_token');
+      await secureDelete('session_token');
       await clearCache();
       setUser(null);
     }
