@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../src/LanguageContext';
 import { SkeletonFoodDetail } from '../src/components/Skeleton';
+import { hapticSuccess, hapticLight } from '../src/haptics';
 
 const MEAL_TYPES = [
   { id: 'breakfast', icon: 'sunny', color: '#ffd93d' },
@@ -58,6 +59,62 @@ export default function FoodDetailsScreen() {
   const [cookingMethod, setCookingMethod] = useState('raw');
   const [mealType, setMealType] = useState((params.meal_type as string) || 'snack');
   const [saving, setSaving] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  // Check if this food is already a favorite
+  const checkFavorite = async () => {
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      const res = await fetch(`${BACKEND_URL}/api/favorites`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const favIds = (data.favorites || []).map((f: any) => f.fdc_id);
+        setIsFavorite(favIds.includes(Number(params.fdc_id)));
+      }
+    } catch (_) {}
+  };
+
+  const toggleFavorite = async () => {
+    if (!analysis) return;
+    setFavoriteLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('session_token');
+      if (!token) return;
+      if (isFavorite) {
+        // Remove from favorites
+        await fetch(`${BACKEND_URL}/api/favorites/${analysis.fdc_id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setIsFavorite(false);
+        hapticLight();
+      } else {
+        // Add to favorites
+        const res = await fetch(`${BACKEND_URL}/api/favorites`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            fdc_id: analysis.fdc_id,
+            food_name: analysis.food_name,
+            default_portion_grams: portionGrams,
+            default_cooking_method: cookingMethod,
+          })
+        });
+        if (res.ok) {
+          setIsFavorite(true);
+          hapticSuccess();
+        }
+      }
+    } catch (e) {
+      console.error('Favorite toggle error:', e);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   const fetchAnalysis = async () => {
     setLoading(true);
@@ -85,6 +142,7 @@ export default function FoodDetailsScreen() {
 
   useEffect(() => {
     fetchAnalysis();
+    checkFavorite();
   }, [params.fdc_id, portionGrams, cookingMethod]);
 
   const handleAddToLog = async () => {
@@ -157,11 +215,25 @@ export default function FoodDetailsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.foodName}>{analysis.food_name}</Text>
-          <View style={styles.sourceBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#4ecdc4" />
-            <Text style={styles.sourceText}>{analysis.data_source}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.foodName}>{analysis.food_name}</Text>
+            <View style={styles.sourceBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#4ecdc4" />
+              <Text style={styles.sourceText}>{analysis.data_source}</Text>
+            </View>
           </View>
+          <TouchableOpacity
+            style={[styles.favBtn, isFavorite && styles.favBtnActive]}
+            onPress={toggleFavorite}
+            disabled={favoriteLoading}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorite ? '#ff6b6b' : '#888'}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Portion Selector */}
@@ -410,6 +482,17 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  favBtn: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'center', alignItems: 'center',
+    marginLeft: 12, marginTop: 2,
+  },
+  favBtnActive: {
+    backgroundColor: 'rgba(255, 107, 107, 0.15)',
   },
   foodName: {
     fontSize: 22,

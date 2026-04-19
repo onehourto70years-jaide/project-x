@@ -435,7 +435,28 @@ export default function NutritionScreen() {
                       <Text style={styles.mealMeta}>{meal.portion_grams}g • {meal.cooking_method}</Text>
                     </View>
                     <Text style={styles.mealCalories}>{formatNumber(meal.nutrients?.energy_kcal)} kcal</Text>
-                    <Ionicons name="create-outline" size={16} color={theme.textDim} style={{ marginLeft: 8 }} />
+                    <TouchableOpacity
+                      onPress={async () => {
+                        hapticMedium();
+                        try {
+                          const token = await AsyncStorage.getItem('session_token');
+                          if (!token || !meal.fdc_id) return;
+                          const res = await fetch(`${BACKEND_URL}/api/favorites`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ fdc_id: meal.fdc_id, food_name: meal.food_name, default_portion_grams: meal.portion_grams || 100, default_cooking_method: meal.cooking_method || 'raw' })
+                          });
+                          if (res.ok) {
+                            Alert.alert('❤️', `${meal.food_name} added to favorites`);
+                          }
+                        } catch (_) {}
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ marginLeft: 6, padding: 4 }}
+                    >
+                      <Ionicons name="heart-outline" size={16} color="#ff6b6b" />
+                    </TouchableOpacity>
+                    <Ionicons name="create-outline" size={16} color={theme.textDim} style={{ marginLeft: 6 }} />
                   </TouchableOpacity>
                 ))
               ) : (
