@@ -76,8 +76,7 @@ export default function MicronutrientProgressScreen() {
   const [activeTab, setActiveTab] = useState<'chart' | 'insights' | 'gaps' | 'symptoms'>('chart');
 
   const getToken = async () => {
-    const session = await AsyncStorage.getItem('session');
-    return session ? JSON.parse(session).access_token : null;
+    return await AsyncStorage.getItem('session_token');
   };
 
   const fetchData = useCallback(async () => {

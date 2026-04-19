@@ -30,7 +30,7 @@ MICRONUTRIENT_REF = {
     "vitamin_b2_mg":  {"name": "Riboflavin (B2)", "unit": "mg",  "rda": 1.3,  "ul": None,  "group": "vitamin", "key_role": "Energy production, cell growth"},
     "vitamin_b3_mg":  {"name": "Niacin (B3)",  "unit": "mg",  "rda": 16,   "ul": 35,    "group": "vitamin", "key_role": "DNA repair, energy metabolism"},
     "vitamin_b6_mg":  {"name": "Vitamin B6",  "unit": "mg",  "rda": 1.3,  "ul": 100,   "group": "vitamin", "key_role": "Protein metabolism, neurotransmitter synthesis"},
-    "vitamin_b9_mcg": {"name": "Folate (B9)", "unit": "mcg", "rda": 400,  "ul": 1000,  "group": "vitamin", "key_role": "DNA synthesis, cell division, fetal development"},
+    "folate_mcg": {"name": "Folate (B9)", "unit": "mcg", "rda": 400,  "ul": 1000,  "group": "vitamin", "key_role": "DNA synthesis, cell division, fetal development"},
     "vitamin_b12_mcg": {"name": "Vitamin B12", "unit": "mcg", "rda": 2.4,  "ul": None,  "group": "vitamin", "key_role": "Red blood cell formation, neurological function"},
     # Minerals
     "calcium_mg":     {"name": "Calcium",    "unit": "mg",  "rda": 1000,  "ul": 2500,  "group": "mineral", "key_role": "Bone & teeth health, muscle contraction"},
@@ -44,6 +44,16 @@ MICRONUTRIENT_REF = {
     "copper_mg":      {"name": "Copper",     "unit": "mg",  "rda": 0.9,   "ul": 10,    "group": "mineral", "key_role": "Iron metabolism, connective tissue"},
     "manganese_mg":   {"name": "Manganese",  "unit": "mg",  "rda": 2.3,   "ul": 11,    "group": "mineral", "key_role": "Bone formation, metabolism"},
     "fiber_g":        {"name": "Fiber",      "unit": "g",   "rda": 28,    "ul": None,  "group": "other",   "key_role": "Digestive health, blood sugar regulation"},
+    "choline_mg":     {"name": "Choline",    "unit": "mg",  "rda": 550,   "ul": 3500,  "group": "other",   "key_role": "Brain development, liver function, cell membrane"},
+    "vitamin_b5_mg":  {"name": "Pantothenic Acid (B5)", "unit": "mg",  "rda": 5,   "ul": None,  "group": "vitamin", "key_role": "Energy metabolism, hormone synthesis"},
+    # Essential Fatty Acids
+    "omega3_total_g": {"name": "Omega-3 Total", "unit": "g", "rda": 1.6,  "ul": None,  "group": "fatty_acid", "key_role": "Anti-inflammatory, heart and brain health"},
+    "omega3_dha_g":   {"name": "Omega-3 DHA",  "unit": "g", "rda": 0.25, "ul": None,  "group": "fatty_acid", "key_role": "Brain structure, retinal health, neural function"},
+    "omega3_epa_g":   {"name": "Omega-3 EPA",  "unit": "g", "rda": 0.25, "ul": None,  "group": "fatty_acid", "key_role": "Anti-inflammatory, cardiovascular protection"},
+    # Key Amino Acids
+    "leucine_mg":     {"name": "Leucine",     "unit": "mg", "rda": 2730, "ul": None, "group": "amino_acid", "key_role": "Muscle protein synthesis trigger, BCAA"},
+    "lysine_mg":      {"name": "Lysine",      "unit": "mg", "rda": 2100, "ul": None, "group": "amino_acid", "key_role": "Collagen formation, calcium absorption, immune"},
+    "tryptophan_mg":  {"name": "Tryptophan",  "unit": "mg", "rda": 280,  "ul": None, "group": "amino_acid", "key_role": "Serotonin & melatonin precursor (mood, sleep)"},
 }
 
 # ─────────────── Bioavailability Interaction Rules ───────────────
@@ -127,9 +137,9 @@ SYMPTOM_CORRELATIONS = {
     "fatigue":      {"nutrients": ["iron_mg", "vitamin_b12_mcg", "vitamin_d_mcg", "magnesium_mg"], "note": "Fatigue is most commonly linked to iron deficiency (anemia), low B12, or vitamin D deficiency."},
     "tiredness":    {"nutrients": ["iron_mg", "vitamin_b12_mcg", "vitamin_d_mcg", "magnesium_mg"], "note": "Chronic tiredness often correlates with micronutrient deficiencies."},
     "cramps":       {"nutrients": ["magnesium_mg", "potassium_mg", "calcium_mg", "sodium_mg"], "note": "Muscle cramps are strongly linked to electrolyte imbalances, especially magnesium and potassium."},
-    "hair_loss":    {"nutrients": ["iron_mg", "zinc_mg", "vitamin_d_mcg", "vitamin_b9_mcg"], "note": "Hair loss can indicate iron deficiency, zinc deficiency, or low vitamin D."},
+    "hair_loss":    {"nutrients": ["iron_mg", "zinc_mg", "vitamin_d_mcg", "folate_mcg"], "note": "Hair loss can indicate iron deficiency, zinc deficiency, or low vitamin D."},
     "weak_nails":   {"nutrients": ["iron_mg", "zinc_mg", "calcium_mg"], "note": "Brittle nails often indicate iron or zinc deficiency."},
-    "brain_fog":    {"nutrients": ["iron_mg", "vitamin_b12_mcg", "vitamin_b9_mcg", "magnesium_mg"], "note": "Cognitive impairment can result from B12 or iron deficiency affecting oxygen transport to the brain."},
+    "brain_fog":    {"nutrients": ["iron_mg", "vitamin_b12_mcg", "folate_mcg", "magnesium_mg"], "note": "Cognitive impairment can result from B12 or iron deficiency affecting oxygen transport to the brain."},
     "insomnia":     {"nutrients": ["magnesium_mg", "vitamin_d_mcg", "calcium_mg", "vitamin_b6_mg"], "note": "Magnesium and B6 are crucial for melatonin production and sleep quality."},
     "anxiety":      {"nutrients": ["magnesium_mg", "zinc_mg", "vitamin_b6_mg", "vitamin_d_mcg"], "note": "Magnesium is a natural relaxant; deficiency is linked to increased anxiety."},
     "weak_immunity": {"nutrients": ["zinc_mg", "vitamin_c_mg", "vitamin_d_mcg", "vitamin_a_mcg"], "note": "Frequent illness often correlates with zinc, vitamin C, or vitamin D deficiency."},
