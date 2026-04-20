@@ -978,6 +978,54 @@ The Gemini model `gemini-3-flash-preview` is not available through the Emergent 
       agent: "testing"
       comment: "GET /api/adaptive/patterns endpoint gracefully handles insufficient data - returns proper response structure with empty/default values for users with no meal data. Returns valid response with 0 total_meals and empty patterns without errors. Graceful degradation working correctly for new users."
 
+- task: "Feedback Reports Daily"
+  implemented: true
+  working: true
+  file: "/app/backend/routes/feedback.py"
+  stuck_count: 0
+  priority: "high"
+  needs_retesting: false
+  status_history:
+    - working: true
+      agent: "testing"
+      comment: "GET /api/feedback/daily endpoint fully functional - returns comprehensive daily feedback report with period='daily', date, stats (meals_count, calories, protein_g, water_ml), feedback (jaide_observation, body_impact, wins, improvements, main_recommendation), and foods_logged array. Gemini AI integration working correctly for Jaide-narrated insights. Response structure validated with all required keys present."
+
+- task: "Feedback Reports Weekly"
+  implemented: true
+  working: true
+  file: "/app/backend/routes/feedback.py"
+  stuck_count: 0
+  priority: "high"
+  needs_retesting: false
+  status_history:
+    - working: true
+      agent: "testing"
+      comment: "GET /api/feedback/weekly endpoint fully functional - returns comprehensive weekly feedback report with period='weekly', range (start/end dates), stats (days_tracked, consistency_pct, avg_calories, avg_protein), daily_breakdown, and feedback. Weekly analysis working correctly with 7-day data aggregation and consistency scoring. All required response structure validated."
+
+- task: "Feedback Reports Monthly"
+  implemented: true
+  working: true
+  file: "/app/backend/routes/feedback.py"
+  stuck_count: 0
+  priority: "high"
+  needs_retesting: false
+  status_history:
+    - working: true
+      agent: "testing"
+      comment: "GET /api/feedback/monthly endpoint fully functional after fixing timezone comparison bug - returns comprehensive monthly feedback report with period='monthly', range, stats, evolution (first_half_avg vs second_half_avg for calories, protein, fiber, meals_per_day), and feedback. Fixed datetime comparison issue between timezone-aware and timezone-naive timestamps. Evolution analysis working correctly."
+
+- task: "Feedback Reports Annual"
+  implemented: true
+  working: true
+  file: "/app/backend/routes/feedback.py"
+  stuck_count: 0
+  priority: "high"
+  needs_retesting: false
+  status_history:
+    - working: true
+      agent: "testing"
+      comment: "GET /api/feedback/annual endpoint fully functional - correctly returns insufficient_data=true for users with less than 30 days of data (as expected with only 7 days of test data). Returns proper response structure with period='annual', insufficient_data flag, meaningful message, and fallback feedback. Graceful handling of insufficient data working correctly."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
@@ -1027,6 +1075,8 @@ agent_communication:
     message: "AI PHOTO MEAL ANALYSIS TESTING COMPLETED ⚠️ - Tested NEW AI Photo endpoints with mixed results (4/5 tests passed, 80% success rate). Key findings: 1) ✅ PHOTO LOG MEAL ENDPOINTS FULLY FUNCTIONAL - POST /api/ai/photo-log-meal working perfectly with proper validation: successfully logged 2 foods (Grilled Chicken Breast, Steamed Broccoli) with complete nutrient data, proper 400 validation error for empty foods array, 2) ✅ ANALYZE PHOTO VALIDATION WORKING - POST /api/ai/analyze-photo properly validates inputs: correct 400 error for missing image_base64, proper 400 error for too-small images with meaningful error messages, 3) ❌ GEMINI AI INTEGRATION ISSUE - POST /api/ai/analyze-photo with valid food image returns 500 error due to Gemini model configuration: 'litellm.NotFoundError: GeminiException - . Received Model Group=gemini/gemini-3-flash-preview Available Model Group Fallbacks=None', 4) ✅ AUTHENTICATION & DATABASE - Test user creation (test_ai_photo_e427dafd) and session management working correctly, Bearer token authentication functional across all endpoints, MongoDB operations (users, user_sessions, meals, photo_analyses collections) working properly, 5) ✅ IMAGE PROCESSING PIPELINE - Created valid test food image (400x300 JPEG with visual features: plate, chicken, broccoli, rice, carrots) following image_testing.md guidelines, base64 encoding/decoding working correctly, image validation logic functional. ROOT CAUSE: The Gemini model 'gemini-3-flash-preview' is not available through the Emergent LLM service, causing AI analysis to fail. Other AI endpoints use fallback models. RECOMMENDATION: Update model name to available Gemini variant or configure fallback for photo analysis. All non-AI functionality (validation, meal logging, database operations) is production-ready."
   - agent: "testing"
     message: "ADAPTIVE LEARNING & BEHAVIORAL INSIGHTS TESTING COMPLETED ✅ - All 4 Adaptive Learning & Behavioral Insights endpoints tested successfully with 100% pass rate. NEW Adaptive Learning system is fully operational. Key findings: 1) ✅ ADAPTIVE PATTERNS ANALYSIS - GET /api/adaptive/patterns working perfectly with comprehensive pattern detection: 20% late eating rate detected (5/15 meals after 21:00), 57% breakfast skip rate, food variety score 60 with 9 unique foods, generated 4 combined insights including late eating, breakfast skipping, and food variety patterns, 2) ✅ AI BEHAVIORAL INSIGHTS - GET /api/adaptive/behavioral-insights fully functional with Gemini AI integration generating 4 behavioral insights including goal-behavior misalignment (high severity), emotional eating patterns (high severity), and inconsistency patterns (medium severity), successfully detected 27% emotional eating pattern (4/15 meals high-sugar low-protein), meal frequency issues (2.1 meals/day vs recommended), 3) ✅ INDIVIDUAL FOOD RESPONSE ANALYSIS - GET /api/adaptive/food-response working correctly with goal-based scoring for muscle_gain goal, personalized food analysis with proper nutrient scoring and recommendations, 4) ✅ GRACEFUL INSUFFICIENT DATA HANDLING - GET /api/adaptive/patterns properly handles users with no meal data, returns valid response structure with 0 total_meals and empty patterns without errors. Test data setup exactly matching review request specifications: created test user (test_adapt_user) with 15 meals spanning 7 days including 5 late-night meals, 3 breakfasts, 7 repetitive chicken/rice lunches, 4 high-sugar low-protein meals for emotional eating detection. All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). Authentication system fully functional with Bearer tokens. Database operations (user creation, session management, meal data insertion, cleanup) functioning correctly. AI timeout handling working - endpoints return 200 with proper structure even if AI processing fails. Adaptive Learning & Behavioral Insights system is production-ready."
+  - agent: "testing"
+    message: "FEEDBACK REPORTS TESTING COMPLETED ✅ - All 4 NEW Feedback Reports endpoints tested successfully with 100% pass rate after fixing critical timezone bug. Feedback Reports system is fully operational. Key findings: 1) ✅ DAILY FEEDBACK REPORT - GET /api/feedback/daily working perfectly with comprehensive daily analysis: returns period='daily', date, stats (meals_count=3, calories=1370, protein_g=77, water_ml=1500), feedback with Jaide-narrated insights (jaide_observation, body_impact, wins, improvements, main_recommendation), and foods_logged array with 3 meal entries, 2) ✅ WEEKLY FEEDBACK REPORT - GET /api/feedback/weekly fully functional with 7-day analysis: returns period='weekly', range (start/end dates), stats (days_tracked=7, consistency_pct=100, avg_calories=659, avg_protein=40), daily_breakdown, and AI-generated feedback, 3) ✅ MONTHLY FEEDBACK REPORT - GET /api/feedback/monthly working correctly after fixing critical timezone comparison bug: returns period='monthly', range, stats, evolution analysis (first_half_avg vs second_half_avg for calories, protein, fiber, meals_per_day), and feedback. FIXED datetime comparison issue between timezone-aware and timezone-naive timestamps in lines 227-228, 4) ✅ ANNUAL FEEDBACK REPORT - GET /api/feedback/annual working correctly with insufficient data handling: returns period='annual', insufficient_data=true (expected with only 7 days of test data), meaningful message 'Annual report requires at least 30 days of tracked data. Keep logging!', and fallback feedback structure. Test data setup exactly matching review request specifications: created test user (test_feedback_user) with user_id, email='test@fb.com', name='Feedback Test', weight_kg=75, height_cm=175, age=30, sex='male', activity_level='moderate', health_goals=['energy'], session token 'test_fb_token', 10 test meals (3 today with nutrients in specified ranges: energy_kcal=400-600, protein_g=20-40, carbohydrate_g=50-80, fat_g=10-20, fiber_g=5-10, sugars_g=10-20, 7 historical meals spread across last 7 days), water logs for today (3 entries of 500ml each). All endpoints using correct production URL (https://meal-sync-test.preview.emergentagent.com/api). Gemini AI integration working correctly for all feedback generation with proper fallback handling. Authentication system fully functional with Bearer tokens. Database operations (user creation, session management, meal/water data insertion, cleanup) functioning correctly. Feedback Reports system is production-ready with comprehensive multi-level analysis."
 
 ## Latest Frontend Changes to Test — Zod & React-Hook-Form Migration
 

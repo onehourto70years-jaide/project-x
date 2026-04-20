@@ -23,6 +23,7 @@ from routes.photo_ai import router as photo_ai_router
 from routes.metabolic import router as metabolic_router
 from routes.body_state import router as body_state_router
 from routes.adaptive import router as adaptive_router
+from routes.feedback import router as feedback_router
 
 
 def create_api_router() -> APIRouter:
@@ -50,4 +51,5 @@ def create_api_router() -> APIRouter:
     api.include_router(metabolic_router)
     api.include_router(body_state_router)
     api.include_router(adaptive_router)
+    api.include_router(feedback_router)
     return api
