@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated, Alert, Share, Modal, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated, Alert, Share, Modal, Switch, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../_layout';
@@ -45,6 +45,10 @@ export default function DashboardScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const celebrationCheckedRef = useRef<Set<string>>(new Set());
 
+  // ─── Dashboard View Mode ────────────────
+  const [viewMode, setViewMode] = useState<'primary' | 'detail'>('primary');
+  const [bodyState, setBodyState] = useState<any>(null);
+
   // ─── Widget layout ─────────────────────
   const [widgets, setWidgets] = useState<WidgetItem[]>([]);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -78,6 +82,12 @@ export default function DashboardScreen() {
       setDashboard(dashResult.data);
       setIsOffline(dashResult.fromCache);
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
+
+      // ── Fetch body state for primary dashboard ──
+      try {
+        const bsRes = await fetch(`${BACKEND_URL}/api/body-state`, { headers: authHeaders });
+        if (bsRes.ok) setBodyState(await bsRes.json());
+      } catch (_) {} // Silent failure
 
       // ── Matrix Element Intelligence ──
       if (matrixEnabled && dashResult.data?.elements) {
@@ -279,8 +289,91 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          {/* ── Dynamic Widget Grid ── */}
-          {widgets.filter(w => w.enabled).map(renderWidget)}
+          {/* ── View Mode Toggle ── */}
+          <View style={s.viewToggleRow}>
+            <TouchableOpacity
+              style={[s.viewToggleBtn, viewMode === 'primary' && s.viewToggleBtnActive]}
+              onPress={() => setViewMode('primary')}
+            >
+              <Ionicons name="flash" size={16} color={viewMode === 'primary' ? '#00d4ff' : '#666'} />
+              <Text style={[s.viewToggleText, viewMode === 'primary' && s.viewToggleTextActive]}>Essential</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.viewToggleBtn, viewMode === 'detail' && s.viewToggleBtnActive]}
+              onPress={() => setViewMode('detail')}
+            >
+              <Ionicons name="grid" size={16} color={viewMode === 'detail' ? '#00d4ff' : '#666'} />
+              <Text style={[s.viewToggleText, viewMode === 'detail' && s.viewToggleTextActive]}>Full Dashboard</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── PRIMARY VIEW (Zero Overload) ── */}
+          {viewMode === 'primary' && (
+            <View style={s.primaryContainer}>
+              {/* Body State Summary */}
+              <View style={[s.primaryCard, { backgroundColor: theme.bgCard }]}>
+                <View style={s.primaryCardHeader}>
+                  <Image source={require('../../assets/jaide/jaide-cartoon.png')} style={s.primaryJaideAvatar} />
+                  <View style={s.primaryCardHeaderText}>
+                    <Text style={[s.primaryLabel, { color: '#00d4ff' }]}>TODAY'S STATE</Text>
+                    <Text style={[s.primaryNote, { color: theme.text }]} numberOfLines={2}>
+                      {bodyState?.metabolic_note || 'Log your first meal to activate body state'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Body State Indicators (compact) */}
+                {bodyState?.body_state && (
+                  <View style={s.primaryStateRow}>
+                    {Object.entries(bodyState.body_state).slice(0, 4).map(([key, state]: [string, any]) => {
+                      const levelColors: Record<string, string> = { high: '#00ff88', optimal: '#00ff88', stable: '#00ff88', satisfied: '#00ff88', moderate: '#ffd93d', normal: '#ffd93d', adequate: '#ffd93d', mild: '#ffd93d', low: '#ff6b6b', unstable: '#ff6b6b', crash_risk: '#e74c3c', foggy: '#e74c3c', insufficient: '#ff6b6b', unknown: '#555' };
+                      const icons: Record<string, string> = { energy: '⚡', glycemic_stability: '📈', concentration: '🧠', hunger: '🍽️', recovery: '💪' };
+                      const color = levelColors[state?.level] || '#555';
+                      return (
+                        <View key={key} style={s.primaryStateItem}>
+                          <Text style={s.primaryStateIcon}>{icons[key] || '📊'}</Text>
+                          <Text style={[s.primaryStateLevel, { color }]}>{(state?.level || 'N/A').toUpperCase()}</Text>
+                          <Text style={s.primaryStateLabel}>{key === 'glycemic_stability' ? 'Glyc.' : key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* Top Decision */}
+              {bodyState?.decisions?.[0] && (
+                <TouchableOpacity style={[s.primaryDecisionCard, { backgroundColor: theme.bgCard }]} onPress={() => router.push('/body-state' as any)}>
+                  <Text style={s.primaryDecisionIcon}>{bodyState.decisions[0].icon}</Text>
+                  <View style={s.primaryDecisionContent}>
+                    <Text style={[s.primaryDecisionAction, { color: theme.text }]}>{bodyState.decisions[0].action}</Text>
+                    <Text style={s.primaryDecisionReason}>{bodyState.decisions[0].reason}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#00d4ff" />
+                </TouchableOpacity>
+              )}
+
+              {/* Nutrient Gaps (compact) */}
+              <WidgetErrorBoundary widgetName="Nutrient Gaps">
+                <WidgetNutrientGaps nutrients={dashboard?.nutrition?.nutrients} />
+              </WidgetErrorBoundary>
+
+              {/* Quick Actions */}
+              <WidgetErrorBoundary widgetName="Quick Actions">
+                <WidgetQuickActions onAddWater={quickAddWater} onLogMeal={() => setShowQuickMeal(true)} onScan={() => router.push('/scanner')} />
+              </WidgetErrorBoundary>
+
+              {/* Expand Button */}
+              <TouchableOpacity style={[s.expandBtn, { backgroundColor: theme.bgCard }]} onPress={() => setViewMode('detail')}>
+                <Ionicons name="layers" size={18} color="#00d4ff" />
+                <Text style={s.expandBtnText}>View Full Dashboard</Text>
+                <Ionicons name="chevron-down" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── DETAIL VIEW (Full Widget Grid) ── */}
+          {viewMode === 'detail' && widgets.filter(w => w.enabled).map(renderWidget)}
 
         </Animated.View>
       </ScrollView>
@@ -383,4 +476,30 @@ const s = StyleSheet.create({
   resetText: { fontSize: 13, fontWeight: '500' },
   custCloseBtn: { paddingVertical: 10, paddingHorizontal: 16 },
   custCloseTxt: { fontSize: 14, fontWeight: '600' },
+  // View Toggle
+  viewToggleRow: { flexDirection: 'row', marginHorizontal: 20, marginTop: 12, marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4 },
+  viewToggleBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  viewToggleBtnActive: { backgroundColor: 'rgba(0, 212, 255, 0.12)' },
+  viewToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  viewToggleTextActive: { color: '#00d4ff' },
+  // Primary View
+  primaryContainer: { paddingHorizontal: 16, gap: 12 },
+  primaryCard: { borderRadius: 18, padding: 18, borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.1)' },
+  primaryCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  primaryJaideAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: 'rgba(0, 212, 255, 0.3)' },
+  primaryCardHeaderText: { flex: 1, marginLeft: 12 },
+  primaryLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2 },
+  primaryNote: { fontSize: 14, fontWeight: '500', marginTop: 3, lineHeight: 18 },
+  primaryStateRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  primaryStateItem: { alignItems: 'center', flex: 1 },
+  primaryStateIcon: { fontSize: 20, marginBottom: 4 },
+  primaryStateLevel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  primaryStateLabel: { fontSize: 10, color: '#666', marginTop: 2 },
+  primaryDecisionCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14, borderLeftWidth: 3, borderLeftColor: '#00d4ff' },
+  primaryDecisionIcon: { fontSize: 22, marginRight: 12 },
+  primaryDecisionContent: { flex: 1 },
+  primaryDecisionAction: { fontSize: 14, fontWeight: '600', lineHeight: 18 },
+  primaryDecisionReason: { fontSize: 11, color: '#888', marginTop: 2 },
+  expandBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, padding: 14, gap: 8, borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.15)', borderStyle: 'dashed' },
+  expandBtnText: { fontSize: 13, color: '#00d4ff', fontWeight: '600' },
 });
