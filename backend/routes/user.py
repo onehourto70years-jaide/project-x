@@ -58,7 +58,7 @@ async def update_user_settings(settings: Dict[str, Any], user: User = Depends(re
 @router.put("/user/profile")
 async def update_user_profile(profile: Dict[str, Any], user: User = Depends(require_user)):
     profile = _sanitize_value(profile)
-    allowed = ["weight_kg", "height_cm", "age", "sex", "activity_level", "weight_goal", "health_goals", "name", "language_preference"]
+    allowed = ["weight_kg", "height_cm", "age", "sex", "activity_level", "weight_goal", "health_goals", "name", "language_preference", "sleep_hours", "diet_type"]
     update_data = {k: v for k, v in profile.items() if k in allowed}
     await db.users.update_one({"user_id": user.user_id}, {"$set": update_data})
     return {"message": "Profile updated"}
