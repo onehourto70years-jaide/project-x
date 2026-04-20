@@ -9,7 +9,7 @@ import Svg, { Circle } from 'react-native-svg';
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 // Score ring component
-function ScoreRing({ size, score, color }: { size: number; score: number; color: string }) {
+function ScoreRing({ size, score, color, trackColor }: { size: number; score: number; color: string; trackColor: string }) {
   const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -17,7 +17,7 @@ function ScoreRing({ size, score, color }: { size: number; score: number; color:
   const strokeDashoffset = circumference - (progress * circumference);
   return (
     <Svg width={size} height={size}>
-      <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} fill="none" />
+      <Circle cx={size / 2} cy={size / 2} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" />
       <Circle cx={size / 2} cy={size / 2} r={radius} stroke={color} strokeWidth={strokeWidth} fill="none"
         strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
         transform={`rotate(-90 ${size / 2} ${size / 2})`} />
@@ -67,10 +67,10 @@ export default function BodyStateScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00d4ff" />
-          <Text style={styles.loadingText}>Analyzing body state...</Text>
+          <ActivityIndicator size="large" color={theme.accent} />
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>Analyzing body state...</Text>
         </View>
       </SafeAreaView>
     );
@@ -84,55 +84,55 @@ export default function BodyStateScreen() {
   const metabolicNote = data?.metabolic_note || '';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Body State</Text>
         <TouchableOpacity onPress={() => { setRefreshing(true); fetchBodyState(); }}>
-          <Ionicons name="refresh" size={22} color="#00d4ff" />
+          <Ionicons name="refresh" size={22} color={theme.accent} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBodyState(); }} tintColor="#00d4ff" />}>
+      <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBodyState(); }} tintColor={theme.accent} />}>
 
         {/* ── Metabolic Note ── */}
         {metabolicNote && (
-          <View style={[styles.noteCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.noteCard, { backgroundColor: theme.bgCard }]}>
             <Image source={require('../assets/jaide/jaide-cartoon.png')} style={styles.noteAvatar} />
             <View style={styles.noteContent}>
-              <Text style={styles.noteLabel}>JAIDE OBSERVES</Text>
-              <Text style={styles.noteText}>{metabolicNote}</Text>
+              <Text style={[styles.noteLabel, { color: theme.accent }]}>JAIDE OBSERVES</Text>
+              <Text style={[styles.noteText, { color: theme.textSecondary }]}>{metabolicNote}</Text>
             </View>
           </View>
         )}
 
         {/* ── Body State Indicators ── */}
-        <Text style={styles.sectionTitle}>🧬 Body State</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>🧬 Body State</Text>
         <View style={styles.stateGrid}>
           {Object.entries(bodyState).map(([key, state]: [string, any]) => {
             if (!state || typeof state !== 'object') return null;
-            const color = LEVEL_COLORS[state.level] || '#666';
+            const color = LEVEL_COLORS[state.level] || theme.textDim;
             const score = state.score || 0;
             const icon = STATE_ICONS[key] || '📊';
             return (
-              <View key={key} style={[styles.stateCard, { backgroundColor: theme.card }]}>
+              <View key={key} style={[styles.stateCard, { backgroundColor: theme.bgCard }]}>
                 <View style={styles.stateCardHeader}>
                   <Text style={styles.stateIcon}>{icon}</Text>
                   <View style={styles.stateRingContainer}>
-                    <ScoreRing size={44} score={score} color={color} />
+                    <ScoreRing size={44} score={score} color={color} trackColor={theme.border} />
                     <Text style={[styles.stateScore, { color }]}>{score}</Text>
                   </View>
                 </View>
-                <Text style={styles.stateLabel}>{key.replace(/_/g, ' ')}</Text>
+                <Text style={[styles.stateLabel, { color: theme.text }]}>{key.replace(/_/g, ' ')}</Text>
                 <View style={[styles.levelBadge, { backgroundColor: color + '20', borderColor: color + '40' }]}>
                   <Text style={[styles.levelText, { color }]}>{state.level?.toUpperCase()}</Text>
                 </View>
-                <Text style={styles.statePrediction}>{state.prediction}</Text>
+                <Text style={[styles.statePrediction, { color: theme.textMuted }]}>{state.prediction}</Text>
                 {key === 'hunger' && state.hours_until_hungry !== undefined && (
-                  <Text style={styles.hungerTime}>~{state.hours_until_hungry}h until hungry</Text>
+                  <Text style={[styles.hungerTime, { color: theme.warning }]}>~{state.hours_until_hungry}h until hungry</Text>
                 )}
               </View>
             );
@@ -140,20 +140,20 @@ export default function BodyStateScreen() {
         </View>
 
         {/* ── Decision Engine ── */}
-        <Text style={styles.sectionTitle}>🧠 Decision Engine</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>🧠 Decision Engine</Text>
         <View style={styles.decisionsContainer}>
           {decisions.map((d: any, i: number) => (
-            <View key={i} style={[styles.decisionCard, { backgroundColor: theme.card, borderLeftColor: PRIORITY_COLORS[d.priority] || '#00d4ff' }]}>
+            <View key={i} style={[styles.decisionCard, { backgroundColor: theme.bgCard, borderLeftColor: PRIORITY_COLORS[d.priority] || theme.accent }]}>
               <View style={styles.decisionHeader}>
                 <Text style={styles.decisionIcon}>{d.icon || '💡'}</Text>
-                <View style={[styles.priorityBadge, { backgroundColor: (PRIORITY_COLORS[d.priority] || '#00d4ff') + '20' }]}>
-                  <Text style={[styles.priorityText, { color: PRIORITY_COLORS[d.priority] || '#00d4ff' }]}>
+                <View style={[styles.priorityBadge, { backgroundColor: (PRIORITY_COLORS[d.priority] || theme.accent) + '20' }]}>
+                  <Text style={[styles.priorityText, { color: PRIORITY_COLORS[d.priority] || theme.accent }]}>
                     {d.priority?.toUpperCase()}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.decisionAction}>{d.action}</Text>
-              <Text style={styles.decisionReason}>{d.reason}</Text>
+              <Text style={[styles.decisionAction, { color: theme.text }]}>{d.action}</Text>
+              <Text style={[styles.decisionReason, { color: theme.textMuted }]}>{d.reason}</Text>
             </View>
           ))}
         </View>
@@ -161,20 +161,20 @@ export default function BodyStateScreen() {
         {/* ── Active Synergies ── */}
         {synergies.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>🔗 Active Nutrient Synergies</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🔗 Active Nutrient Synergies</Text>
             {synergies.map((s: any, i: number) => (
-              <View key={i} style={[styles.synergyCard, { backgroundColor: theme.card, borderLeftColor: s.color || '#4ecdc4' }]}>
+              <View key={i} style={[styles.synergyCard, { backgroundColor: theme.bgCard, borderLeftColor: s.color || theme.teal }]}>
                 <View style={styles.synergyHeader}>
                   <Text style={styles.synergyIcon}>{s.icon}</Text>
-                  <Text style={[styles.synergyEffect, { color: s.color }]}>{s.effect}</Text>
+                  <Text style={[styles.synergyEffect, { color: s.color || theme.teal }]}>{s.effect}</Text>
                   {s.strength > 0 && (
-                    <View style={[styles.strengthBadge, { backgroundColor: s.color + '20' }]}>
-                      <Text style={[styles.strengthText, { color: s.color }]}>{Math.round(s.strength * 100)}%</Text>
+                    <View style={[styles.strengthBadge, { backgroundColor: (s.color || theme.teal) + '20' }]}>
+                      <Text style={[styles.strengthText, { color: s.color || theme.teal }]}>{Math.round(s.strength * 100)}%</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.synergyExplanation}>{s.explanation}</Text>
-                <Text style={styles.synergyExample}>e.g. {s.food_example}</Text>
+                <Text style={[styles.synergyExplanation, { color: theme.textMuted }]}>{s.explanation}</Text>
+                <Text style={[styles.synergyExample, { color: theme.textDim }]}>e.g. {s.food_example}</Text>
               </View>
             ))}
           </>
@@ -183,17 +183,17 @@ export default function BodyStateScreen() {
         {/* ── Active Conflicts ── */}
         {conflicts.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>⚠️ Nutrient Conflicts Detected</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>⚠️ Nutrient Conflicts Detected</Text>
             {conflicts.map((c: any, i: number) => (
-              <View key={i} style={[styles.conflictCard, { backgroundColor: theme.card }]}>
+              <View key={i} style={[styles.conflictCard, { backgroundColor: theme.bgCard }]}>
                 <View style={styles.conflictHeader}>
                   <Text style={styles.conflictIcon}>{c.icon}</Text>
-                  <Text style={styles.conflictEffect}>{c.effect}</Text>
+                  <Text style={[styles.conflictEffect, { color: theme.danger }]}>{c.effect}</Text>
                 </View>
-                <Text style={styles.conflictExplanation}>{c.explanation}</Text>
-                <View style={styles.conflictAdvice}>
-                  <Ionicons name="bulb" size={14} color="#ffd93d" />
-                  <Text style={styles.conflictAdviceText}>{c.advice}</Text>
+                <Text style={[styles.conflictExplanation, { color: theme.textMuted }]}>{c.explanation}</Text>
+                <View style={[styles.conflictAdvice, { backgroundColor: theme.bgInput }]}>
+                  <Ionicons name="bulb" size={14} color={theme.warning} />
+                  <Text style={[styles.conflictAdviceText, { color: theme.warning }]}>{c.advice}</Text>
                 </View>
               </View>
             ))}
@@ -202,16 +202,16 @@ export default function BodyStateScreen() {
 
         {/* ── No Synergies/Conflicts Info ── */}
         {synergies.length === 0 && conflicts.length === 0 && mealsCount > 0 && (
-          <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
-            <Ionicons name="flask" size={32} color="#666" />
-            <Text style={styles.emptyText}>No synergies or conflicts detected yet. Keep logging meals to unlock nutrient interactions.</Text>
+          <View style={[styles.emptyCard, { backgroundColor: theme.bgCard }]}>
+            <Ionicons name="flask" size={32} color={theme.textDim} />
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No synergies or conflicts detected yet. Keep logging meals to unlock nutrient interactions.</Text>
           </View>
         )}
 
         {/* ── Meals Count ── */}
-        <View style={[styles.footerCard, { backgroundColor: theme.card }]}>
-          <Ionicons name="analytics" size={18} color="#888" />
-          <Text style={styles.footerText}>Analysis based on {mealsCount} meal{mealsCount !== 1 ? 's' : ''} logged today</Text>
+        <View style={[styles.footerCard, { backgroundColor: theme.bgCard }]}>
+          <Ionicons name="analytics" size={18} color={theme.textMuted} />
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>Analysis based on {mealsCount} meal{mealsCount !== 1 ? 's' : ''} logged today</Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -223,8 +223,8 @@ export default function BodyStateScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { color: '#888', marginTop: 12, fontSize: 14 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  loadingText: { marginTop: 12, fontSize: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700' },
   scroll: { padding: 16 },
@@ -233,11 +233,11 @@ const styles = StyleSheet.create({
   noteCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.15)' },
   noteAvatar: { width: 44, height: 44, borderRadius: 22 },
   noteContent: { flex: 1, marginLeft: 12 },
-  noteLabel: { fontSize: 10, fontWeight: '700', color: '#00d4ff', letterSpacing: 2, marginBottom: 4 },
-  noteText: { fontSize: 14, color: '#c0c0dd', lineHeight: 20, fontStyle: 'italic' },
+  noteLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, marginBottom: 4 },
+  noteText: { fontSize: 14, lineHeight: 20, fontStyle: 'italic' },
 
   // Section
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 12, marginTop: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, marginTop: 8 },
 
   // Body State Grid
   stateGrid: { gap: 10, marginBottom: 20 },
@@ -246,11 +246,11 @@ const styles = StyleSheet.create({
   stateIcon: { fontSize: 28 },
   stateRingContainer: { position: 'relative', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   stateScore: { position: 'absolute', fontSize: 13, fontWeight: 'bold' },
-  stateLabel: { fontSize: 14, fontWeight: '600', color: '#fff', textTransform: 'capitalize', marginBottom: 6 },
+  stateLabel: { fontSize: 14, fontWeight: '600', textTransform: 'capitalize', marginBottom: 6 },
   levelBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, marginBottom: 8 },
   levelText: { fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  statePrediction: { fontSize: 13, color: '#999', lineHeight: 18 },
-  hungerTime: { fontSize: 12, color: '#ffd93d', marginTop: 4, fontWeight: '600' },
+  statePrediction: { fontSize: 13, lineHeight: 18 },
+  hungerTime: { fontSize: 12, marginTop: 4, fontWeight: '600' },
 
   // Decision Engine
   decisionsContainer: { gap: 10, marginBottom: 20 },
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
   decisionIcon: { fontSize: 24 },
   priorityBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
   priorityText: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  decisionAction: { fontSize: 15, fontWeight: '600', color: '#fff', lineHeight: 22, marginBottom: 4 },
-  decisionReason: { fontSize: 12, color: '#888', lineHeight: 16 },
+  decisionAction: { fontSize: 15, fontWeight: '600', lineHeight: 22, marginBottom: 4 },
+  decisionReason: { fontSize: 12, lineHeight: 16 },
 
   // Synergies
   synergyCard: { borderRadius: 14, padding: 16, marginBottom: 10, borderLeftWidth: 4 },
@@ -269,21 +269,21 @@ const styles = StyleSheet.create({
   synergyEffect: { fontSize: 14, fontWeight: '700', flex: 1 },
   strengthBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   strengthText: { fontSize: 11, fontWeight: '700' },
-  synergyExplanation: { fontSize: 12, color: '#aaa', lineHeight: 16, marginBottom: 4 },
-  synergyExample: { fontSize: 11, color: '#666', fontStyle: 'italic' },
+  synergyExplanation: { fontSize: 12, lineHeight: 16, marginBottom: 4 },
+  synergyExample: { fontSize: 11, fontStyle: 'italic' },
 
   // Conflicts
   conflictCard: { borderRadius: 14, padding: 16, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#e74c3c' },
   conflictHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 8 },
   conflictIcon: { fontSize: 20 },
-  conflictEffect: { fontSize: 14, fontWeight: '700', color: '#e74c3c' },
-  conflictExplanation: { fontSize: 12, color: '#aaa', lineHeight: 16, marginBottom: 8 },
-  conflictAdvice: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(253, 203, 110, 0.1)', borderRadius: 10, padding: 10, gap: 8 },
-  conflictAdviceText: { fontSize: 12, color: '#ffd93d', flex: 1, lineHeight: 16 },
+  conflictEffect: { fontSize: 14, fontWeight: '700' },
+  conflictExplanation: { fontSize: 12, lineHeight: 16, marginBottom: 8 },
+  conflictAdvice: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, padding: 10, gap: 8 },
+  conflictAdviceText: { fontSize: 12, flex: 1, lineHeight: 16 },
 
   // Empty / Footer
   emptyCard: { borderRadius: 14, padding: 24, alignItems: 'center', marginVertical: 12 },
-  emptyText: { color: '#888', fontSize: 13, textAlign: 'center', marginTop: 8, lineHeight: 18 },
+  emptyText: { fontSize: 13, textAlign: 'center', marginTop: 8, lineHeight: 18 },
   footerCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginTop: 12, gap: 8 },
-  footerText: { color: '#888', fontSize: 12 },
+  footerText: { fontSize: 12 },
 });
