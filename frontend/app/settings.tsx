@@ -102,7 +102,7 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState({
     daily_calorie_goal: 2000, daily_protein_goal: 50, daily_water_goal_ml: 2500,
     notifications_enabled: true, water_reminder_enabled: true, meal_reminder_enabled: true, routine_reminder_enabled: true, tips_enabled: true,
-    celebrations_enabled: true
+    celebrations_enabled: true, jaide_presence: 'standard' as string,
   });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -531,6 +531,41 @@ export default function SettingsScreen() {
             <Text style={[styles.testNotifText, { color: theme.accent, marginLeft: 8 }]}>{t('notif_view_all')}</Text>
             <Ionicons name="chevron-forward" size={16} color={theme.textDim} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
+        </View>
+
+        {/* Jaide Presence Section */}
+        <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>{'🌌 Jaide Presence'}</Text>
+        <View style={[styles.card, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
+          <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 12, lineHeight: 16 }}>
+            Control how Jaide appears throughout the app. Jaide is your celestial nutrition guide.
+          </Text>
+          {[
+            { id: 'off', label: 'Off', desc: 'No dialogue — silent insights only', icon: 'eye-off' },
+            { id: 'minimal', label: 'Minimal', desc: 'Only key insights', icon: 'remove-circle' },
+            { id: 'standard', label: 'Standard', desc: 'Balanced guidance', icon: 'ellipse' },
+            { id: 'immersive', label: 'Immersive', desc: 'Full narrative experience', icon: 'sparkles' },
+          ].map((level) => (
+            <TouchableOpacity
+              key={level.id}
+              style={[
+                styles.switchRow,
+                { borderBottomWidth: 0, paddingVertical: 10 },
+                settings.jaide_presence === level.id && { backgroundColor: 'rgba(0, 212, 255, 0.08)', borderRadius: 10, marginHorizontal: -8, paddingHorizontal: 8 },
+              ]}
+              onPress={() => setSettings(prev => ({ ...prev, jaide_presence: level.id }))}
+            >
+              <View style={[styles.settingIcon, { backgroundColor: settings.jaide_presence === level.id ? 'rgba(0, 212, 255, 0.15)' : theme.bgInput }]}>
+                <Ionicons name={level.icon as any} size={18} color={settings.jaide_presence === level.id ? '#00d4ff' : theme.textDim} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.switchLabel, { color: settings.jaide_presence === level.id ? '#00d4ff' : theme.text }]}>{level.label}</Text>
+                <Text style={[styles.switchDesc, { color: theme.textMuted }]}>{level.desc}</Text>
+              </View>
+              {settings.jaide_presence === level.id && (
+                <Ionicons name="checkmark-circle" size={22} color="#00d4ff" />
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Subscription Section */}

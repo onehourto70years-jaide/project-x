@@ -11,13 +11,14 @@ const KEY = 'nutrios_widget_layout';
 
 export const DEFAULT_WIDGETS: WidgetItem[] = [
   { id: 'health_score', label: 'Health Score & Rings', icon: 'shield-checkmark', enabled: true },
+  { id: 'jaide_insight', label: 'Jaide Insight', icon: 'sparkles', enabled: true },
   { id: 'quick_actions', label: 'Quick Actions', icon: 'flash', enabled: true },
   { id: 'nutrient_gaps', label: 'Nutrient Gaps', icon: 'pulse', enabled: true },
   { id: 'elements', label: 'Elemental Composition', icon: 'flask', enabled: true },
   { id: 'streak', label: 'Streak & Badges', icon: 'trophy', enabled: true },
   { id: 'macros', label: 'Macro Breakdown', icon: 'pie-chart', enabled: true },
   { id: 'recent_meals', label: 'Recent Meals', icon: 'restaurant', enabled: true },
-  { id: 'ai_insights', label: 'AI Insights', icon: 'sparkles', enabled: true },
+  { id: 'ai_insights', label: 'AI Insights', icon: 'bulb', enabled: true },
   { id: 'quick_nav', label: 'Quick Navigation', icon: 'grid', enabled: true },
   { id: 'share_social', label: 'Share & Social', icon: 'share-social', enabled: true },
 ];

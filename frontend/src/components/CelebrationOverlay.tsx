@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Easing,
-  Dimensions, Modal, Platform, Share,
+  Dimensions, Modal, Platform, Share, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCelebration } from '../CelebrationContext';
@@ -209,6 +209,7 @@ export default function CelebrationOverlay() {
           styles.badgeContainer,
           { opacity: badgeOpacity, transform: [{ scale: badgeScale }] },
         ]}>
+          <Image source={require('../../assets/jaide/jaide-cartoon.png')} style={styles.jaideAvatar} />
           <View style={[styles.badgeCircle, { borderColor: `${badgeColor}60`, backgroundColor: `${badgeColor}12` }]}>
             <View style={[styles.badgeInner, { backgroundColor: `${badgeColor}20` }]}>
               <Ionicons name={(currentBadge.icon || 'trophy') as any} size={36} color={badgeColor} />
@@ -221,9 +222,10 @@ export default function CelebrationOverlay() {
           styles.textBlock,
           { opacity: textOpacity, transform: [{ translateY: textTranslateY }] },
         ]}>
-          <Text style={styles.systemLabel}>SYSTEM UPDATE</Text>
+          <Text style={styles.systemLabel}>JAIDE OBSERVES</Text>
           <Text style={[styles.badgeName, { color: badgeColor }]}>{currentBadge.name}</Text>
           <Text style={styles.systemMessage}>{currentBadge.systemMessage}</Text>
+          <Text style={styles.jaideQuote}>"Growth detected. You are becoming more aligned."</Text>
           <View style={[styles.statPill, { backgroundColor: `${badgeColor}14`, borderColor: `${badgeColor}30` }]}>
             <View style={[styles.statDot, { backgroundColor: badgeColor }]} />
             <Text style={[styles.statText, { color: badgeColor }]}>
@@ -287,6 +289,11 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     marginBottom: 32,
+    alignItems: 'center',
+  },
+  jaideAvatar: {
+    width: 48, height: 48, borderRadius: 24, marginBottom: 12,
+    borderWidth: 2, borderColor: 'rgba(0, 212, 255, 0.4)',
   },
   badgeCircle: {
     width: 120, height: 120, borderRadius: 60,
@@ -320,6 +327,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 8,
+  },
+  jaideQuote: {
+    fontSize: 13,
+    color: 'rgba(0, 212, 255, 0.7)',
+    textAlign: 'center',
+    fontStyle: 'italic',
     marginBottom: 16,
   },
   statPill: {

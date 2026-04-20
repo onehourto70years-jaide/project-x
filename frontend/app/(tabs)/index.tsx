@@ -20,6 +20,7 @@ import WidgetStreak from '../../src/components/widgets/WidgetStreak';
 import WidgetMacros from '../../src/components/widgets/WidgetMacros';
 import WidgetRecentMeals from '../../src/components/widgets/WidgetRecentMeals';
 import WidgetAIInsights from '../../src/components/widgets/WidgetAIInsights';
+import WidgetJaideInsight from '../../src/components/widgets/WidgetJaideInsight';
 import WidgetQuickNav from '../../src/components/widgets/WidgetQuickNav';
 import WidgetShareSocial from '../../src/components/widgets/WidgetShareSocial';
 import QuickMealModal from '../../src/components/QuickMealModal';
@@ -208,6 +209,7 @@ export default function DashboardScreen() {
       case 'macros': content = <WidgetMacros dashboard={dashboard} />; break;
       case 'recent_meals': content = <WidgetRecentMeals meals={dashboard?.recent_meals || []} onViewAll={() => router.push('/(tabs)/nutrition')} onRefresh={fetchDashboard} />; break;
       case 'ai_insights': content = <WidgetAIInsights insights={dashboard?.insights || []} />; break;
+      case 'jaide_insight': content = <WidgetJaideInsight />; break;
       case 'quick_nav': content = <WidgetQuickNav />; break;
       case 'share_social': content = <WidgetShareSocial onShareDaily={handleShareDaily} onShareWeekly={handleShareWeekly} onViewBadges={() => router.push('/badges')} />; break;
       default: return null;

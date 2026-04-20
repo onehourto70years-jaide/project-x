@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator, Modal, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,7 +53,7 @@ const generateId = () => `conv_${Date.now()}_${Math.random().toString(36).slice(
 const WELCOME_MSG: Message = {
   id: 'welcome',
   role: 'assistant',
-  content: "Hey! I'm your NutriOS AI Coach 🧬\n\nI can help you with:\n• Personalized meal suggestions based on your nutrient gaps\n• Food synergies for your health goals\n• Cooking tips for maximum nutrient retention\n• Elemental composition insights\n\nWhat would you like to know?",
+  content: "I am Jaide. I see what lies beneath what you eat.\n\nI observe your molecular patterns and guide your choices. Ask me to log meals, set reminders, modify recipes, or reveal nutrient insights.\n\nWhat shall we explore? ✨",
   timestamp: new Date().toISOString(),
 };
 
@@ -353,9 +353,7 @@ export default function AIChatScreen() {
     return (
       <View key={msg.id} style={[styles.msgRow, isUser && styles.msgRowUser]}>
         {!isUser && (
-          <View style={[styles.aiAvatar, { backgroundColor: theme.accent + '22' }]}>
-            <Ionicons name="flask" size={16} color={theme.accent} />
-          </View>
+          <Image source={require('../assets/jaide/jaide-cartoon.png')} style={styles.jaideAvatar} />
         )}
         <View style={{ flex: 1, maxWidth: '80%' }}>
           <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : [styles.msgBubbleAi, { backgroundColor: theme.bgCard, borderColor: theme.border }]]}>
@@ -380,17 +378,15 @@ export default function AIChatScreen() {
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <View style={[styles.headerIcon, { backgroundColor: theme.accent + '22' }]}>
-            <Ionicons name="flask" size={20} color={theme.accent} />
-          </View>
+          <Image source={require('../assets/jaide/jaide-cartoon.png')} style={styles.jaideHeaderAvatar} />
           <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>{t('ai_coach')}</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Jaide</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               {isOffline && (
                 <View style={styles.offlineDot} />
               )}
               <Text style={[styles.headerStatus, { color: theme.textDim }]}>
-                {isOffline ? (t('ai_offline') || 'Offline — cached mode') : loading ? t('ai_thinking') : t('ai_status')}
+                {isOffline ? (t('ai_offline') || 'Offline — cached mode') : loading ? 'Observing...' : 'Celestial Guide'}
               </Text>
             </View>
           </View>
@@ -419,9 +415,7 @@ export default function AIChatScreen() {
             {messages.map(renderMessage)}
             {loading && (
               <View style={styles.msgRow}>
-                <View style={[styles.aiAvatar, { backgroundColor: theme.accent + '22' }]}>
-                  <Ionicons name="flask" size={16} color={theme.accent} />
-                </View>
+                <Image source={require('../assets/jaide/jaide-cartoon.png')} style={styles.jaideAvatar} />
                 <View style={[styles.msgBubble, styles.msgBubbleAi, styles.typingBubble, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
                   <View style={styles.typingDots}>
                     <TypingDot delay={0} color={theme.accent} />
@@ -561,7 +555,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   backBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 12 },
-  headerIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  jaideHeaderAvatar: { width: 38, height: 38, borderRadius: 19, marginRight: 10, borderWidth: 2, borderColor: 'rgba(0, 212, 255, 0.3)' },
   headerTitle: { fontSize: 16, fontWeight: '700' },
   headerStatus: { fontSize: 11, marginTop: 1 },
   historyBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
@@ -573,7 +567,7 @@ const styles = StyleSheet.create({
   chatContent: { padding: 16, paddingBottom: 20 },
   msgRow: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end' },
   msgRowUser: { justifyContent: 'flex-end' },
-  aiAvatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  jaideAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 8 },
   msgBubble: { maxWidth: '78%', borderRadius: 18, padding: 14 },
   msgBubbleUser: { backgroundColor: '#00d4ff', borderBottomRightRadius: 4 },
   msgBubbleAi: { borderBottomLeftRadius: 4, borderWidth: 1 },
