@@ -21,6 +21,7 @@ from routes.micronutrients import router as micronutrients_router
 from routes.analytics import router as analytics_router
 from routes.photo_ai import router as photo_ai_router
 from routes.metabolic import router as metabolic_router
+from routes.body_state import router as body_state_router
 
 
 def create_api_router() -> APIRouter:
@@ -46,4 +47,5 @@ def create_api_router() -> APIRouter:
     api.include_router(analytics_router)
     api.include_router(photo_ai_router)
     api.include_router(metabolic_router)
+    api.include_router(body_state_router)
     return api

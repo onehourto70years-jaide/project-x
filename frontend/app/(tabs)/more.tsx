@@ -37,6 +37,7 @@ export default function MoreScreen() {
       title: t('more_ai_insights'),
       items: [
         { id: 'metabolic', label: t('more_metabolic_profile') || 'Metabolic Profile', icon: 'body', color: '#ff6b6b', route: '/metabolic-profile' },
+        { id: 'body-state', label: t('more_body_state') || 'Body State', icon: 'pulse', color: '#00ff88', route: '/body-state' },
         { id: 'photo-meal', label: t('more_photo_meal'), icon: 'camera', color: '#4ecdc4', route: '/photo-meal' },
         { id: 'coach', label: t('more_ai_coach'), icon: 'sparkles', color: '#00d4ff', route: '/ai-home' },
         { id: 'sequence', label: t('more_sequence_optimizer'), icon: 'git-branch', color: '#ffd93d', route: '/sequence-optimizer' },
