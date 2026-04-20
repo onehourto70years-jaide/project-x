@@ -245,7 +245,7 @@ Analyze and predict body state."""
             system_message=system_prompt
         ).with_model("gemini", "gemini-2.5-flash")
 
-        response_text = await chat.send_message_async(UserMessage(content=user_msg))
+        response_text = await chat.send_message(UserMessage(text=user_msg))
 
         # Clean JSON
         cleaned = response_text.strip()
