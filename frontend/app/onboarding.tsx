@@ -119,25 +119,12 @@ export default function OnboardingScreen() {
       // ── Step 0: Jaide Introduction ──
       case 0:
         return (
-          <View style={styles.stepContent}>
+          <View style={styles.jaideIntroContainer}>
             <Image
               source={require('../assets/jaide/jaide-onboarding.png')}
-              style={styles.jaideImage}
+              style={styles.jaideFullImage}
               resizeMode="contain"
             />
-            <View style={styles.jaideSpeechBubble}>
-              <Text style={styles.jaideText}>
-                {"Welcome, traveler. I am "}
-                <Text style={styles.jaideHighlight}>Jaide</Text>
-                {"."}
-              </Text>
-              <Text style={styles.jaideSubText}>
-                I see what lies beneath what you eat. Food is not just consumption — it is composition. Energy. Choice.
-              </Text>
-            </View>
-            <Text style={styles.jaideCaption}>
-              Let me understand your biological structure.
-            </Text>
           </View>
         );
 
@@ -432,13 +419,9 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, padding: 24, paddingBottom: 120 },
   stepContent: { flex: 1, alignItems: 'center' },
 
-  // Jaide Intro
-  jaideImage: { width: width * 0.7, height: width * 0.7, marginBottom: 16 },
-  jaideSpeechBubble: { backgroundColor: 'rgba(0, 212, 255, 0.08)', borderRadius: 20, padding: 20, marginHorizontal: 8, borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.2)' },
-  jaideText: { fontSize: 18, color: '#e0e0ff', textAlign: 'center', lineHeight: 26 },
-  jaideHighlight: { color: '#00d4ff', fontWeight: 'bold', fontSize: 20 },
-  jaideSubText: { fontSize: 14, color: '#8888aa', textAlign: 'center', marginTop: 12, lineHeight: 22, fontStyle: 'italic' },
-  jaideCaption: { fontSize: 13, color: '#555', textAlign: 'center', marginTop: 20 },
+  // Jaide Intro (Full image)
+  jaideIntroContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  jaideFullImage: { width: width * 0.92, height: width * 1.55, maxHeight: 650 },
 
   // Jaide mini
   jaideMiniSpeech: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 212, 255, 0.06)', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(0, 212, 255, 0.15)' },
