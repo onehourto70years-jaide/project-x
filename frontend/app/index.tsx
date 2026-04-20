@@ -135,6 +135,7 @@ export default function Index() {
   const { locale, setLocale, t } = useLanguage();
   const [policyAccepted, setPolicyAccepted] = useState<boolean | null>(null);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [walkthroughDone, setWalkthroughDone] = useState<boolean | null>(null);
   const [languageSelected, setLanguageSelected] = useState<boolean | null>(null);
   const [selectedLang, setSelectedLang] = useState<Locale>(locale);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -145,7 +146,8 @@ export default function Index() {
       AsyncStorage.getItem('language_selected'),
       AsyncStorage.getItem('privacy_policy_accepted'),
       AsyncStorage.getItem('onboarding_completed'),
-    ]).then(([langVal, policyVal, onboardingVal]) => {
+      AsyncStorage.getItem('walkthrough_completed'),
+    ]).then(([langVal, policyVal, onboardingVal, walkthroughVal]) => {
       // Language selection is hidden — always English, always selected
       if (langVal !== 'true') {
         setLocale('en' as Locale);
@@ -154,6 +156,7 @@ export default function Index() {
       setLanguageSelected(true);
       setPolicyAccepted(policyVal === 'true');
       setOnboardingDone(onboardingVal === 'true');
+      setWalkthroughDone(walkthroughVal === 'true');
     });
   }, []);
 
@@ -195,7 +198,7 @@ export default function Index() {
   }
 
   // Still checking
-  if (languageSelected === null || policyAccepted === null || onboardingDone === null || isLoading) {
+  if (languageSelected === null || policyAccepted === null || onboardingDone === null || walkthroughDone === null || isLoading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#00d4ff" />
@@ -216,6 +219,11 @@ export default function Index() {
   // Onboarding check — after auth, before payment gate
   if (!onboardingDone) {
     return <Redirect href="/onboarding" />;
+  }
+
+  // Guided walkthrough — after onboarding, before payment gate
+  if (!walkthroughDone) {
+    return <Redirect href="/walkthrough" />;
   }
 
   if (hasAccess === null) {
